@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import activityRoutes from "./routes/activity.route.js";
 import activityCategoryRoutes from "./routes/ActivityCategory.route.js";
+import preferenceTagRoutes from "./routes/preferenceTag.route.js";
+
 dotenv.config();
 
 const app = express();
@@ -24,3 +26,5 @@ connectDB()
 app.use("/api/activity-categories", activityCategoryRoutes);
 
 app.use("/api/activities", activityRoutes);
+
+app.use("/api/preference-tags", preferenceTagRoutes);

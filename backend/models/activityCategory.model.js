@@ -16,6 +16,7 @@ const activityCategorySchema = new mongoose.Schema(
     createdBy: {
       type: String,
       required: false,
+      default: "Admin",
     },
     updatedBy: {
       type: String,
