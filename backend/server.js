@@ -4,6 +4,7 @@ import { connectDB } from "./config/db.js";
 import activityRoutes from "./routes/activity.route.js";
 import activityCategoryRoutes from "./routes/ActivityCategory.route.js";
 import preferenceTagRoutes from "./routes/preferenceTag.route.js";
+import tagRoutes from "./routes/tag.route.js";
 
 dotenv.config();
 
@@ -28,3 +29,5 @@ app.use("/api/activity-categories", activityCategoryRoutes);
 app.use("/api/activities", activityRoutes);
 
 app.use("/api/preference-tags", preferenceTagRoutes);
+
+app.use("/api/tags", tagRoutes);
