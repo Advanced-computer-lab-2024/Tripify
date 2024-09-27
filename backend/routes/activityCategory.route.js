@@ -1,6 +1,5 @@
 import express from "express";
-import * as activityCategoryController from "../controllers/activityCategoryController.js";
-
+import * as activityCategoryController from "../controllers/activityCategory.controller.js";
 const router = express.Router();
 
 router.post("/", activityCategoryController.createCategory);
