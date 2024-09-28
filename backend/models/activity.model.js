@@ -36,6 +36,14 @@ const activitySchema = new mongoose.Schema({
     discounts: {
         type: String, 
     },
+    budget: {
+        type: Number
+    },
+    rating: {
+        type: Number,
+        min: 1,
+        max: 5
+      },
     bookingOpen: {
         type: Boolean,
         default: false,
