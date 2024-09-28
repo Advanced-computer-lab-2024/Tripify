@@ -1,6 +1,6 @@
 // Admin.js
 import mongoose from 'mongoose';
-import BaseUser from './BaseUser';
+import BaseUser from '../models/baseUser.model.js';
 
 const adminSchema = new mongoose.Schema({
   adminLevel: {

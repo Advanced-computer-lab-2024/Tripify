@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BaseUser from './BaseUser';
+import BaseUser from '../models/baseUser.model.js';
 
 const sellerSchema = new mongoose.Schema({
   // Name of the seller

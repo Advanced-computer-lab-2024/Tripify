@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BaseUser from './BaseUser';
+import BaseUser from '../models/baseUser.model.js';
 
 const tourGuideSchema = new mongoose.Schema({
   // Mobile number for the tour guide

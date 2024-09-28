@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BaseUser from './BaseUser';
+import BaseUser from '../models/baseUser.model.js';
 
 const tourismGovernorSchema = new mongoose.Schema({
   jurisdiction: String,
