@@ -7,8 +7,8 @@ const itinerarySchema = new mongoose.Schema({
         required: true,
     },
     activities: [{
-        type: mongoose.Schema.Types.ObjectId, // Use ObjectId to reference Activity
-        ref: 'Activity' // Reference the Activity model
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Activity'
     }],
     timeline: [{
         activity: {
@@ -59,7 +59,7 @@ const itinerarySchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'tourguide',
+        ref: 'TourGuide', // Assuming the model name is 'TourGuide'
         required: true
     },
     bookings: [{
@@ -86,7 +86,7 @@ itinerarySchema.pre('deleteOne', { document: true, query: false }, async functio
 itinerarySchema.statics.createItinerary = async function(itineraryData, tourGuideId) {
     const itinerary = new this({
         ...itineraryData,
-        createdBy: tourGuideId // Ensure the correct field is used
+        createdBy: tourGuideId
     });
     return await itinerary.save();
 };
