@@ -4,6 +4,7 @@ import { connectDB } from './config/db.js';
 import activityRoutes from './routes/activity.route.js'; 
 import itineraryRoutes from './routes/itinerary.route.js';
 import historicalplacesRoutes from './routes/historicalplaces.route.js';
+import productRoutes from './routes/product.route.js';
 
 
 dotenv.config();
@@ -26,4 +27,5 @@ connectDB().then(() => {
 app.use('/api/activities', activityRoutes); 
 app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/historicalplace',historicalplacesRoutes);
+app.use('/api/products', productRoutes);
 
