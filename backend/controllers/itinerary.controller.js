@@ -32,15 +32,26 @@ export const getItineraryById = async (req, res) => {
 // Get all itineraries
 export const getAllItineraries = async (req, res) => {
     try {
+        const { sortBy } = req.query;
+        let sortOptions = {};
+        if (sortBy === 'price') {
+            sortOptions.totalPrice = 1; 
+        } else if (sortBy === 'rating') {
+            sortOptions.rating = 1;
+        }
+
+        // Fetch itineraries and sort them based on the provided criteria
         const itineraries = await Itinerary.find()
             .populate('createdBy', 'name')
-            .populate('timeline.activity', 'name');
-        
+            .populate('timeline.activity', 'name')
+            .sort(sortOptions);
+
         res.status(200).json(itineraries);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 // Update an itinerary by ID
 export const updateItinerary = async (req, res) => {

@@ -11,46 +11,40 @@ export const createActivity = async (req, res) => {
     }
 };
 
-// Get all activities(with a filter if applied)
+// Get all activities(with a filter and sort if applied)
 export const getActivities = async (req, res) => {
     try {
-        const { minBudget, maxBudget, minRating, maxRating, startDate, endDate,category } = req.query;
+        const { minBudget, maxBudget, minRating, maxRating, startDate, endDate, category, sortBy } = req.query;
         let query = {};
-        if (category) {
-            query.category = category; 
-        }
+
+        //filters
+        if (category) query.category = category;
         if (minBudget || maxBudget) {
             query.budget = {};
-            if (minBudget) {
-                query.budget.$gte = Number(minBudget); 
-            }
-            if (maxBudget) {
-                query.budget.$lte = Number(maxBudget); 
-            }
+            if (minBudget) query.budget.$gte = Number(minBudget);
+            if (maxBudget) query.budget.$lte = Number(maxBudget);
         }
-
-        if (minRating || maxRating) { 
+        if (minRating || maxRating) {
             query.rating = {};
-            if (minRating) {
-                query.rating.$gte = Number(minRating); 
-            }
-            if (maxRating) {
-                query.rating.$lte = Number(maxRating);
-            }
+            if (minRating) query.rating.$gte = Number(minRating);
+            if (maxRating) query.rating.$lte = Number(maxRating);
         }
-
-        if (startDate || endDate) { 
+        if (startDate || endDate) {
             query.date = {};
-            if (startDate) {
-                query.date.$gte = new Date(startDate); 
-            }
-            if (endDate) {
-                query.date.$lte = new Date(endDate); 
-            }
+            if (startDate) query.date.$gte = new Date(startDate);
+            if (endDate) query.date.$lte = new Date(endDate);
         }
 
-        
-        const activities = await Activity.find(query);
+        // Apply sorting based on query params (price or rating)
+        let sortOptions = {};
+        if (sortBy === 'price') {
+            sortOptions.price = 1; 
+        } else if (sortBy === 'rating') {
+            sortOptions.rating = 1;
+        }
+
+        // Fetch activities based on query and sorting
+        const activities = await Activity.find(query).sort(sortOptions);
         if (activities.length === 0) {
             return res.status(404).json({ message: 'No activities found' });
         }
@@ -59,6 +53,7 @@ export const getActivities = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 
 export const getActivityById = async (req, res) => {

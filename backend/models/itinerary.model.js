@@ -26,6 +26,11 @@ const itinerarySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    rating: {
+        type: Number,
+        min: 1,
+        max: 5
+      },
     availableDates: [{
         date: Date,
         availableTimes: [String]
@@ -59,7 +64,7 @@ const itinerarySchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'tourguide',
+        // ref: 'TourGuide',
         required: true
     },
     bookings: [{
