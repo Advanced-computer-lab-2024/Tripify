@@ -1,7 +1,9 @@
-import express from 'express';
 import dotenv from 'dotenv';
+import express from 'express';
 import { connectDB } from './config/db.js';
-import activityRoutes from './routes/activity.route.js'; 
+import activityRoutes from './routes/activity.route.js';
+import guestRoutes from './routes/guest.route.js';
+
 
 dotenv.config();
 
@@ -20,4 +22,5 @@ connectDB().then(() => {
 });
 
 
-app.use('/api/activities', activityRoutes); 
+app.use('/api/activities', activityRoutes);
+app.use('/api/guests', guestRoutes);
