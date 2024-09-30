@@ -10,6 +10,18 @@ export const registerGuest = async (req, res) => {
     }
 
     try {
+        // Check if email already exists
+        const existingEmail = await Guest.findOne({ email });
+        if (existingEmail) {
+            return res.status(400).json({ message: "Email already exists." });
+        }
+
+        // Check if username already exists
+        const existingUsername = await Guest.findOne({ username });
+        if (existingUsername) {
+            return res.status(400).json({ message: "Username already exists." });
+        }
+
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -28,20 +40,12 @@ export const registerGuest = async (req, res) => {
         await newGuest.save();
         res.status(201).json({ message: "Registration successful." });
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Email or username already exists." });
-        }
         res.status(500).json({ message: "Server error.", error });
     }
 };
 
 export const registerUser = async (req, res) => {
-    const { email, username, password, mobileNumber, nationality, dob, jobOrStudent, role } = req.body;
-
-    // Check if the user is under 18
-    if (Guest.isUnder18(dob)) {
-        return res.status(400).json({ message: "You must be 18 years or older to register." });
-    }
+    const { email, username, password, role } = req.body;
 
     // Validate role
     const validRoles = ['tour_guide', 'advertiser', 'seller'];
@@ -50,6 +54,18 @@ export const registerUser = async (req, res) => {
     }
 
     try {
+        // Check if email already exists
+        const existingEmail = await Guest.findOne({ email });
+        if (existingEmail) {
+            return res.status(400).json({ message: "Email already exists." });
+        }
+
+        // Check if username already exists
+        const existingUsername = await Guest.findOne({ username });
+        if (existingUsername) {
+            return res.status(400).json({ message: "Username already exists." });
+        }
+
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -58,10 +74,6 @@ export const registerUser = async (req, res) => {
             email,
             username,
             password: hashedPassword,
-            mobileNumber,
-            nationality,
-            dob,
-            jobOrStudent,
             role,
         });
 
@@ -69,9 +81,6 @@ export const registerUser = async (req, res) => {
         await newGuest.save();
         res.status(201).json({ message: `Registration as a ${role} successful.` });
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Email or username already exists." });
-        }
         res.status(500).json({ message: "Server error.", error });
     }
 };

@@ -1,6 +1,5 @@
-import mongoose from "mongoose"; // Import mongoose
-
-const { Schema } = mongoose; // Destructure Schema from mongoose
+import mongoose from 'mongoose';
+const { Schema } = mongoose;
 
 const guestSchema = new Schema({
     email: {
@@ -22,25 +21,33 @@ const guestSchema = new Schema({
     },
     mobileNumber: {
         type: String,
-        required: true,
+        required: function() {
+            return this.role === 'guest'; // Only required for guests
+        }
     },
     nationality: {
         type: String,
-        required: true,
+        required: function() {
+            return this.role === 'guest'; // Only required for guests
+        }
     },
     dob: {
         type: Date,
-        required: true,
+        required: function() {
+            return this.role === 'guest'; // Only required for guests
+        }
     },
     jobOrStudent: {
         type: String,
-        required: true,
+        required: function() {
+            return this.role === 'guest'; // Only required for guests
+        }
     },
-    role: {  // Field to specify user role
+    role: {
         type: String,
-        enum: ['guest', 'tour_guide', 'advertiser', 'seller'], // Valid roles
-        default: 'guest', // Default role
-    },
+        enum: ['guest', 'tour_guide', 'advertiser', 'seller'],
+        default: 'guest' // Default to guest if role isn't provided
+    }
 });
 
 // Static method to check if the user is under 18
@@ -53,4 +60,4 @@ guestSchema.statics.isUnder18 = function(dob) {
 };
 
 const Guest = mongoose.model('Guest', guestSchema);
-export default Guest; // Use export default
+export default Guest;
