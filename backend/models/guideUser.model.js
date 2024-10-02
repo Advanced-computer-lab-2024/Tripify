@@ -22,7 +22,7 @@ const guideAdvertiserSellerSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['tour_guide', 'advertiser', 'seller'],
+    enum: ['tour_guide', 'advertiser', 'seller', 'admin', 'tourist_governor'],
     required: true
   },
   createdAt: {

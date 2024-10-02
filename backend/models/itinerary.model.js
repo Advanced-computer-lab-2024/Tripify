@@ -1,14 +1,13 @@
 import mongoose from "mongoose";
 import Activity from "./activity.model.js"; // Import the Activity model
-
 const itinerarySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
     },
     activities: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Activity'
+        type: mongoose.Schema.Types.ObjectId, // Use ObjectId to reference Activity
+        ref: 'Activity' // Reference the Activity model
     }],
     timeline: [{
         activity: {
@@ -59,7 +58,7 @@ const itinerarySchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TourGuide', // Assuming the model name is 'TourGuide'
+        ref: 'GuideAdvertiserSeller',
         required: true
     },
     bookings: [{
@@ -71,9 +70,7 @@ const itinerarySchema = new mongoose.Schema({
         default: true
     }
 }, { timestamps: true });
-
 itinerarySchema.index({ pickupLocation: '2dsphere', dropoffLocation: '2dsphere' });
-
 itinerarySchema.pre('deleteOne', { document: true, query: false }, async function(next) {
     if (this.bookings && this.bookings.length > 0) {
         next(new Error('Cannot delete itinerary with existing bookings'));
@@ -81,21 +78,17 @@ itinerarySchema.pre('deleteOne', { document: true, query: false }, async functio
         next();
     }
 });
-
 // Static method to create a new itinerary
 itinerarySchema.statics.createItinerary = async function(itineraryData, tourGuideId) {
     const itinerary = new this({
         ...itineraryData,
-        createdBy: tourGuideId
+        createdBy: tourGuideId // Ensure the correct field is used
     });
     return await itinerary.save();
 };
-
 // Instance method to check if the itinerary can be deleted
 itinerarySchema.methods.canDelete = function() {
     return this.bookings.length === 0;
 };
-
 const Itinerary = mongoose.model('Itinerary', itinerarySchema);
-
 export default Itinerary;

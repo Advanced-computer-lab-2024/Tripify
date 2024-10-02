@@ -23,7 +23,7 @@ export const register = async (req, res) => {
     await newUser.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -33,7 +33,7 @@ export const register = async (req, res) => {
         email: newUser.email,
         role: newUser.role
       },
-      token
+    //   token
     });
   } catch (error) {
     console.error(error);
@@ -58,7 +58,7 @@ export const login = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    // const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     res.status(200).json({
       message: 'Login successful',
@@ -68,7 +68,7 @@ export const login = async (req, res) => {
         email: user.email,
         role: user.role
       },
-      token
+      //token
     });
   } catch (error) {
     console.error(error);
