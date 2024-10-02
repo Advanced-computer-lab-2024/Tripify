@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 export const createCategory = async (req, res) => {
   try {
     const { createdBy, ...categoryData } = req.body;
-    //TODO handel authentication
+    //TODO handle authentication
     const newCategory = new ActivityCategory({
       ...categoryData,
       createdBy: createdBy || undefined,

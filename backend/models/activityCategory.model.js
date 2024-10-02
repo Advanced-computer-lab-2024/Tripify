@@ -8,11 +8,6 @@ const activityCategorySchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
     createdBy: {
       type: String,
       required: false,
