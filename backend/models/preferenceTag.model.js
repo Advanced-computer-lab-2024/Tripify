@@ -8,11 +8,6 @@ const preferenceTagSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    category: {
-      type: String,
-      enum: ["historic", "beach", "family", "shopping", "budget"],
-      required: true,
-    },
   },
   { timestamps: true }
 );
