@@ -40,9 +40,7 @@ export const registerTourist = async (req, res) => {
     });
     // Save the user in the database
     await newTourist.save();
-    // Optionally, generate a JWT token for the user
-    // const token = jwt.sign({ id: newTourist._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    // Send response back
+    
     res.status(201).json({
       message: 'Tourist registered successfully',
       tourist: {
