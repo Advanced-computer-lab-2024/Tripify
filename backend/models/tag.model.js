@@ -8,14 +8,6 @@ const tagSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    description: {
-      type: String,
-      trim: true,
-    },
-    category: {
-      type: String,
-      required: true,
-    },
     historicalPeriod: {
       type: String,
       required: true,
