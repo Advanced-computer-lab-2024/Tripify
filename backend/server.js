@@ -4,8 +4,12 @@ import { connectDB } from './config/db.js';
 import activityRoutes from './routes/activity.route.js'; 
 import itineraryRoutes from './routes/itinerary.route.js';
 import historicalplacesRoutes from './routes/historicalplaces.route.js';
-import touristRoutes from './routes/touristReg.route.js';
-import guideRoutes from './routes/guideReg.route.js';
+import touristRoutes from './routes/tourist.route.js';
+import tourguideRoutes from './routes/tourGuide.route.js';
+import sellerRoutes from './routes/seller.route.js';
+import adminRoutes from './routes/admin.route.js';
+import advertiserRoutes from './routes/advertiser.route.js';
+import tourismGovernorRoutes from './routes/toursimGovernor.route.js';
 
 
 dotenv.config();
@@ -29,5 +33,9 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/historicalplace',historicalplacesRoutes);
 app.use('/api/tourist',touristRoutes);
-app.use('/api/guide',guideRoutes);
+app.use('/api/tourguide',tourguideRoutes);
+app.use('/api/tourismGovernor',tourismGovernorRoutes);
+app.use('/api/seller',sellerRoutes);
+app.use('/api/admin',adminRoutes);
+app.use('/api/advertiser',advertiserRoutes);
 

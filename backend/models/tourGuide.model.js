@@ -20,6 +20,40 @@ const tourGuideSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    mobileNumber: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^+?[1-9]\d{1,14}$/, 'Please enter a valid mobile number'] // Ensures valid international phone number format
+      },
+      yearsOfExperience: {
+        type: Number,
+        required: true,
+        min: [0, 'Years of experience cannot be negative'],
+        max: [50, 'Unrealistic value for years of experience'] // Add validation based on common sense or user story
+      },
+      previousWork: [{
+        jobTitle: {
+          type: String,
+          trim: true
+        },
+        company: {
+          type: String,
+          trim: true
+        },
+        description: {
+          type: String,
+          trim: true
+        },
+        startDate: {
+          type: Date,
+          required: false
+        },
+        endDate: {
+          type: Date,
+          required: false
+        }
+      }],
     createdAt: {
         type: Date,
         default: Date.now

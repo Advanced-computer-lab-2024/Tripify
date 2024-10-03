@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
 const sellerSchema = new mongoose.Schema({
+    
     username: {
         type: String,
         required: true,
@@ -18,6 +19,14 @@ const sellerSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    name: {
+        type: String,
+        trim: true
+    },
+    description: {
+        type: String,
+        trim: true
     },
     createdAt: {
         type: Date,
