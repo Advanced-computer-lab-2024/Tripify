@@ -59,7 +59,7 @@ const itinerarySchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TourGuide', // Assuming the model name is 'TourGuide'
+        // ref: 'TourGuide',
         required: true
     },
     bookings: [{
