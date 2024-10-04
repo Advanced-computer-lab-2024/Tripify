@@ -53,7 +53,7 @@ export const registerTourist = async (req, res) => {
         jobStatus: newTourist.jobStatus,
         jobTitle: newTourist.jobTitle // Only present if jobStatus is 'job'
       },
-      token // Optional if you want to authenticate right after registration
+      // Optional if you want to authenticate right after registration
     });
   } catch (error) {
     console.error(error);
@@ -90,7 +90,7 @@ export const loginTourist = async (req, res) => {
         jobStatus: tourist.jobStatus,
         jobTitle: tourist.jobTitle
       },
-      token
+      
     });
   } catch (error) {
     console.error(error);

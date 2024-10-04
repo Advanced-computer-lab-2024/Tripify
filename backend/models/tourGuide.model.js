@@ -22,13 +22,13 @@ const tourGuideSchema = new mongoose.Schema({
     },
     mobileNumber: {
         type: String,
-        required: true,
+        // required: true,
         trim: true,
-        match: [/^+?[1-9]\d{1,14}$/, 'Please enter a valid mobile number'] // Ensures valid international phone number format
+        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid mobile number'] // Ensures valid international phone number format
       },
       yearsOfExperience: {
         type: Number,
-        required: true,
+        // required: true,
         min: [0, 'Years of experience cannot be negative'],
         max: [50, 'Unrealistic value for years of experience'] // Add validation based on common sense or user story
       },

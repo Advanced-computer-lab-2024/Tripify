@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import { connectDB } from './config/db.js';
 import activityRoutes from './routes/activity.route.js'; 
 import itineraryRoutes from './routes/itinerary.route.js';
@@ -18,6 +19,7 @@ const app = express();
 
 
 app.use(express.json());
+app.use(cors());
 
 connectDB().then(() => {
     app.listen(process.env.PORT || 5000, () => { 

@@ -1,11 +1,11 @@
 import express from 'express';
-import { registertourGuide, logintourGuide } from '../controllers/tourGuide.controller.js';
+import { registerTourGuide, loginTourGuide } from '../controllers/tourGuide.controller.js';
 // import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Public routes
-router.post('/register', registertourGuide);
-router.post('/login', logintourGuide);
+router.post('/register', registerTourGuide);
+router.post('/login', loginTourGuide);
 
 export default router;

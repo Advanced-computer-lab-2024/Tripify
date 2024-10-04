@@ -1,40 +1,47 @@
-import tourGuide from "../models/tourGuide.model.js";
+import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 
-// Register a tourGuide
-export const registertourGuide = async (req, res) => {
+// Register a tour guide
+export const registerTourGuide = async (req, res) => {
     const { username, email, password } = req.body;
-
     try {
         // Check if the email already exists
-        const existingtourGuide = await tourGuide.findOne({ email });
-        if (existingtourGuide) {
+        const existingTourGuide = await TourGuide.findOne({ email });
+        if (existingTourGuide) {
             return res.status(400).json({ message: "Email already exists" });
         }
 
-        // Create a new tourGuide
-        const newtourGuide = new tourGuide({ username, email, password });
-        await newtourGuide.save();
+        // Hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        return res.status(201).json({ message: "tourGuide registered successfully" });
+        // Create a new tour guide
+        const newTourGuide = new TourGuide({
+            username,
+            email,
+            password: hashedPassword
+        });
+
+        await newTourGuide.save();
+        return res.status(201).json({ message: "Tour guide registered successfully" });
     } catch (error) {
-        return res.status(500).json({ message: "Error registering tourGuide", error });
+        console.error("Error registering tour guide:", error);
+        return res.status(500).json({ message: "Error registering tour guide", error: error.message });
     }
 };
 
-// Login a tourGuide
-export const logintourGuide = async (req, res) => {
+// Login a tour guide
+export const loginTourGuide = async (req, res) => {
     const { email, password } = req.body;
-
     try {
-        // Check if the tourGuide exists
-        const tourGuide = await tourGuide.findOne({ email });
+        // Check if the tour guide exists
+        const tourGuide = await TourGuide.findOne({ email });
         if (!tourGuide) {
-            return res.status(404).json({ message: "tourGuide not found" });
+            return res.status(404).json({ message: "Tour guide not found" });
         }
 
         // Compare passwords
-        const isMatch = await tourGuide.comparePassword(password);
+        const isMatch = await bcrypt.compare(password, tourGuide.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid password" });
         }
@@ -42,6 +49,7 @@ export const logintourGuide = async (req, res) => {
         // Successful login
         return res.status(200).json({ message: "Login successful" });
     } catch (error) {
-        return res.status(500).json({ message: "Error logging in", error });
+        console.error("Error logging in:", error);
+        return res.status(500).json({ message: "Error logging in", error: error.message });
     }
 };
