@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -12,7 +13,8 @@ import {
   IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import api from "../services/api";
+
+const API_URL = "http://localhost:5000/api/tags";
 
 const TagManagement = () => {
   const [tags, setTags] = useState([]);
@@ -28,7 +30,7 @@ const TagManagement = () => {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const response = await api.getTags();
+      const response = await axios.get(API_URL);
       setTags(response.data);
       setLoading(false);
     } catch (error) {
@@ -41,7 +43,7 @@ const TagManagement = () => {
   const handleAddTag = async () => {
     if (newTagName.trim() && newTagPeriod.trim()) {
       try {
-        const response = await api.createTag({
+        const response = await axios.post(API_URL, {
           name: newTagName.trim(),
           historicalPeriod: newTagPeriod.trim(),
         });
@@ -57,7 +59,7 @@ const TagManagement = () => {
 
   const handleDeleteTag = async (id) => {
     try {
-      await api.deleteTag(id);
+      await axios.delete(`${API_URL}/${id}`);
       setTags(tags.filter((t) => t._id !== id));
     } catch (error) {
       console.error("Error deleting tag:", error);

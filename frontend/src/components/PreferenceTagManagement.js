@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -13,7 +14,8 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import api from "../services/api";
+
+const API_URL = "http://localhost:5000/api/preference-tags";
 
 const PreferenceTagManagement = () => {
   const [tags, setTags] = useState([]);
@@ -29,7 +31,7 @@ const PreferenceTagManagement = () => {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const response = await api.getPreferenceTags();
+      const response = await axios.get(API_URL);
       setTags(response.data);
       setLoading(false);
     } catch (error) {
@@ -42,7 +44,7 @@ const PreferenceTagManagement = () => {
   const handleAddTag = async () => {
     if (newTag.trim()) {
       try {
-        const response = await api.createPreferenceTag({ name: newTag.trim() });
+        const response = await axios.post(API_URL, { name: newTag.trim() });
         setTags([...tags, response.data]);
         setNewTag("");
       } catch (error) {
@@ -55,7 +57,7 @@ const PreferenceTagManagement = () => {
   const handleUpdateTag = async () => {
     if (editingTag && editingTag.name.trim()) {
       try {
-        const response = await api.updatePreferenceTag(editingTag._id, {
+        const response = await axios.put(`${API_URL}/${editingTag._id}`, {
           name: editingTag.name.trim(),
         });
         setTags(
@@ -71,7 +73,7 @@ const PreferenceTagManagement = () => {
 
   const handleDeleteTag = async (id) => {
     try {
-      await api.deletePreferenceTag(id);
+      await axios.delete(`${API_URL}/${id}`);
       setTags(tags.filter((t) => t._id !== id));
     } catch (error) {
       console.error("Error deleting preference tag:", error);

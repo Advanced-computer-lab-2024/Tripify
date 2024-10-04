@@ -1,149 +1,162 @@
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import api from "../services/api";
+import axios from "axios";
+
+const API_URL = "http://localhost:5000/api/activities/category";
 
 const ActivityCategoryManagement = () => {
   const [categories, setCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState("");
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      const response = await api.getCategories();
+      const response = await axios.get(API_URL);
       setCategories(response.data);
-      setLoading(false);
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      setError("Failed to fetch categories. Please try again.");
-      setLoading(false);
+      setMessage({
+        type: "error",
+        text: "Failed to fetch categories. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddCategory = async () => {
-    if (newCategory.trim()) {
-      try {
-        const response = await api.createCategory({ name: newCategory.trim() });
-        setCategories([...categories, response.data]);
-        setNewCategory("");
-      } catch (error) {
-        console.error("Error adding category:", error);
-        setError("Failed to add category. Please try again.");
-      }
-    }
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage(null);
 
-  const handleUpdateCategory = async () => {
-    if (editingCategory && editingCategory.name.trim()) {
-      try {
-        const response = await api.updateCategory(editingCategory._id, {
-          name: editingCategory.name.trim(),
+    try {
+      if (editingId !== null) {
+        // Update existing category
+        const response = await axios.put(`${API_URL}/${editingId}`, {
+          name: categoryName,
         });
-        setCategories(
-          categories.map((c) =>
-            c._id === editingCategory._id ? response.data : c
+        setCategories((prevCategories) =>
+          prevCategories.map((category) =>
+            category._id === editingId ? response.data : category
           )
         );
-        setEditingCategory(null);
-      } catch (error) {
-        console.error("Error updating category:", error);
-        setError("Failed to update category. Please try again.");
+        setMessage({ type: "success", text: "Category updated successfully" });
+        setEditingId(null);
+      } else {
+        // Add new category
+        const response = await axios.post(API_URL, { name: categoryName });
+        setCategories((prevCategories) => [...prevCategories, response.data]);
+        setMessage({ type: "success", text: "Category added successfully" });
       }
-    }
-  };
-
-  const handleDeleteCategory = async (id) => {
-    try {
-      await api.deleteCategory(id);
-      setCategories(categories.filter((c) => c._id !== id));
+      setCategoryName("");
     } catch (error) {
-      console.error("Error deleting category:", error);
-      setError("Failed to delete category. Please try again.");
+      setMessage({
+        type: "error",
+        text:
+          error.response?.data?.message ||
+          "An error occurred. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (loading) return <Typography>Loading categories...</Typography>;
-  if (error) return <Typography color="error">{error}</Typography>;
+  const handleEdit = (category) => {
+    setCategoryName(category.name);
+    setEditingId(category._id);
+  };
+
+  const handleDelete = async (id) => {
+    setIsLoading(true);
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      setCategories((prevCategories) =>
+        prevCategories.filter((category) => category._id !== id)
+      );
+      setMessage({ type: "success", text: "Category deleted successfully" });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Failed to delete category. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading && categories.length === 0) {
+    return <div className="text-center mt-5">Loading categories...</div>;
+  }
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" component="div" gutterBottom>
-          Activity Category Management
-        </Typography>
-        <TextField
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          placeholder="New category name"
-          variant="outlined"
-          margin="normal"
-          fullWidth
-        />
-        <Button variant="contained" color="primary" onClick={handleAddCategory}>
-          Add Category
-        </Button>
-        <List>
-          {categories.map((category) => (
-            <ListItem key={category._id}>
-              {editingCategory && editingCategory._id === category._id ? (
-                <>
-                  <TextField
-                    value={editingCategory.name}
-                    onChange={(e) =>
-                      setEditingCategory({
-                        ...editingCategory,
-                        name: e.target.value,
-                      })
-                    }
-                    fullWidth
-                  />
-                  <Button onClick={handleUpdateCategory}>Save</Button>
-                </>
-              ) : (
-                <>
-                  <ListItemText primary={category.name} />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      aria-label="edit"
-                      onClick={() => setEditingCategory(category)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      onClick={() => handleDeleteCategory(category._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </>
-              )}
-            </ListItem>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
+    <div className="container mt-5">
+      <h2 className="mb-4">Activity Category Management</h2>
+      <form onSubmit={handleSubmit} className="mb-4">
+        <div className="input-group">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter category name"
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isLoading}
+          >
+            {isLoading
+              ? "Processing..."
+              : editingId !== null
+              ? "Update"
+              : "Add"}
+          </button>
+        </div>
+      </form>
+
+      {message && (
+        <div
+          className={`alert ${
+            message.type === "success" ? "alert-success" : "alert-danger"
+          }`}
+          role="alert"
+        >
+          {message.text}
+        </div>
+      )}
+
+      <h3>Categories</h3>
+      <ul className="list-group">
+        {categories.map((category) => (
+          <li
+            key={category._id}
+            className="list-group-item d-flex justify-content-between align-items-center"
+          >
+            {category.name}
+            <div>
+              <button
+                className="btn btn-sm btn-outline-primary me-2"
+                onClick={() => handleEdit(category)}
+              >
+                Edit
+              </button>
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={() => handleDelete(category._id)}
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

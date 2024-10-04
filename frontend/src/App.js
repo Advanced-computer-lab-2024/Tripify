@@ -11,8 +11,7 @@ function App() {
       <h1>Activity Manager</h1>
       <ActivityForm />
       <ActivityList />
-      {/* <ActivityList />
-      <ActivityCategoryManagement />
+      {/* <ActivityCategoryManagement />
       <PreferenceTagManagement />
       <TagManagement /> */}
     </div>
