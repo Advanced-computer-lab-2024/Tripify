@@ -1,6 +1,4 @@
 import Tourist from '../models/tourist.model.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken'; // Optional for token generation (if using authentication)
 
 // Create a new tourist (sign up)
 export const registerTourist = async (req, res) => {
@@ -54,6 +52,75 @@ export const registerTourist = async (req, res) => {
         jobTitle: newTourist.jobTitle // Only present if jobStatus is 'job'
       },
       // Optional if you want to authenticate right after registration
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+// Get tourist profile
+export const getTouristProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const tourist = await Tourist.findOne({ username });
+    
+    if (!tourist) {
+      return res.status(404).json({ message: 'Tourist not found' });
+    }
+
+    res.status(200).json({
+      message: 'Tourist profile fetched successfully',
+      tourist: {
+        email: tourist.email,
+        username: tourist.username,
+        mobileNumber: tourist.mobileNumber,
+        nationality: tourist.nationality,
+        dob: tourist.dob,
+        jobStatus: tourist.jobStatus,
+        jobTitle: tourist.jobTitle,
+        wallet: tourist.wallet
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+// Update tourist profile
+export const updateTouristProfile = async (req, res) => {
+  try {
+    const { email, mobileNumber, nationality, dob, jobStatus, jobTitle } = req.body;
+
+    const { username } = req.params;
+    const tourist = await Tourist.findOne({ username });
+      if (!tourist) {
+      return res.status(404).json({ message: 'Tourist not found' });
+    }
+
+    tourist.email = email || tourist.email;
+    tourist.mobileNumber = mobileNumber || tourist.mobileNumber;
+    tourist.nationality = nationality || tourist.nationality;
+    tourist.dob = dob ? new Date(dob) : tourist.dob;
+    tourist.jobStatus = jobStatus || tourist.jobStatus;
+    tourist.jobTitle = jobStatus === 'job' ? jobTitle : undefined;
+
+    await tourist.save();
+
+    res.status(200).json({
+      message: 'Tourist profile updated successfully',
+      tourist: {
+        id: tourist._id,
+        email: tourist.email,
+        username: tourist.username, // Non-editable field
+        mobileNumber: tourist.mobileNumber,
+        nationality: tourist.nationality,
+        dob: tourist.dob,
+        jobStatus: tourist.jobStatus,
+        jobTitle: tourist.jobTitle,
+        wallet: tourist.wallet // Non-editable field
+      }
     });
   } catch (error) {
     console.error(error);

@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 
 // Define the schema
 const touristSchema = new mongoose.Schema({
@@ -49,6 +49,10 @@ const touristSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  wallet: {
+    type: Number,
+    default: 0 // Initialize wallet with 0
   },
   isUnderage: {
     type: Boolean,
