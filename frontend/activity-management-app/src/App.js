@@ -1,24 +1,29 @@
 import React from "react";
-import { Container, Grid } from "@mui/material";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Container } from "@mui/material";
+import NavigationPage from "./components/NavigationPage";
 import ActivityCategoryManagement from "./components/ActivityCategoryManagement";
 import PreferenceTagManagement from "./components/PreferenceTagManagement";
 import TagManagement from "./components/TagManagement";
 
 function App() {
   return (
-    <Container maxWidth="lg" style={{ marginTop: "2rem" }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <ActivityCategoryManagement />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <PreferenceTagManagement />
-        </Grid>
-        <Grid item xs={12}>
-          <TagManagement />
-        </Grid>
-      </Grid>
-    </Container>
+    <Router>
+      <Container maxWidth="lg" style={{ marginTop: "2rem" }}>
+        <Routes>
+          <Route path="/" element={<NavigationPage />} />
+          <Route
+            path="/activity-categories"
+            element={<ActivityCategoryManagement />}
+          />
+          <Route
+            path="/preference-tags"
+            element={<PreferenceTagManagement />}
+          />
+          <Route path="/tags" element={<TagManagement />} />
+        </Routes>
+      </Container>
+    </Router>
   );
 }
 
