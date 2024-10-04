@@ -1,48 +1,52 @@
 import mongoose from "mongoose";
 
-//TODO implement user authentication middleware 
+//TODO implement user authentication middleware
 
-const activitySchema = new mongoose.Schema({
+const activitySchema = new mongoose.Schema(
+  {
     date: {
-        type: Date,
-        required: true,
+      type: Date,
+      required: true,
     },
     time: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     location: {
-        type: {
-            type: String,
-            enum: ['Point'], // 'Point' for GeoJSON
-            required: true,
-        },
-        coordinates: {
-            type: [Number],
-            required: true, // [longitude, latitude]
-        },
+      type: {
+        type: String,
+        enum: ["Point"], // 'Point' for GeoJSON
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true, // [longitude, latitude]
+      },
     },
     price: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true,
     },
     category: {
-        type: String,
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ActivityCategory",
+      required: true,
     },
     tags: {
-        type: [String],
+      type: [String],
     },
     discounts: {
-        type: String, 
+      type: String,
     },
     bookingOpen: {
-        type: Boolean,
-        default: false,
+      type: Boolean,
+      default: false,
     },
-}, { timestamps: true }); 
+  },
+  { timestamps: true }
+);
 
-activitySchema.index({ location: '2dsphere' });
+activitySchema.index({ location: "2dsphere" });
 
-const Activity = mongoose.model('Activity', activitySchema);
+const Activity = mongoose.model("Activity", activitySchema);
 export default Activity;
