@@ -82,7 +82,7 @@ const RegisterPage = () => {
                     className="btn btn-primary"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Registering...' : 'Register'}
+                    {isLoading ? 'Adding Admin...' : 'Add Admin'}
                   </button>
                 </div>
               </form>
