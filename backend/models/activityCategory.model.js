@@ -8,15 +8,6 @@ const activityCategorySchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    createdBy: {
-      type: String,
-      required: false,
-      default: "Admin",
-    },
-    updatedBy: {
-      type: String,
-      required: false,
-    },
   },
   {
     timestamps: true,

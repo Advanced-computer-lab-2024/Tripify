@@ -13,7 +13,7 @@ export const createActivity = async (req, res) => {
 // Get all activities
 export const getActivities = async (req, res) => {
   try {
-    const activities = await Activity.find();
+    const activities = await Activity.find().populate("category");
     res.status(200).json(activities);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -22,7 +22,9 @@ export const getActivities = async (req, res) => {
 
 export const getActivityById = async (req, res) => {
   try {
-    const activity = await Activity.findById(req.params.id);
+    const activity = await Activity.findById(req.params.id).populate(
+      "category"
+    );
     if (!activity) {
       return res.status(404).json({ message: "Activity not found" });
     }
@@ -37,7 +39,7 @@ export const updateActivity = async (req, res) => {
     const activity = await Activity.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    });
+    }).populate("category");
     if (!activity) {
       return res.status(404).json({ message: "Activity not found" });
     }

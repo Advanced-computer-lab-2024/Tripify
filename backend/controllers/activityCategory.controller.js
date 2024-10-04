@@ -3,13 +3,7 @@ import mongoose from "mongoose";
 
 export const createCategory = async (req, res) => {
   try {
-    const { createdBy, ...categoryData } = req.body;
-    //TODO handle authentication
-    const newCategory = new ActivityCategory({
-      ...categoryData,
-      createdBy: createdBy || undefined,
-    });
-
+    const newCategory = new ActivityCategory(req.body);
     const savedCategory = await newCategory.save();
     res.status(201).json(savedCategory);
   } catch (error) {
@@ -28,10 +22,7 @@ export const getAllCategories = async (req, res) => {
 
 export const getCategory = async (req, res) => {
   try {
-    const category = await ActivityCategory.findById(req.params.id).populate(
-      "createdBy updatedBy",
-      "username"
-    );
+    const category = await ActivityCategory.findById(req.params.id);
     if (!category)
       return res.status(404).json({ message: "Category not found" });
     res.json(category);
