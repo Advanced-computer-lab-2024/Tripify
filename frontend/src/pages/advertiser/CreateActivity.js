@@ -11,31 +11,30 @@ const CreateActivity = () => {
     time: "",
     price: "",
     category: "",
-    tags: "",
+    tags: [],
     discounts: "",
     bookingOpen: false,
     location: null,
   });
   const [marker, setMarker] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [tags, setTags] = useState([]);
 
   // Use environment variable for Google Maps API Key
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
-    // Fetch categories when component mounts
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/activities/category"
-        );
-        setCategories(response.data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
+    // Fetch categories
+    axios
+      .get("http://localhost:5000/api/activities/category")
+      .then((response) => setCategories(response.data))
+      .catch((error) => console.error("Error fetching categories:", error));
 
-    fetchCategories();
+    // Fetch tags
+    axios
+      .get("http://localhost:5000/api/tags")
+      .then((response) => setTags(response.data))
+      .catch((error) => console.error("Error fetching tags:", error));
   }, []);
 
   const handleMapClick = useCallback((event) => {
@@ -47,10 +46,27 @@ const CreateActivity = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    if (name === "tags") {
+      const selectedTags = Array.from(
+        e.target.selectedOptions,
+        (option) => option.value
+      );
+      setFormData((prev) => ({ ...prev, tags: selectedTags }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    }
+  };
+
+  const handleTagSelection = (tagId) => {
+    setFormData((prev) => {
+      const updatedTags = prev.tags.includes(tagId)
+        ? prev.tags.filter((id) => id !== tagId)
+        : [...prev.tags, tagId];
+      return { ...prev, tags: updatedTags };
+    });
   };
 
   const validateForm = () => {
@@ -85,7 +101,6 @@ const CreateActivity = () => {
       const activityData = {
         ...formData,
         location: geoJsonLocation,
-        tags: formData.tags.split(",").map((tag) => tag.trim()),
         price: parseFloat(formData.price),
       };
 
@@ -184,13 +199,19 @@ const CreateActivity = () => {
               </Form.Control>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Tags (comma-separated)</Form.Label>
-              <Form.Control
-                type="text"
-                name="tags"
-                value={formData.tags}
-                onChange={handleInputChange}
-              />
+              <Form.Label>Tags</Form.Label>
+              <div>
+                {tags.map((tag) => (
+                  <Form.Check
+                    key={tag._id}
+                    inline
+                    type="checkbox"
+                    label={tag.name}
+                    checked={formData.tags.includes(tag._id)}
+                    onChange={() => handleTagSelection(tag._id)}
+                  />
+                ))}
+              </div>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Discounts</Form.Label>

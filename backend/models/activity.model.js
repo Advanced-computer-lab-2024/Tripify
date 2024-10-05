@@ -1,19 +1,16 @@
 import mongoose from "mongoose";
 
-//TODO implement user authentication middleware
-
 const activitySchema = new mongoose.Schema(
-  
   {
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     date: {
       type: Date,
@@ -32,9 +29,12 @@ const activitySchema = new mongoose.Schema(
       ref: "ActivityCategory",
       required: true,
     },
-    tags: {
-      type: [String],
-    },
+    tags: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tag",
+      },
+    ],
     discounts: {
       type: String,
     },
