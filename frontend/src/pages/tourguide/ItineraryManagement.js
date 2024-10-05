@@ -1,268 +1,369 @@
 import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Table, Button, Form, Modal } from 'react-bootstrap';
 import axios from 'axios';
-import { Container, Row, Col, Form, Button, ListGroup, Alert } from 'react-bootstrap';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-
-function ItineraryManagement() {
+const ItineraryPage = () => {
   const [itineraries, setItineraries] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [newItinerary, setNewItinerary] = useState({
-    name: '',
-    activities: [],
-    language: '',
-    totalPrice: '',
-    availableDates: [],
-    accessibility: {
-      wheelchairAccessible: false,
-      hearingImpaired: false,
-      visuallyImpaired: false
+  const [tourGuides, setTourGuides] = useState([]);
+  const [preferenceTags, setPreferenceTags] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [currentItinerary, setCurrentItinerary] = useState(null);
+  const [formData, setFormData] = useState({
+    itineraryData: {
+      name: '',
+      language: '',
+      totalPrice: 0,
+      pickupLocation: '',
+      dropoffLocation: '',
+      isActive: true,
+      timeline: [{ activity: '', startTime: '', endTime: '' }],
+      availableDates: [{ date: '', availableTimes: [''] }],
+      accessibility: {
+        wheelchairAccessible: false,
+        hearingImpaired: false,
+        visuallyImpaired: false,
+      },
+      preferenceTags: [],
+      createdBy: '', // Added createdBy
     },
-    pickupLocation: {
-      type: 'Point',
-      coordinates: ['', '']
-    },
-    dropoffLocation: {
-      type: 'Point',
-      coordinates: ['', '']
-    }
   });
-  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchItineraries();
-    fetchActivities();
+    fetchTourGuides();
+    fetchPreferenceTags(); // Fetching preference tags
   }, []);
 
   const fetchItineraries = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/itineraries`);
+      const response = await axios.get('http://localhost:5000/api/itineraries');
       setItineraries(response.data);
-    } catch (err) {
-      setError('Failed to fetch itineraries');
+    } catch (error) {
+      console.error('Error fetching itineraries:', error);
     }
   };
 
-  const fetchActivities = async () => {
+  const fetchTourGuides = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/activities`);
-      setActivities(response.data);
-    } catch (err) {
-      setError('Failed to fetch activities');
+      const response = await axios.get('http://localhost:5000/api/tourguide');
+      setTourGuides(response.data);
+    } catch (error) {
+      console.error('Error fetching tour guides:', error);
+    }
+  };
+
+  const fetchPreferenceTags = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/preferenceTags');
+      setPreferenceTags(response.data);
+    } catch (error) {
+      console.error('Error fetching preference tags:', error);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewItinerary(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleActivityChange = (e) => {
-    const selectedActivities = Array.from(e.target.selectedOptions, option => option.value);
-    setNewItinerary(prev => ({ ...prev, activities: selectedActivities }));
-  };
-
-  const handleAccessibilityChange = (e) => {
-    const { name, checked } = e.target;
-    setNewItinerary(prev => ({
-      ...prev,
-      accessibility: { ...prev.accessibility, [name]: checked }
+    const { name, value, type, checked } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      itineraryData: {
+        ...prevState.itineraryData,
+        [name]: type === 'checkbox' ? checked : value,
+      },
     }));
   };
 
-  const handleLocationChange = (locationType, e) => {
-    const { name, value } = e.target;
-    setNewItinerary(prev => ({
-      ...prev,
-      [locationType]: {
-        ...prev[locationType],
-        coordinates: name === 'longitude' 
-          ? [value, prev[locationType].coordinates[1]]
-          : [prev[locationType].coordinates[0], value]
-      }
+  const handleTimelineChange = (index, field, value) => {
+    const updatedTimeline = formData.itineraryData.timeline.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    );
+    setFormData((prevState) => ({
+      ...prevState,
+      itineraryData: {
+        ...prevState.itineraryData,
+        timeline: updatedTimeline,
+      },
     }));
+  };
+
+  const handleAvailableDatesChange = (index, field, value) => {
+    const updatedAvailableDates = formData.itineraryData.availableDates.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    );
+    setFormData((prevState) => ({
+      ...prevState,
+      itineraryData: {
+        ...prevState.itineraryData,
+        availableDates: updatedAvailableDates,
+      },
+    }));
+  };
+
+  const handlePreferenceTagChange = (tagId) => {
+    const currentTags = formData.itineraryData.preferenceTags;
+    if (currentTags.includes(tagId)) {
+      setFormData((prevState) => ({
+        ...prevState,
+        itineraryData: {
+          ...prevState.itineraryData,
+          preferenceTags: currentTags.filter((tag) => tag !== tagId),
+        },
+      }));
+    } else {
+      setFormData((prevState) => ({
+        ...prevState,
+        itineraryData: {
+          ...prevState.itineraryData,
+          preferenceTags: [...currentTags, tagId],
+        },
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const itineraryToSubmit = {
-        ...newItinerary,
-        totalPrice: parseFloat(newItinerary.totalPrice),
-        pickupLocation: {
-          ...newItinerary.pickupLocation,
-          coordinates: newItinerary.pickupLocation.coordinates.map(coord => parseFloat(coord))
-        },
-        dropoffLocation: {
-          ...newItinerary.dropoffLocation,
-          coordinates: newItinerary.dropoffLocation.coordinates.map(coord => parseFloat(coord))
-        }
-      };
-      await axios.post(`${API_BASE_URL}/itineraries`, itineraryToSubmit);
+      const payload = { itineraryData: formData.itineraryData };
+      if (currentItinerary) {
+        await axios.put(`http://localhost:5000/api/itineraries/${currentItinerary._id}`, payload);
+      } else {
+        await axios.post('http://localhost:5000/api/itineraries', payload);
+      }
       fetchItineraries();
-      setNewItinerary({
+      setShowModal(false);
+      setCurrentItinerary(null);
+      resetFormData();
+    } catch (error) {
+      console.error('Error saving itinerary:', error);
+    }
+  };
+
+  const resetFormData = () => {
+    setFormData({
+      itineraryData: {
         name: '',
-        activities: [],
         language: '',
-        totalPrice: '',
-        availableDates: [],
+        totalPrice: 0,
+        pickupLocation: '',
+        dropoffLocation: '',
+        isActive: true,
+        timeline: [{ activity: '', startTime: '', endTime: '' }],
+        availableDates: [{ date: '', availableTimes: [''] }],
         accessibility: {
           wheelchairAccessible: false,
           hearingImpaired: false,
-          visuallyImpaired: false
+          visuallyImpaired: false,
         },
-        pickupLocation: {
-          type: 'Point',
-          coordinates: ['', '']
-        },
-        dropoffLocation: {
-          type: 'Point',
-          coordinates: ['', '']
-        }
-      });
-    } catch (err) {
-      setError('Failed to create itinerary');
-    }
+        preferenceTags: [],
+        createdBy: '', // Reset createdBy
+      },
+    });
+  };
+
+  const handleEdit = (itinerary) => {
+    setCurrentItinerary(itinerary);
+    setFormData({
+      itineraryData: {
+        name: itinerary.name,
+        language: itinerary.language,
+        totalPrice: itinerary.totalPrice,
+        pickupLocation: itinerary.pickupLocation,
+        dropoffLocation: itinerary.dropoffLocation,
+        isActive: itinerary.isActive,
+        timeline: itinerary.timeline,
+        availableDates: itinerary.availableDates,
+        accessibility: itinerary.accessibility,
+        preferenceTags: itinerary.preferenceTags,
+        createdBy: itinerary.createdBy || '', // Handle createdBy
+      },
+    });
+    setShowModal(true);
   };
 
   return (
     <Container>
-      <h1 className="my-4">Itinerary Management</h1>
-      {error && <Alert variant="danger">{error}</Alert>}
-      <Row>
-        <Col md={6}>
-          <h2>Create New Itinerary</h2>
+      <Button onClick={() => setShowModal(true)}>Add New Itinerary</Button>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Language</th>
+            <th>Total Price</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itineraries.map((itinerary) => (
+            <tr key={itinerary._id}>
+              <td>{itinerary.name}</td>
+              <td>{itinerary.language}</td>
+              <td>{itinerary.totalPrice}</td>
+              <td>
+                <Button onClick={() => handleEdit(itinerary)}>Edit</Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>{currentItinerary ? 'Edit Itinerary' : 'Add New Itinerary'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Name</Form.Label>
               <Form.Control
                 type="text"
                 name="name"
-                value={newItinerary.name}
+                value={formData.itineraryData.name}
                 onChange={handleInputChange}
                 required
               />
             </Form.Group>
-            <Form.Group>
-              <Form.Label>Activities</Form.Label>
-              <Form.Control
-                as="select"
-                multiple
-                name="activities"
-                value={newItinerary.activities}
-                onChange={handleActivityChange}
-                required
-              >
-                {activities.map(activity => (
-                  <option key={activity._id} value={activity._id}>
-                    {activity.name}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Language</Form.Label>
               <Form.Control
                 type="text"
                 name="language"
-                value={newItinerary.language}
+                value={formData.itineraryData.language}
                 onChange={handleInputChange}
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Total Price</Form.Label>
               <Form.Control
                 type="number"
                 name="totalPrice"
-                value={newItinerary.totalPrice}
+                value={formData.itineraryData.totalPrice}
                 onChange={handleInputChange}
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Pickup Location</Form.Label>
+              <Form.Control
+                type="text"
+                name="pickupLocation"
+                value={formData.itineraryData.pickupLocation}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Dropoff Location</Form.Label>
+              <Form.Control
+                type="text"
+                name="dropoffLocation"
+                value={formData.itineraryData.dropoffLocation}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Created By</Form.Label>
+              <Form.Control
+                type="text"
+                name="createdBy"
+                value={formData.itineraryData.createdBy}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Timeline</Form.Label>
+              {formData.itineraryData.timeline.map((item, index) => (
+                <div key={index}>
+                  <Form.Control
+                    type="text"
+                    placeholder="Activity"
+                    value={item.activity}
+                    onChange={(e) => handleTimelineChange(index, 'activity', e.target.value)}
+                    required
+                  />
+                  <Form.Control
+                    type="text"
+                    placeholder="Start Time"
+                    value={item.startTime}
+                    onChange={(e) => handleTimelineChange(index, 'startTime', e.target.value)}
+                    required
+                  />
+                  <Form.Control
+                    type="text"
+                    placeholder="End Time"
+                    value={item.endTime}
+                    onChange={(e) => handleTimelineChange(index, 'endTime', e.target.value)}
+                    required
+                  />
+                </div>
+              ))}
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Available Dates</Form.Label>
+              {formData.itineraryData.availableDates.map((dateItem, index) => (
+                <div key={index}>
+                  <Form.Control
+                    type="date"
+                    placeholder="Date"
+                    value={dateItem.date}
+                    onChange={(e) => handleAvailableDatesChange(index, 'date', e.target.value)}
+                    required
+                  />
+                  <Form.Control
+                    type="text"
+                    placeholder="Available Times"
+                    value={dateItem.availableTimes.join(', ')}
+                    onChange={(e) => handleAvailableDatesChange(index, 'availableTimes', e.target.value.split(', '))}
+                    required
+                  />
+                </div>
+              ))}
+            </Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Accessibility</Form.Label>
               <Form.Check
                 type="checkbox"
                 label="Wheelchair Accessible"
                 name="wheelchairAccessible"
-                checked={newItinerary.accessibility.wheelchairAccessible}
-                onChange={handleAccessibilityChange}
+                checked={formData.itineraryData.accessibility.wheelchairAccessible}
+                onChange={handleInputChange}
               />
               <Form.Check
                 type="checkbox"
                 label="Hearing Impaired"
                 name="hearingImpaired"
-                checked={newItinerary.accessibility.hearingImpaired}
-                onChange={handleAccessibilityChange}
+                checked={formData.itineraryData.accessibility.hearingImpaired}
+                onChange={handleInputChange}
               />
               <Form.Check
                 type="checkbox"
                 label="Visually Impaired"
                 name="visuallyImpaired"
-                checked={newItinerary.accessibility.visuallyImpaired}
-                onChange={handleAccessibilityChange}
+                checked={formData.itineraryData.accessibility.visuallyImpaired}
+                onChange={handleInputChange}
               />
             </Form.Group>
-            <Form.Group>
-              <Form.Label>Pickup Location</Form.Label>
-              <Form.Control
-                type="number"
-                name="longitude"
-                placeholder="Longitude"
-                value={newItinerary.pickupLocation.coordinates[0]}
-                onChange={(e) => handleLocationChange('pickupLocation', e)}
-                required
-              />
-              <Form.Control
-                type="number"
-                name="latitude"
-                placeholder="Latitude"
-                value={newItinerary.pickupLocation.coordinates[1]}
-                onChange={(e) => handleLocationChange('pickupLocation', e)}
-                required
-              />
-            </Form.Group>
-            <Form.Group>
-              <Form.Label>Dropoff Location</Form.Label>
-              <Form.Control
-                type="number"
-                name="longitude"
-                placeholder="Longitude"
-                value={newItinerary.dropoffLocation.coordinates[0]}
-                onChange={(e) => handleLocationChange('dropoffLocation', e)}
-                required
-              />
-              <Form.Control
-                type="number"
-                name="latitude"
-                placeholder="Latitude"
-                value={newItinerary.dropoffLocation.coordinates[1]}
-                onChange={(e) => handleLocationChange('dropoffLocation', e)}
-                required
-              />
+            <Form.Group className="mb-3">
+              <Form.Label>Preference Tags</Form.Label>
+              {preferenceTags.map((tag) => (
+                <Form.Check
+                  key={tag._id}
+                  type="checkbox"
+                  label={tag.name}
+                  checked={formData.itineraryData.preferenceTags.includes(tag._id)}
+                  onChange={() => handlePreferenceTagChange(tag._id)}
+                />
+              ))}
             </Form.Group>
             <Button variant="primary" type="submit">
-              Create Itinerary
+              {currentItinerary ? 'Update Itinerary' : 'Add Itinerary'}
             </Button>
           </Form>
-        </Col>
-        <Col md={6}>
-          <h2>Existing Itineraries</h2>
-          <ListGroup>
-            {itineraries.map(itinerary => (
-              <ListGroup.Item key={itinerary._id}>
-                <h3>{itinerary.name}</h3>
-                <p>Language: {itinerary.language}</p>
-                <p>Total Price: ${itinerary.totalPrice}</p>
-                <p>Activities: {itinerary.activities.length}</p>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        </Col>
-      </Row>
+        </Modal.Body>
+      </Modal>
     </Container>
   );
-}
+};
 
-export default ItineraryManagement;
+export default ItineraryPage;

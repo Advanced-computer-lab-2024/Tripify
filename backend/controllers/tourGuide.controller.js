@@ -1,6 +1,10 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 
+
+
+
+
 // Register a tour guide
 export const registerTourGuide = async (req, res) => {
     const { username, email, password } = req.body;
@@ -73,3 +77,17 @@ export const getTourGuideByUsername = async (req, res) => {
         return res.status(500).json({ message: "Error fetching tour guide details", error: error.message });
     }
 };
+
+
+export const getAllTourGuides = async (req, res) => {
+    try {
+      // Find all tour guides
+      const tourGuides = await TourGuide.find();
+  
+      // Return the list of tour guides
+      return res.status(200).json(tourGuides);
+    } catch (error) {
+      console.error("Error fetching tour guides:", error);
+      return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
+    }
+  };

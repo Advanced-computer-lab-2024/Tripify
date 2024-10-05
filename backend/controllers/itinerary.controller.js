@@ -1,4 +1,4 @@
-import Itinerary from '../models/itinerary.model.js';  
+import Itinerary from '../models/itinerary.model.js';
 
 // Create an itinerary
 export const createItinerary = async (req, res) => {
@@ -17,7 +17,8 @@ export const getItineraryById = async (req, res) => {
         const itinerary = await Itinerary.findById(req.params.id)
             .populate('bookings')
             .populate('createdBy', 'name')
-            .populate('timeline.activity', 'name');
+            .populate('timeline.activity', 'name')
+            .populate('preferenceTags', 'name');
         
         if (!itinerary) {
             return res.status(404).json({ message: 'Itinerary not found' });
@@ -33,7 +34,8 @@ export const getAllItineraries = async (req, res) => {
     try {
         const itineraries = await Itinerary.find()
             .populate('createdBy', 'name')
-            .populate('timeline.activity', 'name');
+            .populate('timeline.activity', 'name')
+            .populate('preferenceTags', 'name');
         
         res.status(200).json(itineraries);
     } catch (error) {
@@ -47,7 +49,10 @@ export const updateItinerary = async (req, res) => {
         const updatedItinerary = await Itinerary.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
-        });
+        }).populate('createdBy', 'name')
+          .populate('timeline.activity', 'name')
+          .populate('preferenceTags', 'name');
+
         if (!updatedItinerary) {
             return res.status(404).json({ message: 'Itinerary not found' });
         }
@@ -70,6 +75,28 @@ export const deleteItinerary = async (req, res) => {
         }
         await itinerary.deleteOne(); // Use document deleteOne to trigger pre-hook
         res.status(200).json({ message: 'Itinerary deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Search itineraries
+export const searchItineraries = async (req, res) => {
+    try {
+        const { query } = req.query;
+        const itineraries = await Itinerary.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { pickupLocation: { $regex: query, $options: 'i' } },
+                { dropoffLocation: { $regex: query, $options: 'i' } }
+            ],
+            isActive: true
+        })
+        .populate('createdBy', 'name')
+        .populate('timeline.activity', 'name')
+        .populate('preferenceTags', 'name');
+
+        res.status(200).json(itineraries);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
