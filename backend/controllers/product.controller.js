@@ -4,7 +4,8 @@ import Product from '../models/product.model.js';
 // Create a new product
 export const addProduct = async (req, res) => {
   try {
-    const { name, description, price, quantity, imageUrl } = req.body;
+    const { name, description, price, quantity } = req.body;
+    const imageUrl = req.file ? req.file.path : null; // Handle the image URL from the uploaded file
 
     const newProduct = new Product({
       name,
