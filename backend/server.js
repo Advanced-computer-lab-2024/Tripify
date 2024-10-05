@@ -5,12 +5,14 @@ import activityRoutes from './routes/activity.route.js';
 import itineraryRoutes from './routes/itinerary.route.js';
 import historicalplacesRoutes from './routes/historicalplaces.route.js';
 import productRoutes from './routes/product.route.js';
+import cors from 'cors';
 
 
 dotenv.config();
 
 const app = express();
 
+app.use(cors());
 
 app.use(express.json());
 
