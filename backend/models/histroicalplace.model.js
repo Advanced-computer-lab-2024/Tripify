@@ -1,62 +1,71 @@
 import mongoose from "mongoose";
 
-// Schema for ticket prices based on user type
 const ticketPriceSchema = new mongoose.Schema({
-    type: {
-        type: String,
-        enum: ['foreigner', 'native', 'student'], // Types of ticket users
-        required: true,
-    },
-    price: {
-        type: Number,
-        required: true,
-    },
+  type: {
+    type: String,
+    enum: ["foreigner", "native", "student"],
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
 });
 
-// Schema for location using GeoJSON format
 const locationSchema = new mongoose.Schema({
-    type: {
-        type: String,
-        enum: ['Point'], // Must be 'Point' for GeoJSON
-        required: true,
-    },
-    coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true,
-    },
+  type: {
+    type: String,
+    enum: ["Point"],
+    required: true,
+  },
+  coordinates: {
+    type: [Number],
+    required: true,
+  },
 });
 
-// Main schema for historical places
-const historicalPlaceSchema = new mongoose.Schema({
+const historicalPlaceSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true, // Name of the historical place
+      type: String,
+      required: true,
     },
     description: {
-        type: String,
-        required: true, // Detailed description
+      type: String,
+      required: true,
     },
     images: {
-        type: [String], // Array of image URLs
-        required: true, // Images of the historical place
+      type: [String],
+      required: true,
     },
     location: {
-        type: locationSchema,
-        required: true, // GeoJSON location
+      type: locationSchema,
+      required: true,
     },
     openingHours: {
-        type: String, // Opening hours e.g., "9:00 AM - 5:00 PM"
-        required: true,
+      type: String,
+      required: true,
     },
-    ticketPrices: [ticketPriceSchema], // Array of ticket prices for different user types
+    ticketPrices: [ticketPriceSchema],
     isActive: {
-        type: Boolean,
-        default: true, // Flag to indicate if the place is active
+      type: Boolean,
+      default: true,
     },
-}, { timestamps: true });
+    tags: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tag",
+      },
+    ],
+  },
+  { timestamps: true }
+);
 
-historicalPlaceSchema.index({ location: '2dsphere' }); // Index for GeoJSON location
+historicalPlaceSchema.index({ location: "2dsphere" });
 
-const HistoricalPlace = mongoose.model('HistoricalPlace', historicalPlaceSchema);
+const HistoricalPlace = mongoose.model(
+  "HistoricalPlace",
+  historicalPlaceSchema
+);
 
 export default HistoricalPlace;
