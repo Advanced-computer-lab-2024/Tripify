@@ -3,7 +3,18 @@ import mongoose from "mongoose";
 //TODO implement user authentication middleware
 
 const activitySchema = new mongoose.Schema(
+  
   {
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true
+    },
     date: {
       type: Date,
       required: true,
@@ -11,17 +22,6 @@ const activitySchema = new mongoose.Schema(
     time: {
       type: String,
       required: true,
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"], // 'Point' for GeoJSON
-        required: true,
-      },
-      coordinates: {
-        type: [Number],
-        required: true, // [longitude, latitude]
-      },
     },
     price: {
       type: Number,
@@ -41,6 +41,17 @@ const activitySchema = new mongoose.Schema(
     bookingOpen: {
       type: Boolean,
       default: false,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"], // 'Point' for GeoJSON
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true, // [longitude, latitude]
+      },
     },
   },
   { timestamps: true }
