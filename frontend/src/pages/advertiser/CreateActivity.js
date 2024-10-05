@@ -1,43 +1,68 @@
-import React, { useState, useCallback } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import axios from 'axios';
-import { Form, Button, Container, Row, Col } from 'react-bootstrap';
+import React, { useState, useCallback, useEffect } from "react";
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import axios from "axios";
+import { Form, Button, Container, Row, Col } from "react-bootstrap";
 
 const CreateActivity = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    date: '',
-    time: '',
-    price: '',
-    category: '',
-    tags: '',
-    discounts: '',
+    name: "",
+    description: "",
+    date: "",
+    time: "",
+    price: "",
+    category: "",
+    tags: "",
+    discounts: "",
     bookingOpen: false,
     location: null,
   });
   const [marker, setMarker] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   // Use environment variable for Google Maps API Key
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    // Fetch categories when component mounts
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/activities/category"
+        );
+        setCategories(response.data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleMapClick = useCallback((event) => {
     const lat = event.latLng.lat();
     const lng = event.latLng.lng();
     setMarker({ lat, lng });
-    setFormData(prev => ({ ...prev, location: { lat, lng } }));
+    setFormData((prev) => ({ ...prev, location: { lat, lng } }));
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const validateForm = () => {
-    const requiredFields = ['name', 'description', 'date', 'time', 'price', 'category', 'location'];
+    const requiredFields = [
+      "name",
+      "description",
+      "date",
+      "time",
+      "price",
+      "category",
+      "location",
+    ];
     for (let field of requiredFields) {
       if (!formData[field]) {
         alert(`Please fill out the ${field} field.`);
@@ -53,40 +78,32 @@ const CreateActivity = () => {
 
     try {
       const geoJsonLocation = {
-        type: 'Point',
+        type: "Point",
         coordinates: [formData.location.lng, formData.location.lat],
       };
 
       const activityData = {
         ...formData,
         location: geoJsonLocation,
-        tags: formData.tags.split(',').map(tag => tag.trim()),
-        price: parseFloat(formData.price), // Ensure price is sent as a number
+        tags: formData.tags.split(",").map((tag) => tag.trim()),
+        price: parseFloat(formData.price),
       };
 
-      console.log('Activity data being sent:', activityData);
+      console.log("Activity data being sent:", activityData);
 
-      const response = await axios.post('http://localhost:5000/api/activities', activityData);
-      console.log('Server response:', response.data);
-      alert('Activity created successfully!');
+      const response = await axios.post(
+        "http://localhost:5000/api/activities",
+        activityData
+      );
+      console.log("Server response:", response.data);
+      alert("Activity created successfully!");
     } catch (error) {
-      console.error('Error creating activity:', error);
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error('Error data:', error.response.data);
-        console.error('Error status:', error.response.status);
-        console.error('Error headers:', error.response.headers);
-        alert(`Error creating activity: ${error.response.data.message || error.response.statusText}`);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('Error request:', error.request);
-        alert('Error creating activity: No response received from server');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', error.message);
-        alert(`Error creating activity: ${error.message}`);
-      }
+      console.error("Error creating activity:", error);
+      alert(
+        `Error creating activity: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     }
   };
 
@@ -152,12 +169,19 @@ const CreateActivity = () => {
             <Form.Group className="mb-3">
               <Form.Label>Category</Form.Label>
               <Form.Control
-                type="text"
+                as="select"
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
                 required
-              />
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Form.Control>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Tags (comma-separated)</Form.Label>
@@ -192,7 +216,7 @@ const CreateActivity = () => {
           <Col>
             <LoadScript googleMapsApiKey={googleMapsApiKey}>
               <GoogleMap
-                mapContainerStyle={{ height: '400px', width: '100%' }}
+                mapContainerStyle={{ height: "400px", width: "100%" }}
                 center={{ lat: 30.0444, lng: 31.2357 }}
                 zoom={10}
                 onClick={handleMapClick}
@@ -201,8 +225,10 @@ const CreateActivity = () => {
               </GoogleMap>
             </LoadScript>
             <p className="mt-2">
-              <strong>Selected Location:</strong>{' '}
-              {marker ? `Lat: ${marker.lat.toFixed(6)}, Lng: ${marker.lng.toFixed(6)}` : 'None'}
+              <strong>Selected Location:</strong>{" "}
+              {marker
+                ? `Lat: ${marker.lat.toFixed(6)}, Lng: ${marker.lng.toFixed(6)}`
+                : "None"}
             </p>
           </Col>
         </Row>
