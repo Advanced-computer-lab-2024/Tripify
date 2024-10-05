@@ -1,337 +1,437 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Form,
+  Modal,
+  ListGroup,
+} from "react-bootstrap";
 
-const ProductManagement = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    quantity: "",
-    imageUrl: "",
-    seller: "",
-    rating: "",
-    review: "",
-  });
+const API_URL = "http://localhost:5000/api"; // Adjust this to your backend URL
+
+function productPage() {
   const [products, setProducts] = useState([]);
-  const [message, setMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ratingFilter, setRatingFilter] = useState(0);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Fetch all products on load
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/products");
-        setProducts(response.data.products);
-      } catch (error) {
-        setMessage({
-          type: "error",
-          text: "Failed to fetch products",
-        });
-      }
-    };
-
     fetchProducts();
   }, []);
 
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
-  };
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, ratingFilter]);
 
-  // Handle adding a new product
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      if (editMode) {
-        // Update an existing product
-        const response = await axios.put(
-          `http://localhost:5000/api/products/${editId}`,
-          formData
-        );
-        setMessage({ type: "success", text: "Product updated successfully!" });
-      } else {
-        // Add a new product
-        const response = await axios.post(
-          "http://localhost:5000/api/products",
-          formData
-        );
-        setMessage({ type: "success", text: "Product added successfully!" });
-      }
-
-      // Clear form and fetch updated product list
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        quantity: "",
-        imageUrl: "",
-        seller: "",
-        rating: "",
-        review: "",
-      });
-      setEditMode(false);
-      setEditId(null);
-      fetchProducts();
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.response?.data?.message || "An error occurred",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch products for the table
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/products");
+      const response = await axios.get(`${API_URL}/products`);
       setProducts(response.data.products);
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: "Failed to fetch products",
-      });
+      console.error("Error fetching products:", error);
     }
   };
 
-  // Handle editing a product
-  const handleEdit = (product) => {
-    setFormData({
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      quantity: product.quantity,
-      imageUrl: product.imageUrl,
-      seller: product.seller,
-      rating: product.rating,
-      review: product.review,
-    });
-    setEditMode(true);
-    setEditId(product._id);
+  const filterProducts = () => {
+    let filtered = products;
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (ratingFilter > 0) {
+      filtered = filtered.filter((product) => {
+        const avgRating =
+          product.reviews.reduce((sum, review) => sum + review.rating, 0) /
+          product.reviews.length;
+        return avgRating >= ratingFilter;
+      });
+    }
+
+    setFilteredProducts(filtered);
   };
 
-  // Handle deleting a product
-  const handleDelete = async (id) => {
+  const handleAddProduct = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const productData = Object.fromEntries(formData.entries());
+
     try {
-      await axios.delete(`http://localhost:5000/api/products/${id}`);
-      setMessage({ type: "success", text: "Product deleted successfully!" });
-      fetchProducts(); // Fetch updated product list
+      await axios.post(`${API_URL}/products`, productData);
+      fetchProducts();
+      setShowAddModal(false);
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: "Failed to delete product",
-      });
+      console.error("Error adding product:", error);
+    }
+  };
+
+  const handleEditProduct = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const productData = Object.fromEntries(formData.entries());
+
+    try {
+      await axios.put(
+        `${API_URL}/products/${selectedProduct._id}`,
+        productData
+      );
+      fetchProducts();
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error editing product:", error);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await axios.delete(`${API_URL}/products/${productId}`);
+        fetchProducts();
+      } catch (error) {
+        console.error("Error deleting product:", error);
+      }
+    }
+  };
+
+  const handleAddReview = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const reviewData = Object.fromEntries(formData.entries());
+
+    // Convert rating to a number
+    reviewData.rating = Number(reviewData.rating);
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/products/${selectedProduct._id}`,
+        reviewData
+      );
+
+      // Update the product in the local state
+      setProducts((prevProducts) =>
+        prevProducts.map((product) =>
+          product._id === selectedProduct._id ? response.data.product : product
+        )
+      );
+
+      setShowReviewModal(false);
+      // Optionally, you can add a success message here
+      alert("Review added successfully!");
+    } catch (error) {
+      console.error("Error adding review:", error);
+      alert("Failed to add review. Please try again.");
     }
   };
 
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">{editMode ? "Edit Product" : "Add New Product"}</h2>
+    <Container>
+      <h1 className="my-4">Product Catalog</h1>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label
-            htmlFor="name"
-            className="form-label"
-          >
-            Product Name
-          </label>
-          <input
+      <Row className="mb-3">
+        <Col md={4}>
+          <Form.Control
             type="text"
-            className="form-control"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="description"
-            className="form-label"
+        </Col>
+        <Col md={4}>
+          <Form.Select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(Number(e.target.value))}
           >
-            Description
-          </label>
-          <textarea
-            className="form-control"
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            required
-          ></textarea>
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="price"
-            className="form-label"
-          >
-            Price
-          </label>
-          <input
-            type="number"
-            className="form-control"
-            id="price"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="quantity"
-            className="form-label"
-          >
-            Quantity
-          </label>
-          <input
-            type="number"
-            className="form-control"
-            id="quantity"
-            name="quantity"
-            value={formData.quantity}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="imageUrl"
-            className="form-label"
-          >
-            Image URL
-          </label>
-          <input
-            type="url"
-            className="form-control"
-            id="imageUrl"
-            name="imageUrl"
-            value={formData.imageUrl}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="seller"
-            className="form-label"
-          >
-            Seller
-          </label>
-          <input
-            type="text"
-            className="form-control"
-            id="seller"
-            name="seller"
-            value={formData.seller}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="rating"
-            className="form-label"
-          >
-            Rating
-          </label>
-          <input
-            type="number"
-            className="form-control"
-            id="rating"
-            name="rating"
-            value={formData.rating}
-            onChange={handleChange}
-            step="0.1"
-          />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="review"
-            className="form-label"
-          >
-            Review
-          </label>
-          <textarea
-            className="form-control"
-            id="review"
-            name="review"
-            value={formData.review}
-            onChange={handleChange}
-          ></textarea>
-        </div>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={isLoading}
-        >
-          {isLoading
-            ? "Processing..."
-            : editMode
-            ? "Update Product"
-            : "Add Product"}
-        </button>
-      </form>
+            <option value={0}>All Ratings</option>
+            <option value={1}>1+ Stars</option>
+            <option value={2}>2+ Stars</option>
+            <option value={3}>3+ Stars</option>
+            <option value={4}>4+ Stars</option>
+            <option value={5}>5 Stars</option>
+          </Form.Select>
+        </Col>
+        <Col md={4}>
+          <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
+        </Col>
+      </Row>
 
-      {message && (
-        <div
-          className={`alert mt-3 ${
-            message.type === "success" ? "alert-success" : "alert-danger"
-          }`}
-          role="alert"
-        >
-          {message.text}
-        </div>
-      )}
-
-      <h2 className="mt-5">Product List</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Quantity</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <tr key={product._id}>
-              <td>{product.name}</td>
-              <td>{product.description}</td>
-              <td>{product.price}</td>
-              <td>{product.quantity}</td>
-              <td>
-                <button
-                  className="btn btn-warning btn-sm me-2"
-                  onClick={() => handleEdit(product)}
+      <Row>
+        {filteredProducts.map((product) => (
+          <Col
+            md={6}
+            lg={4}
+            key={product._id}
+            className="mb-4"
+          >
+            <Card>
+              <Card.Img
+                variant="top"
+                src={product.imageUrl}
+              />
+              <Card.Body>
+                <Card.Title>{product.name}</Card.Title>
+                <Card.Text>{product.description}</Card.Text>
+                <Card.Text>Price: ${product.price}</Card.Text>
+                <Card.Text>Quantity: {product.quantity}</Card.Text>
+                <Card.Text>Seller: {product.seller}</Card.Text>
+                <Card.Text>
+                  Average Rating:{" "}
+                  {product.reviews.length > 0
+                    ? (
+                        product.reviews.reduce(
+                          (sum, review) => sum + review.rating,
+                          0
+                        ) / product.reviews.length
+                      ).toFixed(1)
+                    : "No ratings yet"}{" "}
+                  ({product.reviews.length} reviews)
+                </Card.Text>
+                <Button
+                  variant="primary"
+                  className="me-2"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setShowReviewModal(true);
+                  }}
+                >
+                  Add Review
+                </Button>
+                <Button
+                  variant="warning"
+                  className="me-2"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setShowEditModal(true);
+                  }}
                 >
                   Edit
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDelete(product._id)}
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => handleDeleteProduct(product._id)}
                 >
                   Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+                </Button>
+              </Card.Body>
+              <Card.Footer>
+                <h5>Reviews</h5>
+                {product.reviews.length > 0 ? (
+                  <ListGroup variant="flush">
+                    {product.reviews.map((review, index) => (
+                      <ListGroup.Item key={index}>
+                        <div>
+                          <strong>Rating: {review.rating}/5</strong>
+                        </div>
+                        <div>
+                          <strong>Reviewer:</strong> {review.reviewerName}
+                        </div>
+                        <div>{review.comment}</div>
+                        <small className="text-muted">
+                          {new Date(review.timestamp).toLocaleDateString()}
+                        </small>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                ) : (
+                  <p>No reviews yet.</p>
+                )}
+              </Card.Footer>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
-export default ProductManagement;
+      {/* Add Product Modal */}
+      <Modal
+        show={showAddModal}
+        onHide={() => setShowAddModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                name="price"
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                name="quantity"
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Image URL</Form.Label>
+              <Form.Control
+                type="text"
+                name="imageUrl"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select
+                name="seller"
+                required
+              >
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Add Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Edit Product Modal */}
+      <Modal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleEditProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                defaultValue={selectedProduct?.name}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                defaultValue={selectedProduct?.description}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                name="price"
+                defaultValue={selectedProduct?.price}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                name="quantity"
+                defaultValue={selectedProduct?.quantity}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Image URL</Form.Label>
+              <Form.Control
+                type="text"
+                name="imageUrl"
+                defaultValue={selectedProduct?.imageUrl}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select
+                name="seller"
+                defaultValue={selectedProduct?.seller}
+                required
+              >
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Update Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Add Review Modal */}
+      <Modal
+        show={showReviewModal}
+        onHide={() => setShowReviewModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddReview}>
+            <Form.Group className="mb-3">
+              <Form.Label>Your Name (Tourist ID)</Form.Label>
+              <Form.Control
+                type="text"
+                name="reviewerName"
+                required
+                placeholder="Enter your Tourist ID"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Rating</Form.Label>
+              <Form.Select
+                name="rating"
+                required
+              >
+                <option value="1">1 Star</option>
+                <option value="2">2 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="5">5 Stars</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Comment</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="comment"
+                required
+              />
+            </Form.Group>
+            <Button type="submit">Submit Review</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+    </Container>
+  );
+}
+
+export default productPage;

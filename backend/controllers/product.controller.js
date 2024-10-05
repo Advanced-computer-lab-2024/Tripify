@@ -1,21 +1,10 @@
-// backend/controllers/product.controller.js
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 
 // Create a new product
 export const addProduct = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      price,
-      quantity,
-      imageUrl,
-      seller,
-      rating,
-      review,
-    } = req.body;
-
+    const { name, description, price, quantity, imageUrl, seller } = req.body;
     const newProduct = new Product({
       name,
       description,
@@ -23,10 +12,7 @@ export const addProduct = async (req, res) => {
       quantity,
       imageUrl,
       seller,
-      rating,
-      review,
     });
-
     await newProduct.save();
     res
       .status(201)
@@ -41,35 +27,7 @@ export const addProduct = async (req, res) => {
 // Find all products
 export const getProducts = async (req, res) => {
   try {
-    const { search, minPrice, maxPrice, minRating, maxRating } = req.query;
-    let filter = {};
-
-    if (search) {
-      filter.name = { $regex: search, $options: "i" };
-    }
-
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) {
-        filter.price.$gte = parseFloat(minPrice);
-      }
-      if (maxPrice) {
-        filter.price.$lte = parseFloat(maxPrice);
-      }
-    }
-
-    if (minRating || maxRating) {
-      filter.rating = {};
-      if (minRating) {
-        filter.rating.$gte = parseFloat(minRating);
-      }
-      if (maxRating) {
-        filter.rating.$lte = parseFloat(maxRating);
-      }
-    }
-
-    const products = await Product.find(filter);
-
+    const products = await Product.find();
     res.status(200).json({ products });
   } catch (error) {
     res
@@ -83,11 +41,9 @@ export const findProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findById(id);
-
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-
     res.status(200).json(product);
   } catch (error) {
     res
@@ -102,11 +58,15 @@ export const updateProduct = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
       new: true,
     });
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
 
@@ -125,17 +85,45 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-
     const deletedProduct = await Product.findByIdAndDelete(id);
-
     if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
-
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     res
       .status(500)
       .json({ message: "Failed to delete product", error: error.message });
+  }
+};
+
+// Add a review to a product
+export const addReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reviewerName, rating, comment } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const newReview = {
+      reviewerName,
+      rating,
+      comment,
+    };
+
+    product.reviews.push(newReview);
+    await product.save();
+
+    res.status(201).json({
+      message: "Review added successfully",
+      product: product,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Failed to add review", error: error.message });
   }
 };

@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+const reviewSchema = new mongoose.Schema({
+  reviewerName: { type: mongoose.Schema.Types.ObjectId, ref: "Tourist" },
+  rating: { type: Number, min: 1, max: 5, required: true },
+  comment: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+});
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -26,15 +33,7 @@ const productSchema = new mongoose.Schema(
       enum: ["VTP", "External seller"],
       required: true,
     },
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
-      default: 0,
-    },
-    review: {
-      type: String,
-    },
+    reviews: [reviewSchema],
   },
   { timestamps: true }
 );
