@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Activity from "./activity.model.js"; // Import the Activity model
+
 const itinerarySchema = new mongoose.Schema({
     name: {
         type: String,
@@ -34,27 +35,13 @@ const itinerarySchema = new mongoose.Schema({
         hearingImpaired: { type: Boolean, default: false },
         visuallyImpaired: { type: Boolean, default: false }
     },
-    pickupLocation: {
-        type: {
-            type: String,
-            enum: ['Point'],
-            required: true,
-        },
-        coordinates: {
-            type: [Number],
-            required: true,
-        },
+    pickupLocation: {  // Changed from GeoJSON to string
+        type: String,
+        required: true,
     },
-    dropoffLocation: {
-        type: {
-            type: String,
-            enum: ['Point'],
-            required: true,
-        },
-        coordinates: {
-            type: [Number],
-            required: true,
-        },
+    dropoffLocation: { // Changed from GeoJSON to string
+        type: String,
+        required: true,
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -70,7 +57,10 @@ const itinerarySchema = new mongoose.Schema({
         default: true
     }
 }, { timestamps: true });
-itinerarySchema.index({ pickupLocation: '2dsphere', dropoffLocation: '2dsphere' });
+
+// Remove the 2dsphere indexes since we no longer have GeoJSON fields
+// itinerarySchema.index({ pickupLocation: '2dsphere', dropoffLocation: '2dsphere' });
+
 itinerarySchema.pre('deleteOne', { document: true, query: false }, async function(next) {
     if (this.bookings && this.bookings.length > 0) {
         next(new Error('Cannot delete itinerary with existing bookings'));
@@ -78,6 +68,7 @@ itinerarySchema.pre('deleteOne', { document: true, query: false }, async functio
         next();
     }
 });
+
 // Static method to create a new itinerary
 itinerarySchema.statics.createItinerary = async function(itineraryData, tourGuideId) {
     const itinerary = new this({
@@ -86,9 +77,11 @@ itinerarySchema.statics.createItinerary = async function(itineraryData, tourGuid
     });
     return await itinerary.save();
 };
+
 // Instance method to check if the itinerary can be deleted
 itinerarySchema.methods.canDelete = function() {
     return this.bookings.length === 0;
 };
+
 const Itinerary = mongoose.model('Itinerary', itinerarySchema);
 export default Itinerary;

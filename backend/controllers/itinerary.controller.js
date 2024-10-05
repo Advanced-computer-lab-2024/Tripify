@@ -1,4 +1,5 @@
 import Itinerary from '../models/itinerary.model.js';  
+
 // Create an itinerary
 export const createItinerary = async (req, res) => {
     try {
@@ -9,6 +10,7 @@ export const createItinerary = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
 // Get a single itinerary by ID
 export const getItineraryById = async (req, res) => {
     try {
@@ -25,6 +27,7 @@ export const getItineraryById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 // Get all itineraries
 export const getAllItineraries = async (req, res) => {
     try {
@@ -37,6 +40,7 @@ export const getAllItineraries = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 // Update an itinerary by ID
 export const updateItinerary = async (req, res) => {
     try {
@@ -52,6 +56,7 @@ export const updateItinerary = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
 // Delete an itinerary by ID
 export const deleteItinerary = async (req, res) => {
     try {
