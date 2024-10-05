@@ -13,11 +13,12 @@ import {
 
 const API_URL = "http://localhost:5000/api"; // Adjust this to your backend URL
 
-function productPage() {
+function ProductPage() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState(0);
+  const [priceFilter, setPriceFilter] = useState({ min: "", max: "" });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -29,7 +30,7 @@ function productPage() {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, ratingFilter]);
+  }, [products, searchTerm, ratingFilter, priceFilter]);
 
   const fetchProducts = async () => {
     try {
@@ -58,6 +59,17 @@ function productPage() {
           product.reviews.length;
         return avgRating >= ratingFilter;
       });
+    }
+
+    if (priceFilter.min !== "") {
+      filtered = filtered.filter(
+        (product) => product.price >= parseFloat(priceFilter.min)
+      );
+    }
+    if (priceFilter.max !== "") {
+      filtered = filtered.filter(
+        (product) => product.price <= parseFloat(priceFilter.max)
+      );
     }
 
     setFilteredProducts(filtered);
@@ -110,7 +122,6 @@ function productPage() {
     const formData = new FormData(event.target);
     const reviewData = Object.fromEntries(formData.entries());
 
-    // Convert rating to a number
     reviewData.rating = Number(reviewData.rating);
 
     try {
@@ -119,7 +130,6 @@ function productPage() {
         reviewData
       );
 
-      // Update the product in the local state
       setProducts((prevProducts) =>
         prevProducts.map((product) =>
           product._id === selectedProduct._id ? response.data.product : product
@@ -127,7 +137,6 @@ function productPage() {
       );
 
       setShowReviewModal(false);
-      // Optionally, you can add a success message here
       alert("Review added successfully!");
     } catch (error) {
       console.error("Error adding review:", error);
@@ -140,7 +149,7 @@ function productPage() {
       <h1 className="my-4">Product Catalog</h1>
 
       <Row className="mb-3">
-        <Col md={4}>
+        <Col md={3}>
           <Form.Control
             type="text"
             placeholder="Search products..."
@@ -148,7 +157,7 @@ function productPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </Col>
-        <Col md={4}>
+        <Col md={2}>
           <Form.Select
             value={ratingFilter}
             onChange={(e) => setRatingFilter(Number(e.target.value))}
@@ -161,7 +170,27 @@ function productPage() {
             <option value={5}>5 Stars</option>
           </Form.Select>
         </Col>
-        <Col md={4}>
+        <Col md={2}>
+          <Form.Control
+            type="number"
+            placeholder="Min Price"
+            value={priceFilter.min}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, min: e.target.value })
+            }
+          />
+        </Col>
+        <Col md={2}>
+          <Form.Control
+            type="number"
+            placeholder="Max Price"
+            value={priceFilter.max}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, max: e.target.value })
+            }
+          />
+        </Col>
+        <Col md={3}>
           <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
         </Col>
       </Row>
@@ -434,4 +463,4 @@ function productPage() {
   );
 }
 
-export default productPage;
+export default ProductPage;
