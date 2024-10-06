@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import axios from "axios";
-import { Form, Button, Container, Row, Col } from "react-bootstrap";
+import { Form, Button, Container, Row, Col, Card } from "react-bootstrap";
 
 const CreateActivity = () => {
   const [formData, setFormData] = useState({
@@ -15,26 +15,38 @@ const CreateActivity = () => {
     discounts: "",
     bookingOpen: false,
     location: null,
+    createdBy: "", // Field for selected advertiser
   });
   const [marker, setMarker] = useState(null);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
+  const [advertisers, setAdvertisers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Use environment variable for Google Maps API Key
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
-    // Fetch categories
-    axios
-      .get("http://localhost:5000/api/activities/category")
-      .then((response) => setCategories(response.data))
-      .catch((error) => console.error("Error fetching categories:", error));
+    const fetchData = async () => {
+      try {
+        const [categoriesRes, tagsRes, advertisersRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/activities/category"),
+          axios.get("http://localhost:5000/api/tags"),
+          axios.get("http://localhost:5000/api/advertiser"),
+        ]);
 
-    // Fetch tags
-    axios
-      .get("http://localhost:5000/api/tags")
-      .then((response) => setTags(response.data))
-      .catch((error) => console.error("Error fetching tags:", error));
+        setCategories(categoriesRes.data);
+        setTags(tagsRes.data);
+        setAdvertisers(advertisersRes.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError("An error occurred while fetching data. Please try again.");
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleMapClick = useCallback((event) => {
@@ -78,6 +90,7 @@ const CreateActivity = () => {
       "price",
       "category",
       "location",
+      "createdBy",
     ];
     for (let field of requiredFields) {
       if (!formData[field]) {
@@ -122,10 +135,35 @@ const CreateActivity = () => {
     }
   };
 
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+
   return (
     <Container className="mt-5">
       <h2 className="mb-4">Create New Activity</h2>
       <Form onSubmit={handleSubmit}>
+        <Card className="mb-4">
+          <Card.Body>
+            <Card.Title>Select Advertiser</Card.Title>
+            <Form.Group>
+              <Form.Control
+                as="select"
+                name="createdBy"
+                value={formData.createdBy}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Choose an advertiser</option>
+                {advertisers.map((advertiser) => (
+                  <option key={advertiser._id} value={advertiser._id}>
+                    {advertiser.companyName}
+                  </option>
+                ))}
+              </Form.Control>
+            </Form.Group>
+          </Card.Body>
+        </Card>
+
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">

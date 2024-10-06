@@ -45,13 +45,18 @@ const activitySchema = new mongoose.Schema(
     location: {
       type: {
         type: String,
-        enum: ["Point"], // 'Point' for GeoJSON
+        enum: ["Point"],
         required: true,
       },
       coordinates: {
         type: [Number],
-        required: true, // [longitude, latitude]
+        required: true,
       },
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Advertiser",
+      required: true,
     },
   },
   { timestamps: true }
