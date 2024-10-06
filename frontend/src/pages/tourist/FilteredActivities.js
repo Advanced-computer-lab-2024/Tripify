@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Container, Row, Col, Form, Card, Button } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Card,
+  Button,
+  Dropdown,
+} from "react-bootstrap";
 
 const FilteredActivities = () => {
   const [activities, setActivities] = useState([]);
@@ -12,6 +20,7 @@ const FilteredActivities = () => {
     category: "",
     rating: "",
   });
+  const [sortOption, setSortOption] = useState("default");
 
   useEffect(() => {
     fetchActivities();
@@ -75,6 +84,31 @@ const FilteredActivities = () => {
     }
 
     setFilteredActivities(filtered);
+    applySorting(filtered);
+  };
+
+  const applySorting = (activities) => {
+    let sorted = [...activities];
+    switch (sortOption) {
+      case "priceAsc":
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case "priceDesc":
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case "ratingDesc":
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      default:
+        // No sorting
+        break;
+    }
+    setFilteredActivities(sorted);
+  };
+
+  const handleSortChange = (option) => {
+    setSortOption(option);
+    applySorting(filteredActivities);
   };
 
   return (
@@ -138,9 +172,32 @@ const FilteredActivities = () => {
           </Form.Group>
         </Col>
       </Row>
-      <Button onClick={applyFilters} className="mb-4">
-        Apply Filters
-      </Button>
+      <Row className="mb-4">
+        <Col md={3}>
+          <Button onClick={applyFilters}>Apply Filters</Button>
+        </Col>
+        <Col md={3}>
+          <Dropdown>
+            <Dropdown.Toggle variant="success" id="dropdown-basic">
+              Sort By
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => handleSortChange("default")}>
+                Default
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange("priceAsc")}>
+                Price: Low to High
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange("priceDesc")}>
+                Price: High to Low
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange("ratingDesc")}>
+                Rating: Highest First
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </Col>
+      </Row>
       <Row>
         {filteredActivities.map((activity) => (
           <Col md={4} key={activity._id} className="mb-4">
