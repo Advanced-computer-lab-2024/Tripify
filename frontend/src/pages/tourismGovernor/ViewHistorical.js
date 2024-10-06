@@ -1,131 +1,248 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, ListGroup, Card } from 'react-bootstrap';
-import axios from 'axios';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Table,
+  Modal,
+} from "react-bootstrap";
 
-const API_URL = 'http://localhost:5000/api'; // Replace with your actual API URL
-const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-const libraries = ['places'];
-
-const HistoricalPlacesApp = () => {
-  const [places, setPlaces] = useState([]);
-  const [selectedPlace, setSelectedPlace] = useState(null);
+const HistoricalPlacesManagement = () => {
+  const [historicalPlaces, setHistoricalPlaces] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [tourismGovernors, setTourismGovernors] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [currentPlace, setCurrentPlace] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    images: [''],
-    location: { type: 'Point', coordinates: [] }, // Updated for GeoJSON
-    openingHours: '',
-    ticketPrices: [{ type: 'foreigner', price: 0 }, { type: 'native', price: 0 }, { type: 'student', price: 0 }],
+    name: "",
+    description: "",
+    images: [],
+    location: "",
+    openingHours: "",
+    ticketPrices: [
+      { type: "foreigner", price: 0 },
+      { type: "native", price: 0 },
+      { type: "student", price: 0 },
+    ],
     isActive: true,
+    tags: [],
+    createdBy: "",
   });
-  const [mapCenter, setMapCenter] = useState({ lat: 30.0444, lng: 31.2357 }); // Default to Cairo, Egypt
 
   useEffect(() => {
-    fetchPlaces();
+    fetchHistoricalPlaces();
+    fetchTags();
+    fetchTourismGovernors();
   }, []);
 
-  const fetchPlaces = async () => {
+  const fetchHistoricalPlaces = async () => {
     try {
-      const response = await axios.get(`${API_URL}/historicalplace`);
-      setPlaces(response.data);
+      const response = await axios.get("http://localhost:5000/api/historicalplace");
+      setHistoricalPlaces(response.data);
     } catch (error) {
-      console.error('Error fetching places:', error);
+      console.error("Error fetching historical places:", error);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/tags");
+      setTags(response.data);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
+  const fetchTourismGovernors = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/tourismgovernor");
+      setTourismGovernors(response.data);
+    } catch (error) {
+      console.error("Error fetching tourism governors:", error);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
-  const handleImageChange = (index, value) => {
-    setFormData(prev => {
-      const newImages = [...prev.images];
-      newImages[index] = value;
-      return { ...prev, images: newImages };
+  const handleTicketPriceChange = (index, value) => {
+    const newTicketPrices = [...formData.ticketPrices];
+    newTicketPrices[index].price = Number(value);
+    setFormData((prevState) => ({ ...prevState, ticketPrices: newTicketPrices }));
+  };
+
+  const handleTagChange = (tagId) => {
+    setFormData((prevState) => {
+      const updatedTags = prevState.tags.includes(tagId)
+        ? prevState.tags.filter((id) => id !== tagId)
+        : [...prevState.tags, tagId];
+      return { ...prevState, tags: updatedTags };
     });
   };
 
-  const handleTicketPriceChange = (index, field, value) => {
-    setFormData(prev => {
-      const newTicketPrices = [...prev.ticketPrices];
-      newTicketPrices[index] = { ...newTicketPrices[index], [field]: value };
-      return { ...prev, ticketPrices: newTicketPrices };
-    });
-  };
-
-  const handleMapClick = (event) => {
-    const { lat, lng } = event.latLng;
-    setMapCenter({ lat: lat(), lng: lng() });
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        type: 'Point',
-        coordinates: [lng, lat()], // Save as [longitude, latitude]
-      },
+  const handleImageChange = (e) => {
+    const { value } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      images: value.split(',').map(url => url.trim()),
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (selectedPlace) {
-        await axios.put(`${API_URL}/historicalplace/${selectedPlace._id}`, formData);
+      const payload = {
+        ...formData,
+        tags: formData.tags,
+        images: formData.images,
+      };
+
+      console.log("Submitting payload:", payload);  // Log the payload
+
+      let response;
+      if (currentPlace) {
+        response = await axios.put(
+          `http://localhost:5000/api/historicalplace/${currentPlace._id}`,
+          payload
+        );
       } else {
-        await axios.post(`${API_URL}/historicalplace`, formData);
+        response = await axios.post("http://localhost:5000/api/historicalplace", payload);
       }
-      fetchPlaces();
+
+      console.log("API response:", response.data);  // Log the response
+
+      fetchHistoricalPlaces();
+      setShowModal(false);
       resetForm();
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error("Error saving historical place:", error);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("Error request:", error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error message:", error.message);
+      }
+    }
+  };
+
+  const handleEdit = (place) => {
+    setCurrentPlace(place);
+    setFormData({
+      name: place.name,
+      description: place.description,
+      images: place.images,
+      location: place.location,
+      openingHours: place.openingHours,
+      ticketPrices: place.ticketPrices,
+      isActive: place.isActive,
+      tags: place.tags.map((tag) => tag._id),
+      createdBy: place.createdBy?._id || "",
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this historical place?")) {
+      try {
+        await axios.delete(`http://localhost:5000/api/historicalplace/${id}`);
+        fetchHistoricalPlaces();
+      } catch (error) {
+        console.error("Error deleting historical place:", error);
+      }
     }
   };
 
   const resetForm = () => {
+    setCurrentPlace(null);
     setFormData({
-      name: '',
-      description: '',
-      images: [''],
-      location: { type: 'Point', coordinates: [] },
-      openingHours: '',
-      ticketPrices: [{ type: 'foreigner', price: 0 }, { type: 'native', price: 0 }, { type: 'student', price: 0 }],
+      name: "",
+      description: "",
+      images: [],
+      location: "",
+      openingHours: "",
+      ticketPrices: [
+        { type: "foreigner", price: 0 },
+        { type: "native", price: 0 },
+        { type: "student", price: 0 },
+      ],
       isActive: true,
+      tags: [],
+      createdBy: "",
     });
-    setSelectedPlace(null);
-    setMapCenter({ lat: 30.0444, lng: 31.2357 }); // Reset to default center
-  };
-
-  const handleEdit = (place) => {
-    setSelectedPlace(place);
-    setFormData({
-      name: place.name || '',
-      description: place.description || '',
-      images: place.images || [''],
-      location: place.location || { type: 'Point', coordinates: [] },
-      openingHours: place.openingHours || '',
-      ticketPrices: place.ticketPrices || [{ type: 'foreigner', price: 0 }, { type: 'native', price: 0 }, { type: 'student', price: 0 }],
-      isActive: place.isActive !== undefined ? place.isActive : true,
-    });
-    setMapCenter({ lat: place.location.coordinates[1], lng: place.location.coordinates[0] });
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`${API_URL}/historicalplace/${id}`);
-      fetchPlaces();
-    } catch (error) {
-      console.error('Error deleting place:', error);
-    }
   };
 
   return (
-    <Container className="mt-5">
-      <h1 className="mb-4">Historical Places</h1>
-      <Row>
-        <Col md={6}>
+    <Container>
+      <h1 className="my-4">Historical Places Management</h1>
+      <Button onClick={() => setShowModal(true)} className="mb-3">
+        Add New Historical Place
+      </Button>
+
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Opening Hours</th>
+            <th>Tags</th>
+            <th>Created By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {historicalPlaces.map((place) => (
+            <tr key={place._id}>
+              <td>{place.name}</td>
+              <td>{place.location}</td>
+              <td>{place.openingHours}</td>
+              <td>{place.tags.map((tag) => tag.name).join(", ")}</td>
+              <td>{place.createdBy?.username || "N/A"}</td>
+              <td>
+                <Button
+                  variant="info"
+                  size="sm"
+                  onClick={() => handleEdit(place)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleDelete(place._id)}
+                  className="ml-2"
+                >
+                  Delete
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {currentPlace ? "Edit Historical Place" : "Add New Historical Place"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
+            <Form.Group>
               <Form.Label>Name</Form.Label>
               <Form.Control
                 type="text"
@@ -135,7 +252,7 @@ const HistoricalPlacesApp = () => {
                 required
               />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group>
               <Form.Label>Description</Form.Label>
               <Form.Control
                 as="textarea"
@@ -145,42 +262,27 @@ const HistoricalPlacesApp = () => {
                 required
               />
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Images (URLs)</Form.Label>
-              {formData.images.map((image, index) => (
-                <Form.Control
-                  key={index}
-                  type="text"
-                  value={image}
-                  onChange={(e) => handleImageChange(index, e.target.value)}
-                  className="mb-2"
-                  required
-                />
-              ))}
-              <Button variant="secondary" size="sm" onClick={() => setFormData(prev => ({ ...prev, images: [...prev.images, ''] }))}>
-                Add Image URL
-              </Button>
+            <Form.Group>
+              <Form.Label>Images (comma-separated URLs)</Form.Label>
+              <Form.Control
+                type="text"
+                name="images"
+                value={formData.images.join(', ')}
+                onChange={handleImageChange}
+                placeholder="http://example.com/image1.jpg, http://example.com/image2.jpg"
+              />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group>
               <Form.Label>Location</Form.Label>
-              <LoadScript
-  googleMapsApiKey={googleMapsApiKey}
-  libraries={libraries}
->
-
-                <GoogleMap
-                  mapContainerStyle={{ height: '400px', width: '100%' }}
-                  center={mapCenter}
-                  zoom={15}
-                  onClick={handleMapClick}
-                >
-                  {formData.location.coordinates.length > 0 && (
-                    <Marker position={{ lat: mapCenter.lat, lng: mapCenter.lng }} />
-                  )}
-                </GoogleMap>
-              </LoadScript>
+              <Form.Control
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                required
+              />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group>
               <Form.Label>Opening Hours</Form.Label>
               <Form.Control
                 type="text"
@@ -190,59 +292,67 @@ const HistoricalPlacesApp = () => {
                 required
               />
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Ticket Prices</Form.Label>
-              {formData.ticketPrices.map((ticket, index) => (
-                <div key={index} className="d-flex mb-2">
-                  <Form.Control
-                    type="text"
-                    value={ticket.type}
-                    onChange={(e) => handleTicketPriceChange(index, 'type', e.target.value)}
-                    className="me-2"
-                    required
-                  />
-                  <Form.Control
-                    type="number"
-                    value={ticket.price}
-                    onChange={(e) => handleTicketPriceChange(index, 'price', parseFloat(e.target.value))}
-                    required
-                  />
-                </div>
-              ))}
+
+            <h5 className="mt-3">Ticket Prices</h5>
+            {formData.ticketPrices.map((ticket, index) => (
+              <Form.Group key={ticket.type}>
+                <Form.Label>{ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={ticket.price}
+                  onChange={(e) => handleTicketPriceChange(index, e.target.value)}
+                  required
+                />
+              </Form.Group>
+            ))}
+
+            <h5 className="mt-3">Tags</h5>
+            {tags.map((tag) => (
+              <Form.Check
+                key={tag._id}
+                type="checkbox"
+                label={tag.name}
+                checked={formData.tags.includes(tag._id)}
+                onChange={() => handleTagChange(tag._id)}
+              />
+            ))}
+
+            <Form.Group>
+              <Form.Label>Created By</Form.Label>
+              <Form.Control
+                as="select"
+                name="createdBy"
+                value={formData.createdBy}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Select Tourism Governor</option>
+                {tourismGovernors.map((governor) => (
+                  <option key={governor._id} value={governor._id}>
+                    {governor.username}
+                  </option>
+                ))}
+              </Form.Control>
             </Form.Group>
-            <Form.Group className="mb-3">
+
+            <Form.Group>
               <Form.Check
                 type="checkbox"
-                label="Is Active"
+                label="Active"
                 name="isActive"
                 checked={formData.isActive}
-                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                onChange={handleInputChange}
               />
             </Form.Group>
+
             <Button variant="primary" type="submit">
-              {selectedPlace ? 'Update Place' : 'Add Place'}
+              {currentPlace ? "Update Historical Place" : "Create Historical Place"}
             </Button>
           </Form>
-        </Col>
-        <Col md={6}>
-          <ListGroup>
-            {places.map((place) => (
-              <ListGroup.Item key={place._id}>
-                <Card>
-                  <Card.Body>
-                    <Card.Title>{place.name}</Card.Title>
-                    <Card.Text>{place.description}</Card.Text>
-                    <Button variant="info" onClick={() => handleEdit(place)}>Edit</Button>
-                    <Button variant="danger" onClick={() => handleDelete(place._id)}>Delete</Button>
-                  </Card.Body>
-                </Card>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        </Col>
-      </Row>
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 };
 
-export default HistoricalPlacesApp;
+export default HistoricalPlacesManagement;

@@ -45,3 +45,25 @@ export const loginTourismGovernor = async (req, res) => {
         return res.status(500).json({ message: "Error logging in", error });
     }
 };
+
+
+export const getTourismGovernors = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        if (id) {
+            // If an ID is provided, fetch a single governor
+            const governor = await TourismGovernor.findById(id).select('-password');
+            if (!governor) {
+                return res.status(404).json({ message: "Tourism Governor not found" });
+            }
+            return res.status(200).json(governor);
+        } else {
+            // If no ID is provided, fetch all governors
+            const governors = await TourismGovernor.find().select('-password');
+            return res.status(200).json(governors);
+        }
+    } catch (error) {
+        return res.status(500).json({ message: "Error fetching tourism governor(s)", error });
+    }
+};
