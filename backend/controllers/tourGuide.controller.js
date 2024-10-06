@@ -1,11 +1,7 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 
-
-
-
-
-// Register a Tour Guide
+// Register a tour guide
 export const registerTourGuide = async (req, res) => {
     const { username, email, password, mobileNumber, yearsOfExperience, previousWork } = req.body;
 
@@ -18,8 +14,10 @@ export const registerTourGuide = async (req, res) => {
             return res.status(400).json({ message: "Email or Username already exists" });
         }
 
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create a new tour guide
         const newTourGuide = new TourGuide({
             username,
             email,
@@ -36,7 +34,7 @@ export const registerTourGuide = async (req, res) => {
     }
 };
 
-// Login a Tour Guide
+// Login a tour guide
 export const loginTourGuide = async (req, res) => {
     const { email, password } = req.body;
 
@@ -67,49 +65,14 @@ export const loginTourGuide = async (req, res) => {
     }
 };
 
-// Get tour guide details by username from request body
-export const getTourGuideByUsername = async (req, res) => {
-    const { username } = req.body;
-
-    try {
-        // Find the tour guide by username
-        const tourGuide = await TourGuide.findOne({ username });
-
-        if (!tourGuide) {
-            return res.status(404).json({ message: "Tour guide not found" });
-        }
-
-        // Return tour guide details
-        return res.status(200).json(tourGuide);
-    } catch (error) {
-        console.error("Error fetching tour guide details:", error);
-        return res.status(500).json({ message: "Error fetching tour guide details", error: error.message });
-    }
-};
-
-
-export const getAllTourGuides = async (req, res) => {
-    try {
-      // Find all tour guides
-      const tourGuides = await TourGuide.find();
-  
-      // Return the list of tour guides
-      return res.status(200).json(tourGuides);
-    } catch (error) {
-      console.error("Error fetching tour guides:", error);
-      return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
-    }
-  };
-};
-
-// Get Tour Guide Account Details by Username and Email
+// Get tour guide account details by username and email
 export const getTourGuideAccount = async (req, res) => {
     const { username, email } = req.query;
 
     try {
         const tourGuide = await TourGuide.findOne({ username, email });
         if (!tourGuide) {
-            return res.status(404).json({ message: "Tour Guide not found" });
+            return res.status(404).json({ message: "Tour guide not found" });
         }
 
         res.status(200).json({
@@ -125,10 +88,10 @@ export const getTourGuideAccount = async (req, res) => {
     }
 };
 
-// Update Tour Guide Account Details
+// Update tour guide account details
 export const updateTourGuideAccount = async (req, res) => {
-    const { id } = req.params; // Get tour guide ID from URL parameters
-    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body; // Extract updated fields
+    const { id } = req.params;
+    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body;
 
     try {
         const tourGuide = await TourGuide.findById(id);
@@ -155,11 +118,20 @@ export const updateTourGuideAccount = async (req, res) => {
             return res.status(400).json({ message: "Invalid format for previousWork. Expected an array of objects." });
         }
 
-        await tourGuide.save(); // Save updated tour guide details
+        await tourGuide.save();
 
         res.status(200).json({ message: "Tour guide updated successfully" });
     } catch (error) {
-        console.error("Error updating tour guide:", error);
         return res.status(500).json({ message: "Error updating tour guide", error: error.message });
+    }
+};
+
+// Get all tour guides
+export const getAllTourGuides = async (req, res) => {
+    try {
+        const tourGuides = await TourGuide.find();
+        return res.status(200).json(tourGuides);
+    } catch (error) {
+        return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
     }
 };
