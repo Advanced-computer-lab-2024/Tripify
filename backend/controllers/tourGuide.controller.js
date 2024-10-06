@@ -1,7 +1,7 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 
-// Register a tour guide
+// Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
     const { username, email, password, mobileNumber, yearsOfExperience, previousWork } = req.body;
 
@@ -30,25 +30,29 @@ export const registerTourGuide = async (req, res) => {
         await newTourGuide.save();
         return res.status(201).json({ message: "Tour guide registered successfully" });
     } catch (error) {
+        console.error("Error registering tour guide:", error);
         return res.status(500).json({ message: "Error registering tour guide", error: error.message });
     }
 };
 
-// Login a tour guide
+// Login a Tour Guide
 export const loginTourGuide = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // Check if the tour guide exists
         const tourGuide = await TourGuide.findOne({ email });
         if (!tourGuide) {
             return res.status(404).json({ message: "Tour guide not found" });
         }
 
+        // Compare passwords
         const isMatch = await bcrypt.compare(password, tourGuide.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid password" });
         }
 
+        // Successful login
         return res.status(200).json({
             message: "Login successful",
             tourGuide: {
@@ -61,20 +65,20 @@ export const loginTourGuide = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("Error logging in:", error);
         return res.status(500).json({ message: "Error logging in", error: error.message });
     }
 };
 
-// Get tour guide account details by username and email
+// Get Tour Guide Account Details by Username and Email
 export const getTourGuideAccount = async (req, res) => {
     const { username, email } = req.query;
 
     try {
         const tourGuide = await TourGuide.findOne({ username, email });
         if (!tourGuide) {
-            return res.status(404).json({ message: "Tour guide not found" });
+            return res.status(404).json({ message: "Tour Guide not found" });
         }
-
         res.status(200).json({
             id: tourGuide._id,
             username: tourGuide.username,
@@ -88,10 +92,10 @@ export const getTourGuideAccount = async (req, res) => {
     }
 };
 
-// Update tour guide account details
+// Update Tour Guide Account Details
 export const updateTourGuideAccount = async (req, res) => {
-    const { id } = req.params;
-    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body;
+    const { id } = req.params; // Get tour guide ID from URL parameters
+    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body; // Extract updated fields
 
     try {
         const tourGuide = await TourGuide.findById(id);
@@ -118,20 +122,52 @@ export const updateTourGuideAccount = async (req, res) => {
             return res.status(400).json({ message: "Invalid format for previousWork. Expected an array of objects." });
         }
 
-        await tourGuide.save();
-
+        await tourGuide.save(); // Save updated tour guide details
         res.status(200).json({ message: "Tour guide updated successfully" });
     } catch (error) {
+        console.error("Error updating tour guide:", error);
         return res.status(500).json({ message: "Error updating tour guide", error: error.message });
     }
 };
-
-// Get all tour guides
 export const getAllTourGuides = async (req, res) => {
     try {
         const tourGuides = await TourGuide.find();
-        return res.status(200).json(tourGuides);
+        res.status(200).json(tourGuides);
     } catch (error) {
+        console.error("Error fetching tour guides:", error);
         return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
     }
+}
+export const deleteTourGuide = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const tourGuide = await TourGuide.findById(id);
+        if (!tourGuide) {
+            return res.status(404).json({ message: "Tour guide not found" });
+        }
+
+        await tourGuide.deleteOne();
+        return res.status(200).json({ message: "Tour guide deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting tour guide:", error);
+        return res.status(500).json({ message: "Error deleting tour guide", error: error.message });
+    }
 };
+export const getTourGuideByUsername = async (req, res) => {
+    const { username } = req.params;
+
+    try {
+        const tourGuide = await TourGuide.findOne({
+            username: username
+        });
+        if (!tourGuide) {
+            return res.status(404).json({ message: "Tour guide not found" });
+        }
+        res.status(200).json(tourGuide);
+    }
+    catch (error) {
+        console.error("Error fetching tour guide:", error);
+        return res.status(500).json({ message: "Error fetching tour guide", error: error.message });
+    }
+}
