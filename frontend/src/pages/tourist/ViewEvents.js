@@ -73,19 +73,56 @@ const ViewEvents = () => {
 
       {/* Section: Itineraries */}
       <h2>Upcoming Itineraries</h2>
-      <Row>
-        {itineraries.map((itinerary) => (
-          <Col md={4} key={itinerary._id}>
-            <Card className="mb-3">
-              <Card.Body>
-                <Card.Title>{itinerary.title}</Card.Title>
-                <Card.Text>{itinerary.description}</Card.Text>
-                <Card.Text>Price: ${itinerary.price}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+<Row>
+  {itineraries.map((itinerary) => (
+    <Col md={4} key={itinerary._id}>
+      <Card className="mb-3">
+        <Card.Body>
+          <Card.Title>{itinerary.name}</Card.Title>
+          <Card.Text>Timeline:</Card.Text>
+          {itinerary.timeline.length > 0 ? (
+            itinerary.timeline.map((activity, index) => (
+              <Card.Text key={index}>
+                Activity: {activity.activity} <br />
+                Start Time: {activity.startTime} <br />
+                End Time: {activity.endTime}
+              </Card.Text>
+            ))
+          ) : (
+            <Card.Text>No activities planned.</Card.Text>
+          )}
+          
+          <Card.Text>Language: {itinerary.language}</Card.Text>
+          <Card.Text>Total Price: {itinerary.totalPrice}</Card.Text>
+
+          <Card.Text>Available Dates:</Card.Text>
+          {itinerary.availableDates.length > 0 ? (
+            itinerary.availableDates.map((date, index) => (
+              <Card.Text key={index}>
+                Date: {date.date.toString()} <br />
+                Available Times: {date.availableTimes.join(", ")}
+              </Card.Text>
+            ))
+          ) : (
+            <Card.Text>No available dates.</Card.Text>
+          )}
+          
+          <Card.Text>Accessibility:</Card.Text>
+          <Card.Text>Wheelchair Accessible: {itinerary.accessibility.wheelchairAccessible ? 'Yes' : 'No'}</Card.Text>
+          <Card.Text>Hearing Impaired: {itinerary.accessibility.hearingImpaired ? 'Yes' : 'No'}</Card.Text>
+          <Card.Text>Visually Impaired: {itinerary.accessibility.visuallyImpaired ? 'Yes' : 'No'}</Card.Text>
+
+          <Card.Text>Pickup Location: {itinerary.pickupLocation}</Card.Text>
+          <Card.Text>Dropoff Location: {itinerary.dropoffLocation}</Card.Text>
+          <Card.Text>Created By: {itinerary.createdBy}</Card.Text>
+          <Card.Text>Is Active: {itinerary.isActive ? 'Yes' : 'No'}</Card.Text>
+          <Card.Text>Preference Tags: {itinerary.preferenceTags.join(", ")}</Card.Text>
+        </Card.Body>
+      </Card>
+    </Col>
+  ))}
+</Row>
+
     </Container>
   );
 };
