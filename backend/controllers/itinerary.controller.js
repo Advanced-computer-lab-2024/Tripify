@@ -40,7 +40,7 @@ export const getAllItineraries = async (req, res) => {
       .populate("createdBy", "username")
       .populate("preferenceTags", "name");
 
-    console.log("Fetched itineraries:", itineraries); // Debug log
+    // Debug log
     res.status(200).json(itineraries);
   } catch (error) {
     console.error("Error in getAllItineraries:", error); // Debug log
