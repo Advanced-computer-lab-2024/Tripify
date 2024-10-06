@@ -1,6 +1,10 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 
+
+
+
+
 // Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
     const { username, email, password, mobileNumber, yearsOfExperience, previousWork } = req.body;
@@ -61,6 +65,41 @@ export const loginTourGuide = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: "Error logging in", error: error.message });
     }
+};
+
+// Get tour guide details by username from request body
+export const getTourGuideByUsername = async (req, res) => {
+    const { username } = req.body;
+
+    try {
+        // Find the tour guide by username
+        const tourGuide = await TourGuide.findOne({ username });
+
+        if (!tourGuide) {
+            return res.status(404).json({ message: "Tour guide not found" });
+        }
+
+        // Return tour guide details
+        return res.status(200).json(tourGuide);
+    } catch (error) {
+        console.error("Error fetching tour guide details:", error);
+        return res.status(500).json({ message: "Error fetching tour guide details", error: error.message });
+    }
+};
+
+
+export const getAllTourGuides = async (req, res) => {
+    try {
+      // Find all tour guides
+      const tourGuides = await TourGuide.find();
+  
+      // Return the list of tour guides
+      return res.status(200).json(tourGuides);
+    } catch (error) {
+      console.error("Error fetching tour guides:", error);
+      return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
+    }
+  };
 };
 
 // Get Tour Guide Account Details by Username and Email
