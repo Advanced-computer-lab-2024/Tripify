@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Dropdown,
+} from "react-bootstrap";
 import axios from "axios";
 
 const ItineraryFilter = () => {
@@ -12,6 +20,7 @@ const ItineraryFilter = () => {
     language: "",
   });
   const [preferenceOptions, setPreferenceOptions] = useState([]);
+  const [sortOption, setSortOption] = useState("default");
 
   useEffect(() => {
     fetchItineraries();
@@ -91,6 +100,28 @@ const ItineraryFilter = () => {
     }
 
     setFilteredItineraries(filtered);
+    applySorting(filtered);
+  };
+
+  const applySorting = (itineraries) => {
+    let sorted = [...itineraries];
+    switch (sortOption) {
+      case "priceAsc":
+        sorted.sort((a, b) => a.totalPrice - b.totalPrice);
+        break;
+      case "priceDesc":
+        sorted.sort((a, b) => b.totalPrice - a.totalPrice);
+        break;
+      default:
+        // No sorting
+        break;
+    }
+    setFilteredItineraries(sorted);
+  };
+
+  const handleSortChange = (option) => {
+    setSortOption(option);
+    applySorting(filteredItineraries);
   };
 
   return (
@@ -141,9 +172,25 @@ const ItineraryFilter = () => {
                 onChange={handleFilterChange}
               />
             </Form.Group>
-            <Button variant="primary" onClick={applyFilters}>
+            <Button variant="primary" onClick={applyFilters} className="mb-3">
               Apply Filters
             </Button>
+            <Dropdown className="mb-3">
+              <Dropdown.Toggle variant="success" id="dropdown-basic">
+                Sort By Price
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => handleSortChange("default")}>
+                  Default
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleSortChange("priceAsc")}>
+                  Price: Low to High
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleSortChange("priceDesc")}>
+                  Price: High to Low
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
           </Form>
         </Col>
         <Col md={9}>
