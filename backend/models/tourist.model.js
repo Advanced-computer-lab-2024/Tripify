@@ -53,7 +53,11 @@ const touristSchema = new mongoose.Schema({
   isUnderage: {
     type: Boolean,
     default: false
-  }
+  },
+  Wallet: {
+    type:Number,
+    default:0,
+  }  
 });
 
 // Pre-save hook to hash the password
