@@ -1,7 +1,34 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
+// Define a schema for previous work experience
+const previousWorkSchema = new mongoose.Schema({
+    jobTitle: {
+        type: String,
+        trim: true,
+        required: true // Ensure jobTitle is required
+    },
+    company: {
+        type: String,
+        trim: true,
+        required: true // Ensure company is required
+    },
+    description: {
+        type: String,
+        trim: true,
+        required: false // Make this optional
+    },
+    startDate: {
+        type: Date,
+        required: false // Make this optional
+    },
+    endDate: {
+        type: Date,
+        required: false // Make this optional
+    }
+}, { _id: false }); // Prevent creation of separate _id for each subdocument
 
+// Define the main TourGuide schema
 const tourGuideSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -22,43 +49,18 @@ const tourGuideSchema = new mongoose.Schema({
     },
     mobileNumber: {
         type: String,
-        // required: true,
         trim: true,
-        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid mobile number'] // Ensures valid international phone number format
-      },
-      yearsOfExperience: {
+        match: [/^\+?[1-20]\d{1,14}$/, 'Please enter a valid mobile number'] // Validates international phone number format
+    },
+    yearsOfExperience: {
         type: Number,
-        // required: true,
         min: [0, 'Years of experience cannot be negative'],
-        max: [50, 'Unrealistic value for years of experience'] // Add validation based on common sense or user story
-      },
-      previousWork: [{
-        jobTitle: {
-          type: String,
-          trim: true
-        },
-        company: {
-          type: String,
-          trim: true
-        },
-        description: {
-          type: String,
-          trim: true
-        },
-        startDate: {
-          type: Date,
-          required: false
-        },
-        endDate: {
-          type: Date,
-          required: false
-        }
-      }],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+        max: [50, 'Unrealistic value for years of experience'] // Validation based on common sense
+    },
+    previousWork: [previousWorkSchema], // Store previous work as an array of objects
 }, { timestamps: true });
+
+// Pre-save hook to hash the password
 tourGuideSchema.pre('save', async function (next) {
     const user = this;
     if (user.isModified('password')) {
@@ -67,10 +69,12 @@ tourGuideSchema.pre('save', async function (next) {
     next();
 });
 
+// Method to compare password
 tourGuideSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Create the TourGuide model
 const TourGuide = mongoose.model('TourGuide', tourGuideSchema);
 
 export default TourGuide;
