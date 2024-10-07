@@ -166,7 +166,7 @@ const MyProfile = () => {
 
             <Form.Group className="mb-3">
               <Form.Label>Wallet Balance</Form.Label>
-              <Form.Control type="number" value={userDetails.wallet} readOnly />
+              <Form.Control type="number" value={userDetails.wallet || 0} readOnly />
             </Form.Group>
 
             <Button variant="primary" onClick={handleEditToggle}>
