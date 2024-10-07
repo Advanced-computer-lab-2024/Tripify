@@ -21,6 +21,9 @@ import AdvertiserHomepage from "./pages/advertiser/AdvertiserHomepage";
 import CreateActivity from "./pages/advertiser/CreateActivity";
 import ActivityList from "./pages/advertiser/ActivityList";
 import AdvertiserProfile from "./pages/advertiser/AdvertiserProfile";
+import GovernorHomePage from "./pages/tourismGovernor/GovernorHomePage";
+import ViewHistorical from "./pages/tourismGovernor/ViewHistorical";
+import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces";
 
 function App() {
   return (
@@ -52,6 +55,13 @@ function App() {
           <Route path="/advertiser/create-activity" element={<CreateActivity />} />
           <Route path="/advertiser/view-activities" element={<ActivityList />} />
           <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+
+
+          {/* Tourism Govenor routes */}
+          <Route path="/governor" element={<GovernorHomePage />} />
+          <Route path="/governor/view-places" element={<ViewHistorical />} />
+          <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
+
 
 
           {/* Registration routes */}
