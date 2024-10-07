@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const AdvertiserRegister = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    companyName: '',
-    companyDescription: '',
-    website: '',
-    hotline: '',
-    companyLogo: ''
   });
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,7 +30,7 @@ const AdvertiserRegister = () => {
       setMessage({ type: 'success', text: 'Registration successful!' });
 
       // Redirect to advertiser homepage after successful registration
-      navigate("/advertiser"); // Redirect to advertiser homepage
+      navigate("/advertiser");
 
     } catch (error) {
       setMessage({
@@ -85,62 +80,6 @@ const AdvertiserRegister = () => {
             value={formData.password}
             onChange={handleChange}
             required
-          />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="companyName" className="form-label">Company Name</label>
-          <input
-            type="text"
-            className="form-control"
-            id="companyName"
-            name="companyName"
-            value={formData.companyName}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="companyDescription" className="form-label">Company Description</label>
-          <textarea
-            className="form-control"
-            id="companyDescription"
-            name="companyDescription"
-            value={formData.companyDescription}
-            onChange={handleChange}
-            required
-          ></textarea>
-        </div>
-        <div className="mb-3">
-          <label htmlFor="website" className="form-label">Website</label>
-          <input
-            type="url"
-            className="form-control"
-            id="website"
-            name="website"
-            value={formData.website}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="hotline" className="form-label">Hotline</label>
-          <input
-            type="tel"
-            className="form-control"
-            id="hotline"
-            name="hotline"
-            value={formData.hotline}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="companyLogo" className="form-label">Company Logo URL</label>
-          <input
-            type="url"
-            className="form-control"
-            id="companyLogo"
-            name="companyLogo"
-            value={formData.companyLogo}
-            onChange={handleChange}
           />
         </div>
         <button type="submit" className="btn btn-primary" disabled={isLoading}>
