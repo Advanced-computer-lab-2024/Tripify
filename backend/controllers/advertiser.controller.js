@@ -80,13 +80,43 @@ export const loginAdvertiser = async (req, res) => {
 // Get all Advertisers
 export const getAllAdvertisers = async (req, res) => {
   try {
-    const advertisers = await Advertiser.find({}, "companyName");
+    const advertisers = await Advertiser.find();
     res.status(200).json(advertisers);
   } catch (error) {
-    console.error("Error fetching advertisers:", error);
-    res.status(500).json({ message: "Error fetching advertisers", error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+
+};
+
+
+
+// Get Advertiser Account Details by Username
+export const getAdvertiserByUsername = async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const advertiser = await Advertiser.findOne({ username });
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    res.status(200).json({
+      id: advertiser._id,
+      username: advertiser.username,
+      email: advertiser.email,
+      companyName: advertiser.companyName,
+      companyDescription: advertiser.companyDescription,
+      website: advertiser.website,
+      hotline: advertiser.hotline,
+      companyLogo: advertiser.companyLogo,
+    });
+  } catch (error) {
+    console.error("Error fetching advertiser account details:", error);
+    res.status(500).json({ message: error.message });
   }
 };
+
+
 
 // Get an Advertiser by ID
 export const getAdvertiserById = async (req, res) => {
@@ -209,5 +239,46 @@ export const getAdvertiserAccountById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching advertiser account details:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+// Update an Advertiser by Username
+export const updateAdvertiserByUsername = async (req, res) => {
+  const { username } = req.params; // Get the username from the route params
+  const {
+    email,
+    password,
+    companyName,
+    companyDescription,
+    website,
+    hotline,
+    companyLogo,
+  } = req.body;
+
+  try {
+    // Find the advertiser by username
+    const advertiser = await Advertiser.findOne({ username });
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    // Update the fields that are provided in the request
+    advertiser.email = email || advertiser.email;
+    if (password) {
+      advertiser.password = await bcrypt.hash(password, 10); // Hash password if provided
+    }
+    advertiser.companyName = companyName || advertiser.companyName;
+    advertiser.companyDescription = companyDescription || advertiser.companyDescription;
+    advertiser.website = website || advertiser.website;
+    advertiser.hotline = hotline || advertiser.hotline;
+    advertiser.companyLogo = companyLogo || advertiser.companyLogo;
+
+    // Save the updated advertiser
+    const updatedAdvertiser = await advertiser.save();
+    res.status(200).json(updatedAdvertiser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

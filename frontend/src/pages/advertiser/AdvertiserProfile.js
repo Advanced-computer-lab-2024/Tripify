@@ -23,7 +23,7 @@ const AdvertiserProfile = () => {
 
     fetchAdvertisers();
   }, []);
-
+  
   const handleAdvertiserSelect = async (e) => {
     const username = e.target.value;
     setSelectedAdvertiser(username);
@@ -31,16 +31,19 @@ const AdvertiserProfile = () => {
     setError(null);
     setUserDetails(null);
     setIsEditing(false); // Reset edit mode on selection change
-
+  
     try {
-      const response = await axios.get(`http://localhost:5000/api/advertiser/profile/${username}`); // Fetch details for the selected advertiser
-      setUserDetails(response.data.advertiser); // Adjust based on how your backend returns the data
+      const response = await axios.get(`http://localhost:5000/api/advertiser/profile/${username}`);
+      
+      // Assuming response contains the advertiser object directly:
+      setUserDetails(response.data); // Adjust based on how your backend returns the data
     } catch (err) {
       setError('Failed to fetch user details. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const handleEditToggle = () => {
     setIsEditing((prev) => !prev);

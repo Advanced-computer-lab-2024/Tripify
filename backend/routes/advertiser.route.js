@@ -6,7 +6,9 @@ import {
     getAdvertiserAccountById,
     getAdvertiserAccountByParams,
     updateAdvertiser,
-    deleteAdvertiser, // Assuming you want to include delete functionality
+    deleteAdvertiser, 
+    getAdvertiserByUsername,
+    updateAdvertiserByUsername// Assuming you want to include delete functionality
 } from '../controllers/advertiser.controller.js';
 
 const router = express.Router();
@@ -15,7 +17,7 @@ const router = express.Router();
 router.post('/register', registerAdvertiser);          // Route to register an advertiser
 router.post('/login', loginAdvertiser);                // Route to log in an advertiser
 router.get('/', getAllAdvertisers);                    // Route to get all advertisers
-
+router.get("/profile/:username", getAdvertiserByUsername);
 // Route to get advertiser account details by ID
 router.get('/account/:id', getAdvertiserAccountById); 
 
@@ -23,7 +25,9 @@ router.get('/account/:id', getAdvertiserAccountById);
 router.get('/account', getAdvertiserAccountByParams);  // Fetch by username and email
 
 // Route to update advertiser account details
-router.put('/account/:id', updateAdvertiser);   // Update advertiser details
+router.put('/account/:id', updateAdvertiser);   
+
+router.put('/profile/:username', updateAdvertiserByUsername);// Update advertiser details
 
 // Route to delete an advertiser (if needed)
 router.delete('/account/:id', deleteAdvertiser);       // Delete advertiser
