@@ -12,6 +12,8 @@ import SellerReg from "./pages/seller/SellerReg";
 import AdvertiserReg from "./pages/advertiser/AdvertiserRegister";
 import TourismGovReg from "./pages/tourismGovernor/TourismGovernorReg";
 import TourGuideReg from "./pages/tourguide/TourguideReg";
+import ListUsers from "./pages/admin/ListUsers";
+import AdminHomePage from "./pages/admin/AdminHomePage";
 
 function App() {
   return (
@@ -28,6 +30,14 @@ function App() {
           <Route path="/tourist/my-profile" element={<MyProfile />} />
           <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
           <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
+
+
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminHomePage />} />
+          {/* <Route path="/admin/register" element={<TouristRegister />} /> */}
+          <Route path="/admin/manage-users" element={<ListUsers />} />
+       
           
 
           {/* Registration routes */}
