@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
-const AdvertiserRegistration = () => {
+const AdvertiserRegister = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -14,6 +15,7 @@ const AdvertiserRegistration = () => {
   });
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +33,10 @@ const AdvertiserRegistration = () => {
     try {
       const response = await axios.post('http://localhost:5000/api/advertiser/register', formData);
       setMessage({ type: 'success', text: 'Registration successful!' });
-      // You might want to redirect the user or clear the form here
+
+      // Redirect to advertiser homepage after successful registration
+      navigate("/advertiser"); // Redirect to advertiser homepage
+
     } catch (error) {
       setMessage({
         type: 'error',
@@ -151,4 +156,4 @@ const AdvertiserRegistration = () => {
   );
 };
 
-export default AdvertiserRegistration;
+export default AdvertiserRegister;
