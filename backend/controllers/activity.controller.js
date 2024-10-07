@@ -15,6 +15,7 @@ export const createActivity = async (req, res) => {
 export const getActivities = async (req, res) => {
   try {
     const activities = await Activity.find()
+      .populate("createdBy", "username companyName") // Populate with advertiser info
       .populate("category")
       .populate("tags");
     res.status(200).json(activities);

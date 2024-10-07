@@ -12,17 +12,7 @@ const ticketPriceSchema = new mongoose.Schema({
   },
 });
 
-const locationSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ["Point"],
-    required: true,
-  },
-  coordinates: {
-    type: [Number],
-    required: true,
-  },
-});
+
 
 const historicalPlaceSchema = new mongoose.Schema(
   {
@@ -39,7 +29,7 @@ const historicalPlaceSchema = new mongoose.Schema(
       required: true,
     },
     location: {
-      type: locationSchema,
+      type: String,
       required: true,
     },
     openingHours: {
@@ -57,11 +47,15 @@ const historicalPlaceSchema = new mongoose.Schema(
         ref: "Tag",
       },
     ],
+    createdBy:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:"TourismGovernor",
+    }
   },
   { timestamps: true }
 );
 
-historicalPlaceSchema.index({ location: "2dsphere" });
+
 
 const HistoricalPlace = mongoose.model(
   "HistoricalPlace",
