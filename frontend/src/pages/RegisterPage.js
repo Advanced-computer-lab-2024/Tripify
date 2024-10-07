@@ -6,39 +6,37 @@ const RegisterPage = () => {
   return (
     <Container className="text-center mt-5">
       <h1>Register As</h1>
-      <Row className="mt-4">
-        <Col>
-          <Link to="/register/admin">
+      <Row className="mt-4 justify-content-center">
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/admin" className="d-grid">
             <Button variant="primary" size="lg">
               Admin
             </Button>
           </Link>
         </Col>
-        <Col>
-          <Link to="/register/tourist">
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/tourist" className="d-grid">
             <Button variant="primary" size="lg">
               Tourist
             </Button>
           </Link>
         </Col>
-        <Col>
-          <Link to="/register/tourguide">
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/tourguide" className="d-grid">
             <Button variant="primary" size="lg">
               Tour Guide
             </Button>
           </Link>
         </Col>
-      </Row>
-      <Row className="mt-4">
-        <Col>
-          <Link to="/register/advertiser">
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/advertiser" className="d-grid">
             <Button variant="primary" size="lg">
               Advertiser
             </Button>
           </Link>
         </Col>
-        <Col>
-          <Link to="/register/tourism-governor">
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/tourism-governor" className="d-grid">
             <Button variant="primary" size="lg">
               Tourism Governor
             </Button>

@@ -32,11 +32,11 @@ function App() {
           </Route>
 
           {/* Registration routes */}
-          <Route path="/register/admin" element={<AdminRegister/>} /> {/* Placeholder for Admin Register */}
+          <Route path="/register/admin" element={<AdminRegister/>} /> 
           <Route path="/register/tourist" element={<TouristRegister />} />
-          <Route path="/register/tourguide" element={<TourGuideReg/>} /> {/* Placeholder for Tour Guide Register */}
-          <Route path="/register/advertiser" element={<AdvertiserReg/>} /> {/* Placeholder for Advertiser Register */}
-          <Route path="/register/tourism-governor" element={<TourismGovReg/>} /> {/* Placeholder for Tourism Governor Register */}
+          <Route path="/register/tourguide" element={<TourGuideReg/>} /> 
+          <Route path="/register/advertiser" element={<AdvertiserReg/>} /> 
+          <Route path="/register/tourism-governor" element={<TourismGovReg/>} /> 
         </Routes>
       </Router>
     </div>
