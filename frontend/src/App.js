@@ -14,6 +14,8 @@ import TourismGovReg from "./pages/tourismGovernor/TourismGovernorReg";
 import TourGuideReg from "./pages/tourguide/TourguideReg";
 import ListUsers from "./pages/admin/ListUsers";
 import AdminHomePage from "./pages/admin/AdminHomePage";
+import ActivityCategoryManagement from "./pages/admin/ActivityCategoryManagement";
+import PreferenceTagManagement from "./pages/admin/PreferenceTagManagement";
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
           <Route path="/admin" element={<AdminHomePage />} />
           {/* <Route path="/admin/register" element={<TouristRegister />} /> */}
           <Route path="/admin/manage-users" element={<ListUsers />} />
+          <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
+          <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
        
           
 

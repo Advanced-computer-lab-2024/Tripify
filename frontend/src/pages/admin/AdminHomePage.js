@@ -15,6 +15,12 @@ const AdminHomePage = () => {
         <Link to="/register/admin" className="btn btn-primary m-2">
          Add Another Admin
         </Link>
+        <Link to="/admin/activity-categories" className="btn btn-primary m-2">
+         Manage Activity Categories
+        </Link>
+        <Link to="/admin/preference-tags" className="btn btn-primary m-2">
+           Manage Preference Tags
+        </Link>
       </div>
     </div>
   );
