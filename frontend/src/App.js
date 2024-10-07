@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage"; // Import the RegisterPage component
 import TouristRegister from "./pages/tourist/TouristRegister";
-import TouristHomePage from "./pages/tourist/TouristHomePage";
+import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
 import MyProfile from "./pages/tourist/MyProfile";
 import ItineraryFilter from "./pages/tourist/ItineraryFilter";
