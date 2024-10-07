@@ -22,14 +22,13 @@ function App() {
           <Route path="/" element={<RegisterPage />} />
           
           {/* Routes under "/tourist" */}
-          <Route path="/tourist" element={<TouristHomePage />}>
-            <Route index element={<TouristRegister />} />
-            <Route path="register" element={<TouristRegister />} />
-            <Route path="view-events" element={<ViewEvents />} />
-            <Route path="my-profile" element={<MyProfile />} />
-            <Route path="itinerary-filter" element={<ItineraryFilter />} />
-            <Route path="filtered-activities" element={<FilteredActivities />} />
-          </Route>
+          <Route path="/tourist" element={<TouristHomePage />} />
+          <Route path="/tourist/register" element={<TouristRegister />} />
+          <Route path="/tourist/view-events" element={<ViewEvents />} />
+          <Route path="/tourist/my-profile" element={<MyProfile />} />
+          <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
+          <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
+          
 
           {/* Registration routes */}
           <Route path="/register/admin" element={<AdminRegister/>} /> 

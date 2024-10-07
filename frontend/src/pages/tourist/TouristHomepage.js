@@ -6,16 +6,16 @@ const TouristHomePage = () => {
     <div className="container text-center mt-5">
       <h1>Welcome to the Tourist Homepage</h1>
       <div className="mt-4">
-        <Link to="/view-events" className="btn btn-primary m-2">
+        <Link to="/tourist/view-events" className="btn btn-primary m-2">
           View Events
         </Link>
-        <Link to="/my-profile" className="btn btn-primary m-2">
+        <Link to="/tourist/my-profile" className="btn btn-primary m-2">
           My Profile
         </Link>
-        <Link to="/itinerary-filter" className="btn btn-primary m-2">
+        <Link to="/tourist/itinerary-filter" className="btn btn-primary m-2">
           Itinerary Filter
         </Link>
-        <Link to="/filtered-activities" className="btn btn-primary m-2">
+        <Link to="/tourist/filtered-activities" className="btn btn-primary m-2">
           Filtered Activities
         </Link>
       </div>
