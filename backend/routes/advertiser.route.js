@@ -5,7 +5,7 @@ import {
     getAllAdvertisers,
     getAdvertiserAccountById,
     getAdvertiserAccountByParams,
-    updateAdvertiserAccount,
+    updateAdvertiser,
     deleteAdvertiser, // Assuming you want to include delete functionality
 } from '../controllers/advertiser.controller.js';
 
@@ -23,7 +23,7 @@ router.get('/account/:id', getAdvertiserAccountById);
 router.get('/account', getAdvertiserAccountByParams);  // Fetch by username and email
 
 // Route to update advertiser account details
-router.put('/account/:id', updateAdvertiserAccount);   // Update advertiser details
+router.put('/account/:id', updateAdvertiser);   // Update advertiser details
 
 // Route to delete an advertiser (if needed)
 router.delete('/account/:id', deleteAdvertiser);       // Delete advertiser
