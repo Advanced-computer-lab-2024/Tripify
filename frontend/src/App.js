@@ -24,9 +24,14 @@ import AdvertiserProfile from "./pages/advertiser/AdvertiserProfile";
 import GovernorHomePage from "./pages/tourismGovernor/GovernorHomePage";
 import ViewHistorical from "./pages/tourismGovernor/ViewHistorical";
 import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces";
+import TagManagment from "./components/TagManagement";
 import SellerHomePage from "./pages/seller/SellerHomePage";
 import ProductPage from "./pages/product/productPage";
 import UserDisplay from "./components/UserDisplay";
+import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
+import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
+import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
+
 function App() {
   return (
     <div className="App">
@@ -42,6 +47,12 @@ function App() {
           <Route path="/tourist/my-profile" element={<MyProfile />} />
           <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
           <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
+
+          {/* Routes under "/tourguide" */}
+        <Route path="/tourguide" element={<TourguideHomePage />} />
+        <Route path="/tourguide/itinerary-management" element={<ItineraryManagement />} />
+        <Route path="/tourguide/MyItineraries" element={<TourGuideItineraries />} />
+          
 
 
 
@@ -63,6 +74,8 @@ function App() {
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
           <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
+          <Route path="/governor/tag-management" element={<TagManagment />} />
+
 
 
           {/*Seller routes */}
