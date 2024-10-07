@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import {useNavigate} from 'react-router-dom';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const RegisterPage = () => {
   });
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,6 +23,7 @@ const RegisterPage = () => {
 
     try {
       const response = await axios.post('http://localhost:5000/api/tourguide/register', formData);
+      navigate('/tourguide');
       setMessage({ type: 'success', text: response.data.message });
     } catch (error) {
       setMessage({ 
