@@ -18,6 +18,9 @@ const GovernorHomePage = () => {
         <Link to="/tourist/filtered-activities" className="btn btn-primary m-2">
           Filtered Activities
         </Link> */}
+        <Link to="/governor/tag-management" className="btn btn-primary m-2">
+            Manage Tags
+        </Link>
       </div>
     </div>
   );

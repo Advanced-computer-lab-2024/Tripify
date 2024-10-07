@@ -23,6 +23,7 @@ import AdvertiserProfile from "./pages/advertiser/AdvertiserProfile";
 import GovernorHomePage from "./pages/tourismGovernor/GovernorHomePage";
 import ViewHistorical from "./pages/tourismGovernor/ViewHistorical";
 import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces";
+import TagManagment from "./components/TagManagement";
 import SellerHomePage from "./pages/seller/SellerHomePage";
 import ProductPage from "./pages/product/productPage";
 import UserDisplay from "./components/UserDisplay";

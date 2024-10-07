@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Button, Form, Alert } from 'react-bootstrap';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Button, Form, Alert } from "react-bootstrap";
 
 const MyProfile = () => {
   const [tourists, setTourists] = useState([]); // State for storing the list of tourists
-  const [selectedTourist, setSelectedTourist] = useState(''); // State for selected tourist
+  const [selectedTourist, setSelectedTourist] = useState(""); // State for selected tourist
   const [userDetails, setUserDetails] = useState(null); // State for user details
   const [error, setError] = useState(null); // State for error messages
   const [isLoading, setIsLoading] = useState(false); // Loading state
@@ -14,10 +14,10 @@ const MyProfile = () => {
     // Fetch the list of tourists when the component mounts
     const fetchTourists = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/tourist'); // Adjust this endpoint as necessary
+        const response = await axios.get("http://localhost:5000/api/tourist"); // Adjust this endpoint as necessary
         setTourists(response.data); // Set the list of tourists
       } catch (err) {
-        setError('Failed to fetch tourists.');
+        setError("Failed to fetch tourists.");
       }
     };
 
@@ -33,10 +33,12 @@ const MyProfile = () => {
     setIsEditing(false); // Reset edit mode on selection change
 
     try {
-      const response = await axios.get(`http://localhost:5000/api/tourist/profile/${username}`); // Fetch details for the selected tourist
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/profile/${username}`
+      ); // Fetch details for the selected tourist
       setUserDetails(response.data.tourist); // Adjust based on how your backend returns the data
     } catch (err) {
-      setError('Failed to fetch user details. Please try again.');
+      setError("Failed to fetch user details. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -56,12 +58,15 @@ const MyProfile = () => {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/tourist/profile/${userDetails.username}`, userDetails); // Adjust this endpoint
+      await axios.put(
+        `http://localhost:5000/api/tourist/profile/${userDetails.username}`,
+        userDetails
+      ); // Adjust this endpoint
       setError(null);
       setIsEditing(false);
-      alert('Profile updated successfully!'); // Or handle success response accordingly
+      alert("Profile updated successfully!"); // Or handle success response accordingly
     } catch (err) {
-      setError('Failed to update user details. Please try again.');
+      setError("Failed to update user details. Please try again.");
     }
   };
 
@@ -132,11 +137,9 @@ const MyProfile = () => {
                 type="date"
                 name="dob"
                 value={userDetails.dob?.substring(0, 10)}
-                onChange={handleChange}
-                readOnly={!isEditing}
+                readOnly
               />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Job Status</Form.Label>
               <Form.Control
@@ -148,7 +151,7 @@ const MyProfile = () => {
               />
             </Form.Group>
 
-            {userDetails.jobStatus === 'job' && (
+            {userDetails.jobStatus === "job" && (
               <Form.Group className="mb-3">
                 <Form.Label>Job Title</Form.Label>
                 <Form.Control
@@ -163,11 +166,11 @@ const MyProfile = () => {
 
             <Form.Group className="mb-3">
               <Form.Label>Wallet Balance</Form.Label>
-              <Form.Control type="number" value={userDetails.wallet} readOnly />
+              <Form.Control type="number" value={userDetails.wallet || 0} readOnly />
             </Form.Group>
 
             <Button variant="primary" onClick={handleEditToggle}>
-              {isEditing ? 'Cancel' : 'Edit'}
+              {isEditing ? "Cancel" : "Edit"}
             </Button>
 
             {isEditing && (
