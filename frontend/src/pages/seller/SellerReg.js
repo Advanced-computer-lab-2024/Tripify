@@ -10,6 +10,8 @@ const RegisterPage = () => {
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -21,6 +23,7 @@ const RegisterPage = () => {
 
     try {
       const response = await axios.post('http://localhost:5000/api/seller/register', formData);
+      navigate('/seller');
       setMessage({ type: 'success', text: response.data.message });
     } catch (error) {
       setMessage({ 

@@ -24,7 +24,9 @@ import AdvertiserProfile from "./pages/advertiser/AdvertiserProfile";
 import GovernorHomePage from "./pages/tourismGovernor/GovernorHomePage";
 import ViewHistorical from "./pages/tourismGovernor/ViewHistorical";
 import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces";
-
+import SellerHomePage from "./pages/seller/SellerHomePage";
+import ProductPage from "./pages/product/productPage";
+import UserDisplay from "./components/UserDisplay";
 function App() {
   return (
     <div className="App">
@@ -61,6 +63,12 @@ function App() {
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
           <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
+
+
+          {/*Seller routes */}
+          <Route path="/seller" element={<SellerHomePage />} />
+          <Route path="/seller/products" element={<ProductPage />} />
+          <Route path="/seller/profile" element={<UserDisplay />} />
 
 
 
