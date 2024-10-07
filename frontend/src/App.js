@@ -31,6 +31,7 @@ import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
 import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
 import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
 import ProductTouristPage from "./pages/product/productTouristPage"; // Added from the first code
+import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
 
 function App() {
   return (
@@ -65,6 +66,8 @@ function App() {
           <Route path="/advertiser/create-activity" element={<CreateActivity />} />
           <Route path="/advertiser/view-activities" element={<ActivityList />} />
           <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+          <Route path="/advertiser/activities" element={<AdvertiserActivities />} />
+          
 
           {/* Tourism Governor routes */}
           <Route path="/governor" element={<GovernorHomePage />} />

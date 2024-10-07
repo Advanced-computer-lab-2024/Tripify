@@ -54,7 +54,21 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>View Your Created Activities</Card.Title>
+              <Card.Text>
+                See your history of created activities and promotions.
+              </Card.Text>
+              <Link to="/advertiser/activities">
+                <Button variant="warning">View</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
+      
 
       <Row>
         <Col>
