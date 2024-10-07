@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage"; // Import the RegisterPage component
@@ -27,58 +26,139 @@ import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces
 import SellerHomePage from "./pages/seller/SellerHomePage";
 import ProductPage from "./pages/product/productPage";
 import UserDisplay from "./components/UserDisplay";
+import ProductTouristPage from "./pages/product/productTouristPage";
+
 function App() {
   return (
     <div className="App">
       <Router>
         <Routes>
           {/* Default route set to the RegisterPage */}
-          <Route path="/" element={<RegisterPage />} />
-          
+          <Route
+            path="/"
+            element={<RegisterPage />}
+          />
+
           {/* Routes under "/tourist" */}
-          <Route path="/tourist" element={<TouristHomePage />} />
-          <Route path="/tourist/register" element={<TouristRegister />} />
-          <Route path="/tourist/view-events" element={<ViewEvents />} />
-          <Route path="/tourist/my-profile" element={<MyProfile />} />
-          <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
-          <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
-
-
+          <Route
+            path="/tourist"
+            element={<TouristHomePage />}
+          />
+          <Route
+            path="/tourist/register"
+            element={<TouristRegister />}
+          />
+          <Route
+            path="/tourist/view-events"
+            element={<ViewEvents />}
+          />
+          <Route
+            path="/tourist/my-profile"
+            element={<MyProfile />}
+          />
+          <Route
+            path="/tourist/itinerary-filter"
+            element={<ItineraryFilter />}
+          />
+          <Route
+            path="/tourist/filtered-activities"
+            element={<FilteredActivities />}
+          />
+          <Route
+            path="/tourist/products"
+            element={<ProductTouristPage />}
+          />
 
           {/* Admin routes */}
-          <Route path="/admin" element={<AdminHomePage />} />
+          <Route
+            path="/admin"
+            element={<AdminHomePage />}
+          />
           {/* <Route path="/admin/register" element={<TouristRegister />} /> */}
-          <Route path="/admin/manage-users" element={<ListUsers />} />
-          <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
-          <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
-       
-          {/*Advertiser routes */}
-          <Route path="/advertiser" element={<AdvertiserHomepage />} />
-          <Route path="/advertiser/create-activity" element={<CreateActivity />} />
-          <Route path="/advertiser/view-activities" element={<ActivityList />} />
-          <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+          <Route
+            path="/admin/manage-users"
+            element={<ListUsers />}
+          />
+          <Route
+            path="/admin/activity-categories"
+            element={<ActivityCategoryManagement />}
+          />
+          <Route
+            path="/admin/preference-tags"
+            element={<PreferenceTagManagement />}
+          />
 
+          {/*Advertiser routes */}
+          <Route
+            path="/advertiser"
+            element={<AdvertiserHomepage />}
+          />
+          <Route
+            path="/advertiser/create-activity"
+            element={<CreateActivity />}
+          />
+          <Route
+            path="/advertiser/view-activities"
+            element={<ActivityList />}
+          />
+          <Route
+            path="/advertiser/profile"
+            element={<AdvertiserProfile />}
+          />
 
           {/* Tourism Govenor routes */}
-          <Route path="/governor" element={<GovernorHomePage />} />
-          <Route path="/governor/view-places" element={<ViewHistorical />} />
-          <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
-
+          <Route
+            path="/governor"
+            element={<GovernorHomePage />}
+          />
+          <Route
+            path="/governor/view-places"
+            element={<ViewHistorical />}
+          />
+          <Route
+            path="/governor/my-places"
+            element={<GovernorCreatedPlaces />}
+          />
 
           {/*Seller routes */}
-          <Route path="/seller" element={<SellerHomePage />} />
-          <Route path="/seller/products" element={<ProductPage />} />
-          <Route path="/seller/profile" element={<UserDisplay />} />
-
-
+          <Route
+            path="/seller"
+            element={<SellerHomePage />}
+          />
+          <Route
+            path="/seller/products"
+            element={<ProductPage />}
+          />
+          <Route
+            path="/seller/profile"
+            element={<UserDisplay />}
+          />
 
           {/* Registration routes */}
-          <Route path="/register/admin" element={<AdminRegister/>} /> 
-          <Route path="/register/tourist" element={<TouristRegister />} />
-          <Route path="/register/tourguide" element={<TourGuideReg/>} /> 
-          <Route path="/register/advertiser" element={<AdvertiserReg/>} /> 
-          <Route path="/register/tourism-governor" element={<TourismGovReg/>} /> 
-          <Route path="/register/seller" element={<SellerReg/>} />
+          <Route
+            path="/register/admin"
+            element={<AdminRegister />}
+          />
+          <Route
+            path="/register/tourist"
+            element={<TouristRegister />}
+          />
+          <Route
+            path="/register/tourguide"
+            element={<TourGuideReg />}
+          />
+          <Route
+            path="/register/advertiser"
+            element={<AdvertiserReg />}
+          />
+          <Route
+            path="/register/tourism-governor"
+            element={<TourismGovReg />}
+          />
+          <Route
+            path="/register/seller"
+            element={<SellerReg />}
+          />
         </Routes>
       </Router>
     </div>
