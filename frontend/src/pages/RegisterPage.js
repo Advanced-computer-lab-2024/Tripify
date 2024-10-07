@@ -42,6 +42,13 @@ const RegisterPage = () => {
             </Button>
           </Link>
         </Col>
+        <Col xs={12} sm={6} md={4} className="mb-3">
+          <Link to="/register/seller" className="d-grid">
+            <Button variant="primary" size="lg">
+              Seller
+            </Button>
+          </Link>
+        </Col>
       </Row>
     </Container>
   );

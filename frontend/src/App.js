@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage"; // Import the RegisterPage component
@@ -16,6 +17,10 @@ import ListUsers from "./pages/admin/ListUsers";
 import AdminHomePage from "./pages/admin/AdminHomePage";
 import ActivityCategoryManagement from "./pages/admin/ActivityCategoryManagement";
 import PreferenceTagManagement from "./pages/admin/PreferenceTagManagement";
+import AdvertiserHomepage from "./pages/advertiser/AdvertiserHomepage";
+import CreateActivity from "./pages/advertiser/CreateActivity";
+import ActivityList from "./pages/advertiser/ActivityList";
+import AdvertiserProfile from "./pages/advertiser/AdvertiserProfile";
 
 function App() {
   return (
@@ -42,7 +47,12 @@ function App() {
           <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
           <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
        
-          
+          {/*Advertiser routes */}
+          <Route path="/advertiser" element={<AdvertiserHomepage />} />
+          <Route path="/advertiser/create-activity" element={<CreateActivity />} />
+          <Route path="/advertiser/view-activities" element={<ActivityList />} />
+          <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+
 
           {/* Registration routes */}
           <Route path="/register/admin" element={<AdminRegister/>} /> 
@@ -50,6 +60,7 @@ function App() {
           <Route path="/register/tourguide" element={<TourGuideReg/>} /> 
           <Route path="/register/advertiser" element={<AdvertiserReg/>} /> 
           <Route path="/register/tourism-governor" element={<TourismGovReg/>} /> 
+          <Route path="/register/seller" element={<SellerReg/>} />
         </Routes>
       </Router>
     </div>
