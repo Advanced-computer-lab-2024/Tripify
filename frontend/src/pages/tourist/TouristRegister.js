@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const TouristRegistration = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,9 @@ const TouristRegistration = () => {
   });
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Initialize the navigate function from react-router-dom
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +35,9 @@ const TouristRegistration = () => {
     try {
       const response = await axios.post('http://localhost:5000/api/tourist/register', formData);
       setMessage({ type: 'success', text: response.data.message });
-      // You might want to redirect the user or clear the form here
+
+      // Redirect to the TouristHomePage after successful registration
+      navigate('/tourist');
     } catch (error) {
       setMessage({
         type: 'error',
