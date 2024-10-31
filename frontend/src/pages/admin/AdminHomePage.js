@@ -42,6 +42,12 @@ const AdminHomePage = () => {
         >
           view products
         </Link>
+        <Link
+          to="/admin/complaints"
+          className="btn btn-primary m-2"
+        >
+          Complaints
+        </Link>
       </div>
     </div>
   );

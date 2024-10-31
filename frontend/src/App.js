@@ -32,6 +32,7 @@ import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
 import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
 import ProductTouristPage from "./pages/product/productTouristPage"; // Added from the first code
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
+import Complaints from "./pages/admin/Complaints";
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
           <Route path="/admin/manage-users" element={<ListUsers />} />
           <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
           <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
+          <Route path="/admin/complaints" element={<Complaints />} />
 
           {/* Advertiser routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
