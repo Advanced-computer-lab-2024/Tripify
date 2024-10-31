@@ -1,56 +1,68 @@
 import mongoose from "mongoose";
 
-//TODO implement user authentication middleware 
-
-const activitySchema = new mongoose.Schema({
+const activitySchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     date: {
-        type: Date,
-        required: true,
+      type: Date,
+      required: true,
     },
     time: {
-        type: String,
-        required: true,
-    },
-    location: {
-        type: {
-            type: String,
-            enum: ['Point'], // 'Point' for GeoJSON
-            required: true,
-        },
-        coordinates: {
-            type: [Number],
-            required: true, // [longitude, latitude]
-        },
+      type: String,
+      required: true,
     },
     price: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true,
     },
     category: {
-        type: String,
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ActivityCategory",
+      required: true,
     },
-    tags: {
-        type: [String],
-    },
-    discounts: {
-        type: String, 
-    },
-    budget: {
-        type: Number
-    },
-    rating: {
-        type: Number,
-        min: 1,
-        max: 5
+    tags: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tag",
       },
-    bookingOpen: {
-        type: Boolean,
-        default: false,
+    ],
+    discounts: {
+      type: String,
     },
-}, { timestamps: true }); 
+    bookingOpen: {
+      type: Boolean,
+      default: false,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Advertiser",
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 
-activitySchema.index({ location: '2dsphere' });
+activitySchema.index({ location: "2dsphere" });
 
-const Activity = mongoose.model('Activity', activitySchema);
+const Activity = mongoose.model("Activity", activitySchema);
 export default Activity;
