@@ -1,33 +1,58 @@
 import Tourist from '../models/tourist.model.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken'; // Optional for token generation (if using authentication)
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-// Create a new tourist (sign up)
+dotenv.config();
+
+// Generate JWT Token
+const generateToken = (tourist) => {
+  return jwt.sign(
+    {
+      _id: tourist._id,
+      username: tourist.username,
+      email: tourist.email,
+      mobileNumber: tourist.mobileNumber,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
+
+// Register Tourist
 export const registerTourist = async (req, res) => {
   try {
     const { email, username, password, mobileNumber, nationality, dob, jobStatus, jobTitle } = req.body;
+    
     // Check if user already exists
-    const existingUser = await Tourist.findOne({ email });
+    const existingUser = await Tourist.findOne({ 
+      $or: [{ email }, { username }] 
+    });
+    
     if (existingUser) {
-      return res.status(400).json({ message: 'Email is already registered' });
+      return res.status(400).json({ 
+        message: existingUser.email === email ? 'Email is already registered' : 'Username is already taken' 
+      });
     }
+
     // Validate job status
     if (!['student', 'job'].includes(jobStatus)) {
       return res.status(400).json({ message: 'Invalid job status' });
     }
-    // If the user is not a student, ensure the job title is provided
+
     if (jobStatus === 'job' && !jobTitle) {
       return res.status(400).json({ message: 'Job title is required if you are not a student.' });
     }
+
     // Ensure user is not underage
     const today = new Date();
     const birthDate = new Date(dob);
     const age = today.getFullYear() - birthDate.getFullYear();
-    const ageCutoff = today.setFullYear(today.getFullYear() - 18); // 18 years ago
+    const ageCutoff = today.setFullYear(today.getFullYear() - 18);
+    
     if (birthDate > ageCutoff) {
       return res.status(403).json({ message: 'You must be 18 or older to register' });
     }
-    // Create a new tourist instance
+
     const newTourist = new Tourist({
       email,
       username,
@@ -36,12 +61,14 @@ export const registerTourist = async (req, res) => {
       nationality,
       dob: birthDate,
       jobStatus,
-      jobTitle: jobStatus === 'job' ? jobTitle : undefined, // Assign job title only if jobStatus is 'job'
-      wallet: 0
+      jobTitle: jobStatus === 'job' ? jobTitle : undefined,
+      Wallet: 0
     });
-    // Save the user in the database
+
     await newTourist.save();
     
+    const token = generateToken(newTourist);
+
     res.status(201).json({
       message: 'Tourist registered successfully',
       tourist: {
@@ -52,10 +79,10 @@ export const registerTourist = async (req, res) => {
         nationality: newTourist.nationality,
         dob: newTourist.dob,
         jobStatus: newTourist.jobStatus,
-        jobTitle: newTourist.jobTitle, // Only present if jobStatus is 'job'
-        wallet: newTourist.wallet,
+        jobTitle: newTourist.jobTitle,
+        Wallet: newTourist.Wallet,
       },
-      // Optional if you want to authenticate right after registration
+      token
     });
   } catch (error) {
     console.error(error);
@@ -63,23 +90,23 @@ export const registerTourist = async (req, res) => {
   }
 };
 
-// Login tourist (optional)
+// Login Tourist with username
 export const loginTourist = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    // Check if user exists
-    const tourist = await Tourist.findOne({ email });
+    const { username, password } = req.body;
+
+    const tourist = await Tourist.findOne({ username }) || await Tourist.findOne({ email: username });
     if (!tourist) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Invalid username or password' });
     }
-    // Compare passwords
+
     const isMatch = await tourist.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid password' });
+      return res.status(401).json({ message: 'Invalid username or password' });
     }
-    // Generate JWT token
-    // const token = jwt.sign({ id: tourist._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    // Send success response
+
+    const token = generateToken(tourist);
+
     res.status(200).json({
       message: 'Login successful',
       tourist: {
@@ -90,9 +117,10 @@ export const loginTourist = async (req, res) => {
         nationality: tourist.nationality,
         dob: tourist.dob,
         jobStatus: tourist.jobStatus,
-        jobTitle: tourist.jobTitle
+        jobTitle: tourist.jobTitle,
+        Wallet: tourist.Wallet
       },
-      
+      token
     });
   } catch (error) {
     console.error(error);
@@ -100,16 +128,21 @@ export const loginTourist = async (req, res) => {
   }
 };
 
+// Get Tourist Profile
 export const getTouristProfile = async (req, res) => {
   try {
     const { username } = req.params;
-    const tourist = await Tourist.findOne({ username }).lean(); // Use .lean() here
+    
+    // Check authorization using the decoded token from middleware
+    if (req.user.username !== username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    const tourist = await Tourist.findOne({ username }).lean();
 
     if (!tourist) {
       return res.status(404).json({ message: 'Tourist not found' });
     }
-
-    console.log(tourist); // Log the entire tourist object
 
     res.status(200).json({
       message: 'Tourist profile fetched successfully',
@@ -121,7 +154,7 @@ export const getTouristProfile = async (req, res) => {
         dob: tourist.dob,
         jobStatus: tourist.jobStatus,
         jobTitle: tourist.jobTitle,
-        wallet: tourist.wallet // Ensure this is included
+        Wallet: tourist.Wallet
       }
     });
   } catch (error) {
@@ -130,27 +163,28 @@ export const getTouristProfile = async (req, res) => {
   }
 };
 
-
-
-
-// Update tourist profile
+// Update Tourist Profile
 export const updateTouristProfile = async (req, res) => {
   try {
-    const { email, mobileNumber, nationality, dob, jobStatus, jobTitle } = req.body;
-
     const { username } = req.params;
+    
+    // Check authorization using the decoded token from middleware
+    if (req.user.username !== username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    const { email, mobileNumber, nationality, jobStatus, jobTitle } = req.body;
+
     const tourist = await Tourist.findOne({ username });
-      if (!tourist) {
+    if (!tourist) {
       return res.status(404).json({ message: 'Tourist not found' });
     }
 
     tourist.email = email || tourist.email;
     tourist.mobileNumber = mobileNumber || tourist.mobileNumber;
     tourist.nationality = nationality || tourist.nationality;
-    tourist.dob = dob ? new Date(dob) : tourist.dob;
     tourist.jobStatus = jobStatus || tourist.jobStatus;
     tourist.jobTitle = jobStatus === 'job' ? jobTitle : undefined;
-    
 
     await tourist.save();
 
@@ -159,13 +193,13 @@ export const updateTouristProfile = async (req, res) => {
       tourist: {
         id: tourist._id,
         email: tourist.email,
-        username: tourist.username, // Non-editable field
+        username: tourist.username,
         mobileNumber: tourist.mobileNumber,
         nationality: tourist.nationality,
         dob: tourist.dob,
         jobStatus: tourist.jobStatus,
         jobTitle: tourist.jobTitle,
-        wallet: tourist.wallet // Non-editable field
+        Wallet: tourist.Wallet
       }
     });
   } catch (error) {
@@ -173,10 +207,11 @@ export const updateTouristProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-// Get all tourists for dropdown
+
+// Get all tourists
 export const getAllTourists = async (req, res) => {
   try {
-    const tourists = await Tourist.find({}, 'username'); // Only fetch usernames for dropdown
+    const tourists = await Tourist.find({}, 'username');
     res.status(200).json(tourists);
   } catch (error) {
     console.error(error);
