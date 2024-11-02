@@ -1,5 +1,23 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Generate JWT Token
+const generateToken = (tourGuide) => {
+  return jwt.sign(
+    {
+      _id: tourGuide._id,
+      username: tourGuide.username,
+      email: tourGuide.email,
+      mobileNumber: tourGuide.mobileNumber,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
 
 // Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
@@ -7,28 +25,45 @@ export const registerTourGuide = async (req, res) => {
 
     try {
         // Check if the email or username already exists
-        const existingTourGuideByEmail = await TourGuide.findOne({ email });
-        const existingTourGuideByUsername = await TourGuide.findOne({ username });
+        const existingTourGuide = await TourGuide.findOne({ 
+            $or: [{ email }, { username }] 
+        });
 
-        if (existingTourGuideByEmail || existingTourGuideByUsername) {
-            return res.status(400).json({ message: "Email or Username already exists" });
+        if (existingTourGuide) {
+            return res.status(400).json({ 
+                message: existingTourGuide.email === email ? 
+                    "Email already exists" : 
+                    "Username already taken" 
+            });
         }
-
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create a new tour guide
         const newTourGuide = new TourGuide({
             username,
             email,
-            password: hashedPassword,
+            password, // Will be hashed by the model's pre-save hook
             mobileNumber,
             yearsOfExperience,
-            previousWork // Ensure this is structured correctly as an array of objects
+            previousWork
         });
 
         await newTourGuide.save();
-        return res.status(201).json({ message: "Tour guide registered successfully" });
+        
+        // Generate token
+        const token = generateToken(newTourGuide);
+
+        return res.status(201).json({ 
+            message: "Tour guide registered successfully",
+            tourGuide: {
+                id: newTourGuide._id,
+                username: newTourGuide.username,
+                email: newTourGuide.email,
+                mobileNumber: newTourGuide.mobileNumber,
+                yearsOfExperience: newTourGuide.yearsOfExperience,
+                previousWork: newTourGuide.previousWork
+            },
+            token
+        });
     } catch (error) {
         console.error("Error registering tour guide:", error);
         return res.status(500).json({ message: "Error registering tour guide", error: error.message });
@@ -37,20 +72,26 @@ export const registerTourGuide = async (req, res) => {
 
 // Login a Tour Guide
 export const loginTourGuide = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        // Check if the tour guide exists
-        const tourGuide = await TourGuide.findOne({ email });
+        // Check if the tour guide exists by username or email
+        const tourGuide = await TourGuide.findOne({ 
+            $or: [{ username }, { email: username }] 
+        });
+
         if (!tourGuide) {
-            return res.status(404).json({ message: "Tour guide not found" });
+            return res.status(404).json({ message: "Invalid username or password" });
         }
 
         // Compare passwords
-        const isMatch = await bcrypt.compare(password, tourGuide.password);
+        const isMatch = await tourGuide.comparePassword(password);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid password" });
+            return res.status(401).json({ message: "Invalid username or password" });
         }
+
+        // Generate token
+        const token = generateToken(tourGuide);
 
         // Successful login
         return res.status(200).json({
@@ -62,7 +103,8 @@ export const loginTourGuide = async (req, res) => {
                 mobileNumber: tourGuide.mobileNumber,
                 yearsOfExperience: tourGuide.yearsOfExperience,
                 previousWork: tourGuide.previousWork
-            }
+            },
+            token
         });
     } catch (error) {
         console.error("Error logging in:", error);
@@ -70,46 +112,50 @@ export const loginTourGuide = async (req, res) => {
     }
 };
 
-// Get Tour Guide Account Details by Username and Email
-export const getTourGuideAccount = async (req, res) => {
-    const { username, email } = req.query;
+// Get Tour Guide Profile (Protected Route)
+export const getTourGuideByUsername = async (req, res) => {
+    const { username } = req.params;
 
     try {
-        const tourGuide = await TourGuide.findOne({ username, email });
-        if (!tourGuide) {
-            return res.status(404).json({ message: "Tour Guide not found" });
+        // Check authorization
+        if (req.user.username !== username) {
+            return res.status(403).json({ message: "Unauthorized access" });
         }
-        res.status(200).json({
-            id: tourGuide._id,
-            username: tourGuide.username,
-            email: tourGuide.email,
-            mobileNumber: tourGuide.mobileNumber,
-            yearsOfExperience: tourGuide.yearsOfExperience,
-            previousWork: tourGuide.previousWork
-        });
-    } catch (error) {
-        return res.status(500).json({ message: "Error fetching tour guide account details", error: error.message });
+
+        const tourGuide = await TourGuide.findOne({ username }).select('-password');
+        if (!tourGuide) {
+            return res.status(404).json({ message: "Tour guide not found" });
+        }
+        res.status(200).json(tourGuide);
+    }
+    catch (error) {
+        console.error("Error fetching tour guide:", error);
+        return res.status(500).json({ message: "Error fetching tour guide", error: error.message });
     }
 };
 
-// Update Tour Guide Account Details
+// Update Tour Guide Profile (Protected Route)
 export const updateTourGuideAccount = async (req, res) => {
-    const { id } = req.params; // Get tour guide ID from URL parameters
-    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body; // Extract updated fields
+    const { id } = req.params;
+    const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body;
 
     try {
+        // Check authorization
+        if (req.user._id !== id) {
+            return res.status(403).json({ message: "Unauthorized access" });
+        }
+
         const tourGuide = await TourGuide.findById(id);
         if (!tourGuide) {
             return res.status(404).json({ message: "Tour guide not found" });
         }
 
-        // Update fields or keep old values if not provided
+        // Update fields
         tourGuide.username = username || tourGuide.username;
         tourGuide.email = email || tourGuide.email;
         tourGuide.mobileNumber = mobileNumber || tourGuide.mobileNumber;
         tourGuide.yearsOfExperience = yearsOfExperience || tourGuide.yearsOfExperience;
 
-        // Ensure previousWork is an array of objects
         if (Array.isArray(previousWork)) {
             tourGuide.previousWork = previousWork.map(work => ({
                 jobTitle: work.jobTitle || '',
@@ -118,30 +164,48 @@ export const updateTourGuideAccount = async (req, res) => {
                 startDate: work.startDate || null,
                 endDate: work.endDate || null
             }));
-        } else {
-            return res.status(400).json({ message: "Invalid format for previousWork. Expected an array of objects." });
         }
 
-        await tourGuide.save(); // Save updated tour guide details
-        res.status(200).json({ message: "Tour guide updated successfully" });
+        await tourGuide.save();
+        
+        res.status(200).json({
+            message: "Tour guide updated successfully",
+            tourGuide: {
+                id: tourGuide._id,
+                username: tourGuide.username,
+                email: tourGuide.email,
+                mobileNumber: tourGuide.mobileNumber,
+                yearsOfExperience: tourGuide.yearsOfExperience,
+                previousWork: tourGuide.previousWork
+            }
+        });
     } catch (error) {
         console.error("Error updating tour guide:", error);
         return res.status(500).json({ message: "Error updating tour guide", error: error.message });
     }
 };
+
+// Get All Tour Guides (Optional: Could be admin-only route)
 export const getAllTourGuides = async (req, res) => {
     try {
-        const tourGuides = await TourGuide.find();
+        const tourGuides = await TourGuide.find().select('-password');
         res.status(200).json(tourGuides);
     } catch (error) {
         console.error("Error fetching tour guides:", error);
         return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
     }
-}
+};
+
+// Delete Tour Guide (Protected Route)
 export const deleteTourGuide = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Check authorization
+        if (req.user._id !== id) {
+            return res.status(403).json({ message: "Unauthorized access" });
+        }
+
         const tourGuide = await TourGuide.findById(id);
         if (!tourGuide) {
             return res.status(404).json({ message: "Tour guide not found" });
@@ -154,20 +218,33 @@ export const deleteTourGuide = async (req, res) => {
         return res.status(500).json({ message: "Error deleting tour guide", error: error.message });
     }
 };
-export const getTourGuideByUsername = async (req, res) => {
-    const { username } = req.params;
 
+
+export const getProfileByToken = async (req, res) => {
     try {
-        const tourGuide = await TourGuide.findOne({
-            username: username
-        });
+        // req.user contains the decoded token information from authMiddleware
+        const { _id } = req.user;
+
+        const tourGuide = await TourGuide.findById(_id).select('-password');
         if (!tourGuide) {
             return res.status(404).json({ message: "Tour guide not found" });
         }
-        res.status(200).json(tourGuide);
+
+        res.status(200).json({
+            message: "Profile fetched successfully",
+            tourGuide: {
+                id: tourGuide._id,
+                username: tourGuide.username,
+                email: tourGuide.email,
+                mobileNumber: tourGuide.mobileNumber,
+                yearsOfExperience: tourGuide.yearsOfExperience,
+                previousWork: tourGuide.previousWork
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching profile:", error);
+        res.status(500).json({ message: "Error fetching profile", error: error.message });
     }
-    catch (error) {
-        console.error("Error fetching tour guide:", error);
-        return res.status(500).json({ message: "Error fetching tour guide", error: error.message });
-    }
-}
+};
+
+
