@@ -37,6 +37,7 @@ import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
 import ContentModeration from "./pages/admin/ContentModeration";
 import CreateTransportationListing from "./pages/advertiser/CreateTransportationListing";
 import BookTransportation from "./pages/tourist/BookTransportation";
+import ManageTransportations from "./pages/advertiser/ManageTransportations";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -48,13 +49,11 @@ function App() {
         <Routes>
           {/* Default route set to the RegisterPage */}
           <Route path="/" element={<AuthPage />} />
-
           {/* Routes under "/tourist" */}
           {/* Auth Routes */}
           {/* <Route path="/" element={<AuthPage />} /> */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
-
           {/* Tourist Routes */}
           <Route path="/tourist" element={<TouristHomePage />} />
           <Route path="/tourist/register" element={<TouristRegister />} />
@@ -84,7 +83,6 @@ function App() {
             path="/tourguide/MyItineraries"
             element={<TourGuideItineraries />}
           />
-
           {/* Admin routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
@@ -101,7 +99,6 @@ function App() {
             path="/admin/content-moderation"
             element={<ContentModeration />}
           />
-
           {/* Advertiser routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
@@ -121,7 +118,10 @@ function App() {
             path="/advertiser/create-transportation"
             element={<CreateTransportationListing />}
           />
-
+          <Route
+            path="/advertiser/transportation"
+            element={<ManageTransportations />}
+          />
           {/* Tourism Governor routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
@@ -130,7 +130,6 @@ function App() {
             element={<GovernorCreatedPlaces />}
           />
           <Route path="/governor/tag-management" element={<TagManagement />} />
-
           {/* Seller routes */}
           <Route
             path="/tourist/itinerary-filter"
@@ -141,7 +140,6 @@ function App() {
             element={<FilteredActivities />}
           />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
-
           {/* Tour Guide Routes */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
           <Route
@@ -152,7 +150,6 @@ function App() {
             path="/tourguide/MyItineraries"
             element={<TourGuideItineraries />}
           />
-
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
@@ -164,7 +161,6 @@ function App() {
             path="/admin/preference-tags"
             element={<PreferenceTagManagement />}
           />
-
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
@@ -180,7 +176,6 @@ function App() {
             path="/advertiser/activities"
             element={<AdvertiserActivities />}
           />
-
           {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
@@ -189,12 +184,10 @@ function App() {
             element={<GovernorCreatedPlaces />}
           />
           <Route path="/governor/tag-management" element={<TagManagement />} />
-
           {/* Seller Routes */}
           <Route path="/seller" element={<SellerHomePage />} />
           <Route path="/seller/products" element={<ProductPage />} />
           <Route path="/seller/profile" element={<UserDisplay />} />
-
           {/* Registration routes */}
           <Route path="/register/admin" element={<AdminRegister />} />
           <Route path="/register/tourist" element={<TouristRegister />} />

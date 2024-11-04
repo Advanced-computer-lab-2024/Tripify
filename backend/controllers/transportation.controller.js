@@ -46,8 +46,12 @@ export const getTransportationById = async (req, res) => {
 };
 
 // Update transportation listing
+// Update transportation listing
 export const updateTransportation = async (req, res) => {
   try {
+    console.log("Updating transportation:", req.params.id);
+    console.log("Update data:", req.body);
+
     const transportation = await Transportation.findById(req.params.id);
 
     if (!transportation) {
@@ -61,40 +65,57 @@ export const updateTransportation = async (req, res) => {
         .json({ message: "Not authorized to update this listing" });
     }
 
-    Object.assign(transportation, req.body);
-    await transportation.save();
+    // Check if the transportation can be modified
+    if (transportation.status === "booked" && req.body.status === "available") {
+      const activeBooking = await TransportationBooking.findOne({
+        transportationId: transportation._id,
+        status: { $in: ["pending", "confirmed"] },
+      });
 
-    res.status(200).json(transportation);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Delete transportation listing
-export const deleteTransportation = async (req, res) => {
-  try {
-    const transportation = await Transportation.findById(req.params.id);
-
-    if (!transportation) {
-      return res.status(404).json({ message: "Transportation not found" });
+      if (activeBooking) {
+        return res.status(400).json({
+          message:
+            "Cannot change status to available while there are active bookings",
+        });
+      }
     }
 
-    // Check if the user is the owner of the listing
-    if (transportation.advertiserId.toString() !== req.user._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this listing" });
-    }
+    // Update fields
+    const updatableFields = [
+      "vehicleType",
+      "model",
+      "capacity",
+      "price",
+      "availabilityStart",
+      "availabilityEnd",
+      "pickupLocation",
+      "dropoffLocation",
+      "description",
+      "features",
+      "status",
+    ];
 
-    await transportation.remove();
-    res
-      .status(200)
-      .json({ message: "Transportation listing deleted successfully" });
+    updatableFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        transportation[field] = req.body[field];
+      }
+    });
+
+    const updatedTransportation = await transportation.save();
+    console.log("Updated transportation:", updatedTransportation);
+
+    res.status(200).json({
+      message: "Transportation updated successfully",
+      transportation: updatedTransportation,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Update error:", error);
+    res.status(500).json({
+      message: "Failed to update transportation",
+      error: error.message,
+    });
   }
 };
-
 // Book transportation
 export const bookTransportation = async (req, res) => {
   try {
@@ -273,5 +294,75 @@ export const updateBookingStatus = async (req, res) => {
     res.status(200).json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Get advertiser's transportation listings
+export const getAdvertiserTransportations = async (req, res) => {
+  try {
+    // Log the user ID for debugging
+    console.log("User ID:", req.user._id);
+
+    // Fetch transportations where advertiserId matches the logged-in user's ID
+    const transportations = await Transportation.find({
+      advertiserId: req.user._id,
+    })
+      .populate("advertiserId", "username companyName email")
+      .sort("-createdAt");
+
+    console.log("Found transportations:", transportations);
+
+    res.status(200).json(transportations);
+  } catch (error) {
+    console.error("Error in getAdvertiserTransportations:", error);
+    res.status(500).json({
+      message: "Failed to fetch transportation listings",
+      error: error.message,
+    });
+  }
+};
+
+// Delete transportation listing
+// Delete transportation listing
+export const deleteTransportation = async (req, res) => {
+  try {
+    console.log("Deleting transportation with ID:", req.params.id);
+    console.log("User ID:", req.user._id);
+
+    const transportation = await Transportation.findById(req.params.id);
+
+    if (!transportation) {
+      console.log("Transportation not found");
+      return res.status(404).json({ message: "Transportation not found" });
+    }
+
+    // Check if the user is the owner of the listing
+    if (transportation.advertiserId.toString() !== req.user._id.toString()) {
+      console.log("Authorization failed:", {
+        transportationAdvertiserId: transportation.advertiserId,
+        requestUserId: req.user._id,
+      });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this listing" });
+    }
+
+    // Delete the transportation
+    const result = await Transportation.findByIdAndDelete(req.params.id);
+    console.log("Delete result:", result);
+
+    if (result) {
+      res
+        .status(200)
+        .json({ message: "Transportation listing deleted successfully" });
+    } else {
+      res.status(404).json({ message: "Transportation not found" });
+    }
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({
+      message: "Failed to delete transportation listing",
+      error: error.message,
+    });
   }
 };

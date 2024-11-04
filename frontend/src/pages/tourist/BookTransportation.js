@@ -85,6 +85,17 @@ const BookTransportation = () => {
     });
   };
 
+  const calculateBookingDuration = (startDate, endDate) => {
+    return Math.ceil(
+      (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)
+    );
+  };
+
+  const calculateTotalPrice = (price, startDate, endDate) => {
+    const days = calculateBookingDuration(startDate, endDate);
+    return days * price;
+  };
+
   const applyFilters = () => {
     let filtered = transportations;
 
@@ -142,7 +153,7 @@ const BookTransportation = () => {
     setFilteredTransportations(transportations);
   };
 
-  const handleBooking = async (transportation) => {
+  const handleBooking = async (transport) => {
     if (!filters.dateFrom || !filters.dateTo) {
       setError("Please select both start and end dates");
       return;
@@ -161,9 +172,12 @@ const BookTransportation = () => {
       const startDate = new Date(filters.dateFrom);
       const endDate = new Date(filters.dateTo);
 
-      // Calculate number of days
-      const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-      const totalPrice = days * transportation.price;
+      // Calculate total price
+      const totalPrice = calculateTotalPrice(
+        transport.price,
+        startDate,
+        endDate
+      );
 
       if (isNaN(totalPrice) || totalPrice <= 0) {
         setError("Invalid date range selected");
@@ -171,7 +185,7 @@ const BookTransportation = () => {
       }
 
       const bookingData = {
-        transportationId: transportation._id,
+        transportationId: transport._id,
         touristId: decoded._id,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -352,6 +366,16 @@ const BookTransportation = () => {
                       <strong>Price:</strong> ${transport.price}/day
                     </div>
                     <div className="mb-2">
+                      <strong>Available From:</strong>{" "}
+                      {new Date(
+                        transport.availabilityStart
+                      ).toLocaleDateString()}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Available Until:</strong>{" "}
+                      {new Date(transport.availabilityEnd).toLocaleDateString()}
+                    </div>
+                    <div className="mb-2">
                       <strong>Pickup:</strong> {transport.pickupLocation}
                     </div>
                     <div className="mb-2">
@@ -373,6 +397,33 @@ const BookTransportation = () => {
                       <br />
                       {transport.description}
                     </div>
+                    {filters.dateFrom && filters.dateTo && (
+                      <div className="mt-3 p-2 bg-light rounded">
+                        <div className="mb-2">
+                          <strong>Your Booking:</strong>
+                        </div>
+                        <div className="small">
+                          From:{" "}
+                          {new Date(filters.dateFrom).toLocaleDateString()}
+                          <br />
+                          To: {new Date(filters.dateTo).toLocaleDateString()}
+                          <br />
+                          Duration:{" "}
+                          {calculateBookingDuration(
+                            filters.dateFrom,
+                            filters.dateTo
+                          )}{" "}
+                          days
+                          <br />
+                          Total Price: $
+                          {calculateTotalPrice(
+                            transport.price,
+                            filters.dateFrom,
+                            filters.dateTo
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </Card.Text>
                   <Button
                     variant="primary"

@@ -35,15 +35,6 @@ const AdvertiserHomepage = () => {
     <Container fluid className="p-5">
       <Row className="mb-4">
         <Col>
-          <h1>Welcome, {advertiserInfo?.username || "Advertiser"}!</h1>
-          {advertiserInfo?.companyName && (
-            <h4 className="text-muted">{advertiserInfo.companyName}</h4>
-          )}
-          <p>Manage your activities, create new ones, and view your profile.</p>
-        </Col>
-      </Row>
-      <Row className="mb-4">
-        <Col>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>Create New Activity</Card.Title>
@@ -65,6 +56,19 @@ const AdvertiserHomepage = () => {
               </Card.Text>
               <Link to="/advertiser/view-activities">
                 <Button variant="success">View Activities</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Transportation Services</Card.Title>
+              <Card.Text>
+                Manage your transportation listings and bookings.
+              </Card.Text>
+              <Link to="/advertiser/transportation">
+                <Button variant="info">Manage Transportation</Button>
               </Link>
             </Card.Body>
           </Card>
@@ -96,19 +100,6 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row>
-      <Col>
-        <Card className="mb-3">
-          <Card.Body>
-            <Card.Title>Transportation Services</Card.Title>
-            <Card.Text>
-              Create and manage your transportation listings.
-            </Card.Text>
-            <Link to="/advertiser/create-transportation">
-              <Button variant="primary">Manage Transportation</Button>
-            </Link>
-          </Card.Body>
-        </Card>
-      </Col>
 
       {/* <Row>
         <Col>
