@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import RegisterPage from "./pages/RegisterPage"; // Import the RegisterPage component
+import AuthPage from "./pages/auth/AuthPage"; // New AuthPage for combined login/register
 import TouristRegister from "./pages/tourist/TouristRegister";
 import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
@@ -30,21 +30,23 @@ import UserDisplay from "./components/UserDisplay";
 import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
 import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
 import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
-import ProductTouristPage from "./pages/product/productTouristPage"; // Added from the first code
+import ProductTouristPage from "./pages/product/productTouristPage";
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
-import TouristLogin from "./pages/tourist/LoginPage";
+
+// Import Bootstrap CSS
+import "bootstrap/dist/css/bootstrap.min.css";
 
 function App() {
   return (
     <div className="App">
       <Router>
         <Routes>
-          {/* Default route set to the RegisterPage */}
-          <Route path="/" element={<RegisterPage />} />
+          {/* Auth Routes */}
+          <Route path="/" element={<AuthPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
 
-          {/* Routes under "/tourist" */}
-          <Route path="/login" element={<TouristLogin />} />
-
+          {/* Tourist Routes */}
           <Route path="/tourist" element={<TouristHomePage />} />
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
@@ -59,7 +61,7 @@ function App() {
           />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
 
-          {/* Routes under "/tourguide" */}
+          {/* Tour Guide Routes */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
           <Route
             path="/tourguide/itinerary-management"
@@ -70,7 +72,7 @@ function App() {
             element={<TourGuideItineraries />}
           />
 
-          {/* Admin routes */}
+          {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
           <Route
@@ -82,7 +84,7 @@ function App() {
             element={<PreferenceTagManagement />}
           />
 
-          {/* Advertiser routes */}
+          {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
             path="/advertiser/create-activity"
@@ -98,7 +100,7 @@ function App() {
             element={<AdvertiserActivities />}
           />
 
-          {/* Tourism Governor routes */}
+          {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
           <Route
@@ -107,7 +109,7 @@ function App() {
           />
           <Route path="/governor/tag-management" element={<TagManagement />} />
 
-          {/* Seller routes */}
+          {/* Seller Routes */}
           <Route path="/seller" element={<SellerHomePage />} />
           <Route path="/seller/products" element={<ProductPage />} />
           <Route path="/seller/profile" element={<UserDisplay />} />
