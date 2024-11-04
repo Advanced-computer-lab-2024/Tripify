@@ -1,10 +1,12 @@
 import express from "express";
+import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
 import {
   createActivity,
   getActivities,
   updateActivity,
   getActivityById,
   deleteActivity,
+  flagActivity,
 } from "../controllers/activity.controller.js";
 import {
   createCategory,
@@ -22,6 +24,8 @@ router.get("/category", getAllCategories);
 router.get("/category/:id", getCategory);
 router.put("/category/:id", updateCategory);
 router.delete("/category/:id", deleteCategory);
+
+router.patch("/:id/flag", flagActivity);
 
 // Activity routes
 router.post("/", createActivity);

@@ -44,14 +44,14 @@ export const getItineraryById = async (req, res) => {
 
 export const getAllItineraries = async (req, res) => {
   try {
-    const itineraries = await Itinerary.find()
+    const isAdmin = req.user?.role === "admin";
+    const query = isAdmin ? {} : { flagged: { $ne: true } };
+
+    const itineraries = await Itinerary.find(query)
       .populate("createdBy", "username")
       .populate("preferenceTags", "name");
-
-    // Debug log
     res.status(200).json(itineraries);
   } catch (error) {
-    console.error("Error in getAllItineraries:", error); // Debug log
     res.status(500).json({ message: error.message });
   }
 };
@@ -115,6 +115,24 @@ export const searchItineraries = async (req, res) => {
       .populate("preferenceTags", "name");
 
     res.status(200).json(itineraries);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const flagItinerary = async (req, res) => {
+  try {
+    const itinerary = await Itinerary.findByIdAndUpdate(
+      req.params.id,
+      { flagged: req.body.flagged },
+      { new: true }
+    );
+
+    if (!itinerary) {
+      return res.status(404).json({ message: "Itinerary not found" });
+    }
+
+    res.status(200).json(itinerary);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

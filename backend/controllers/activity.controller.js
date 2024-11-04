@@ -14,8 +14,11 @@ export const createActivity = async (req, res) => {
 // GET all activities
 export const getActivities = async (req, res) => {
   try {
-    const activities = await Activity.find()
-      .populate("createdBy", "username companyName") // Populate with advertiser info
+    const isAdmin = req.user?.role === "admin";
+    const query = isAdmin ? {} : { flagged: { $ne: true } };
+
+    const activities = await Activity.find(query)
+      .populate("createdBy", "username companyName")
       .populate("category")
       .populate("tags");
     res.status(200).json(activities);
@@ -23,7 +26,6 @@ export const getActivities = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 // GET a single activity by ID
 export const getActivityById = async (req, res) => {
   try {
@@ -65,6 +67,24 @@ export const deleteActivity = async (req, res) => {
       return res.status(404).json({ message: "Activity not found" });
     }
     res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const flagActivity = async (req, res) => {
+  try {
+    const activity = await Activity.findByIdAndUpdate(
+      req.params.id,
+      { flagged: req.body.flagged },
+      { new: true }
+    );
+
+    if (!activity) {
+      return res.status(404).json({ message: "Activity not found" });
+    }
+
+    res.status(200).json(activity);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

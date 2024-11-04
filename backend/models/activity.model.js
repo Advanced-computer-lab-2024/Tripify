@@ -58,7 +58,12 @@ const activitySchema = new mongoose.Schema(
       ref: "Advertiser",
       required: true,
     },
+    flagged: {
+      type: Boolean,
+      default: false,
+    },
   },
+
   { timestamps: true }
 );
 
