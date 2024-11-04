@@ -15,6 +15,7 @@ import preferenceTagRoutes from "./routes/preferenceTag.route.js";
 import tagRoutes from "./routes/tag.route.js";
 import productRoutes from "./routes/product.route.js";
 import complaintRoutes from "./routes/complaints.route.js";
+import transportationRoutes from "./routes/transportation.route.js";
 
 dotenv.config();
 
@@ -49,3 +50,4 @@ app.use("/api/preference-tags", preferenceTagRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/transportation", transportationRoutes);

@@ -9,17 +9,17 @@ const AdvertiserHomepage = () => {
 
   useEffect(() => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError('No authentication token found. Please login.');
+        setError("No authentication token found. Please login.");
         return;
       }
 
       const decoded = jwtDecode(token);
       setAdvertiserInfo(decoded);
     } catch (error) {
-      console.error('Error decoding token:', error);
-      setError('Error loading user information. Please login again.');
+      console.error("Error decoding token:", error);
+      setError("Error loading user information. Please login again.");
     }
   }, []);
 
@@ -35,7 +35,7 @@ const AdvertiserHomepage = () => {
     <Container fluid className="p-5">
       <Row className="mb-4">
         <Col>
-          <h1>Welcome, {advertiserInfo?.username || 'Advertiser'}!</h1>
+          <h1>Welcome, {advertiserInfo?.username || "Advertiser"}!</h1>
           {advertiserInfo?.companyName && (
             <h4 className="text-muted">{advertiserInfo.companyName}</h4>
           )}
@@ -96,8 +96,21 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row>
-     
-      <Row>
+      <Col>
+        <Card className="mb-3">
+          <Card.Body>
+            <Card.Title>Transportation Services</Card.Title>
+            <Card.Text>
+              Create and manage your transportation listings.
+            </Card.Text>
+            <Link to="/advertiser/create-transportation">
+              <Button variant="primary">Manage Transportation</Button>
+            </Link>
+          </Card.Body>
+        </Card>
+      </Col>
+
+      {/* <Row>
         <Col>
           <Card>
             <Card.Body>
@@ -109,7 +122,7 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
     </Container>
   );
 };

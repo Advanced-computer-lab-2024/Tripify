@@ -35,6 +35,8 @@ import Complaints from "./pages/admin/Complaints";
 import ProductTouristPage from "./pages/product/productTouristPage";
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
 import ContentModeration from "./pages/admin/ContentModeration";
+import CreateTransportationListing from "./pages/advertiser/CreateTransportationListing";
+import BookTransportation from "./pages/tourist/BookTransportation";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -67,6 +69,10 @@ function App() {
             element={<FilteredActivities />}
           />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
+          <Route
+            path="/tourist/book-transportation"
+            element={<BookTransportation />}
+          />
 
           {/* Routes under "/tourguide" */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
@@ -110,6 +116,10 @@ function App() {
           <Route
             path="/advertiser/activities"
             element={<AdvertiserActivities />}
+          />
+          <Route
+            path="/advertiser/create-transportation"
+            element={<CreateTransportationListing />}
           />
 
           {/* Tourism Governor routes */}
