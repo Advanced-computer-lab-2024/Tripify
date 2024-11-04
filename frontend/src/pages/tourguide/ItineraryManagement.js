@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Container, Row, Col, Form, Button, Table, Modal, Alert } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Table,
+  Modal,
+  Alert,
+} from "react-bootstrap";
 import { jwtDecode } from "jwt-decode";
 
 const ItineraryManagement = () => {
@@ -29,7 +38,7 @@ const ItineraryManagement = () => {
   });
 
   const getAuthConfig = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     return {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -43,19 +52,16 @@ const ItineraryManagement = () => {
 
   const checkAuthAndFetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
 
       const decoded = jwtDecode(token);
       setUserInfo(decoded);
       console.log("Decoded User Info:", userInfo);
 
-      await Promise.all([
-        fetchItineraries(),
-        fetchPreferenceTags()
-      ]);
+      await Promise.all([fetchItineraries(), fetchPreferenceTags()]);
     } catch (error) {
       console.error("Authentication error:", error);
       setError(error.message || "Please log in to manage itineraries.");
@@ -70,6 +76,10 @@ const ItineraryManagement = () => {
         "http://localhost:5000/api/itineraries",
         getAuthConfig()
       );
+
+      // Log the response to debug
+      console.log("Fetched itineraries:", response.data);
+
       setItineraries(response.data);
     } catch (error) {
       console.error("Error fetching itineraries:", error);
@@ -145,27 +155,32 @@ const ItineraryManagement = () => {
     e.preventDefault();
     try {
       const payload = {
-        ...formData,
-        preferenceTags: formData.preferenceTags,
-        createdBy: userInfo._id
+        itineraryData: {
+          ...formData,
+          preferenceTags: formData.preferenceTags,
+        },
+        tourGuideId: userInfo._id, // Add the tourGuideId from userInfo
       };
 
       const config = getAuthConfig();
 
       if (currentItinerary) {
+        // For updates, we don't need to wrap in itineraryData
         await axios.put(
           `http://localhost:5000/api/itineraries/${currentItinerary._id}`,
-          payload,
+          formData, // Send formData directly for updates
           config
         );
       } else {
+        // For creation, we need both itineraryData and tourGuideId
         await axios.post(
           "http://localhost:5000/api/itineraries",
-          { itineraryData: payload },
+          payload,
           config
         );
       }
-      fetchItineraries();
+
+      await fetchItineraries();
       setShowModal(false);
       resetForm();
     } catch (error) {
@@ -173,7 +188,6 @@ const ItineraryManagement = () => {
       setError(error.response?.data?.message || "Error saving itinerary");
     }
   };
-
   const handleEdit = (itinerary) => {
     setCurrentItinerary(itinerary);
     setFormData({
