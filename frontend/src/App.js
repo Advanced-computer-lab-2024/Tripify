@@ -1,6 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+<<<<<<< HEAD
 import RegisterPage from "./pages/RegisterPage"; // Import the RegisterPage component
+=======
+import AuthPage from "./pages/auth/AuthPage"; // New AuthPage for combined login/register
+>>>>>>> jwtdemo
 import TouristRegister from "./pages/tourist/TouristRegister";
 import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
@@ -30,23 +34,41 @@ import UserDisplay from "./components/UserDisplay";
 import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
 import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
 import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
+<<<<<<< HEAD
 import ProductTouristPage from "./pages/product/productTouristPage"; // Added from the first code
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
 import Complaints from "./pages/admin/Complaints";
+=======
+import ProductTouristPage from "./pages/product/productTouristPage";
+import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
+
+// Import Bootstrap CSS
+import "bootstrap/dist/css/bootstrap.min.css";
+>>>>>>> jwtdemo
 
 function App() {
   return (
     <div className="App">
       <Router>
         <Routes>
+<<<<<<< HEAD
           {/* Default route set to the RegisterPage */}
           <Route path="/" element={<RegisterPage />} />
 
           {/* Routes under "/tourist" */}
+=======
+          {/* Auth Routes */}
+          <Route path="/" element={<AuthPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
+
+          {/* Tourist Routes */}
+>>>>>>> jwtdemo
           <Route path="/tourist" element={<TouristHomePage />} />
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
+<<<<<<< HEAD
           <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
           <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
@@ -78,6 +100,67 @@ function App() {
           <Route path="/governor/tag-management" element={<TagManagement />} />
 
           {/* Seller routes */}
+=======
+          <Route
+            path="/tourist/itinerary-filter"
+            element={<ItineraryFilter />}
+          />
+          <Route
+            path="/tourist/filtered-activities"
+            element={<FilteredActivities />}
+          />
+          <Route path="/tourist/products" element={<ProductTouristPage />} />
+
+          {/* Tour Guide Routes */}
+          <Route path="/tourguide" element={<TourguideHomePage />} />
+          <Route
+            path="/tourguide/itinerary-management"
+            element={<ItineraryManagement />}
+          />
+          <Route
+            path="/tourguide/MyItineraries"
+            element={<TourGuideItineraries />}
+          />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminHomePage />} />
+          <Route path="/admin/manage-users" element={<ListUsers />} />
+          <Route
+            path="/admin/activity-categories"
+            element={<ActivityCategoryManagement />}
+          />
+          <Route
+            path="/admin/preference-tags"
+            element={<PreferenceTagManagement />}
+          />
+
+          {/* Advertiser Routes */}
+          <Route path="/advertiser" element={<AdvertiserHomepage />} />
+          <Route
+            path="/advertiser/create-activity"
+            element={<CreateActivity />}
+          />
+          <Route
+            path="/advertiser/view-activities"
+            element={<ActivityList />}
+          />
+          <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+          <Route
+            path="/advertiser/activities"
+            element={<AdvertiserActivities />}
+          />
+
+          {/* Tourism Governor Routes */}
+          <Route path="/governor" element={<GovernorHomePage />} />
+          <Route path="/governor/view-places" element={<ViewHistorical />} />
+          <Route
+            path="/governor/my-places"
+            element={<GovernorCreatedPlaces />}
+          />
+          <Route path="/governor/tag-management" element={<TagManagement />} />
+
+          {/* Seller Routes */}
+>>>>>>> jwtdemo
           <Route path="/seller" element={<SellerHomePage />} />
           <Route path="/seller/products" element={<ProductPage />} />
           <Route path="/seller/profile" element={<UserDisplay />} />
@@ -87,7 +170,14 @@ function App() {
           <Route path="/register/tourist" element={<TouristRegister />} />
           <Route path="/register/tourguide" element={<TourGuideReg />} />
           <Route path="/register/advertiser" element={<AdvertiserReg />} />
+<<<<<<< HEAD
           <Route path="/register/tourism-governor" element={<TourismGovReg />} />
+=======
+          <Route
+            path="/register/tourism-governor"
+            element={<TourismGovReg />}
+          />
+>>>>>>> jwtdemo
           <Route path="/register/seller" element={<SellerReg />} />
         </Routes>
       </Router>
