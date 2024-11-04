@@ -27,6 +27,9 @@ const AdminHomePage = () => {
         <Link to="/admin/content-moderation" className="btn btn-primary m-2">
           Moderate Content
         </Link>
+        <Link to="/admin/complaints" className="btn btn-primary m-2">
+          View Complaints
+        </Link>
       </div>
     </div>
   );
