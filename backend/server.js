@@ -14,10 +14,7 @@ import tourismGovernorRoutes from "./routes/toursimGovernor.route.js";
 import preferenceTagRoutes from "./routes/preferenceTag.route.js";
 import tagRoutes from "./routes/tag.route.js";
 import productRoutes from "./routes/product.route.js";
-<<<<<<< HEAD
 import complaintRoutes from "./routes/complaints.route.js";
-=======
->>>>>>> jwtdemo
 
 dotenv.config();
 
@@ -51,7 +48,4 @@ app.use("/api/advertiser", advertiserRoutes);
 app.use("/api/preference-tags", preferenceTagRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
-<<<<<<< HEAD
 app.use("/api/complaints", complaintRoutes);
-=======
->>>>>>> jwtdemo

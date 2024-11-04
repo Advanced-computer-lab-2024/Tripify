@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-import { Container, Row, Col, Button, Card} from "react-bootstrap";
-import { Link } from "react-router-dom";
-
-const AdvertiserHomepage = () => {
-=======
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Card, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -38,18 +31,10 @@ const AdvertiserHomepage = () => {
     );
   }
 
->>>>>>> jwtdemo
   return (
     <Container fluid className="p-5">
       <Row className="mb-4">
         <Col>
-<<<<<<< HEAD
-          <h1>Welcome, Advertiser!</h1>
-          <p>Manage your activities, create new ones, and view your profile.</p>
-        </Col>
-      </Row>
-
-=======
           <h1>Welcome, {advertiserInfo?.username || 'Advertiser'}!</h1>
           {advertiserInfo?.companyName && (
             <h4 className="text-muted">{advertiserInfo.companyName}</h4>
@@ -57,7 +42,6 @@ const AdvertiserHomepage = () => {
           <p>Manage your activities, create new ones, and view your profile.</p>
         </Col>
       </Row>
->>>>>>> jwtdemo
       <Row className="mb-4">
         <Col>
           <Card className="mb-3">
@@ -72,10 +56,6 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-<<<<<<< HEAD
-
-=======
->>>>>>> jwtdemo
         <Col>
           <Card className="mb-3">
             <Card.Body>
@@ -89,10 +69,6 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-<<<<<<< HEAD
-
-=======
->>>>>>> jwtdemo
         <Col>
           <Card className="mb-3">
             <Card.Body>
@@ -120,12 +96,7 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row>
-<<<<<<< HEAD
-      
-
-=======
      
->>>>>>> jwtdemo
       <Row>
         <Col>
           <Card>
@@ -143,8 +114,4 @@ const AdvertiserHomepage = () => {
   );
 };
 
-<<<<<<< HEAD
 export default AdvertiserHomepage;
-=======
-export default AdvertiserHomepage;
->>>>>>> jwtdemo

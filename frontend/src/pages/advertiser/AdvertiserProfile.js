@@ -1,46 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Form, Alert } from 'react-bootstrap';
-<<<<<<< HEAD
-
-const AdvertiserProfile = () => {
-  const [advertisers, setAdvertisers] = useState([]); // State for storing the list of advertisers
-  const [selectedAdvertiser, setSelectedAdvertiser] = useState(''); // State for selected advertiser
-  const [userDetails, setUserDetails] = useState(null); // State for advertiser details
-  const [error, setError] = useState(null); // State for error messages
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const [isEditing, setIsEditing] = useState(false); // State for edit mode
-
-  useEffect(() => {
-    // Fetch the list of advertisers when the component mounts
-    const fetchAdvertisers = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/advertiser'); // Adjust this endpoint as necessary
-        setAdvertisers(response.data); // Set the list of advertisers
-      } catch (err) {
-        setError('Failed to fetch advertisers.');
-      }
-    };
-
-    fetchAdvertisers();
-  }, []);
-  
-  const handleAdvertiserSelect = async (e) => {
-    const username = e.target.value;
-    setSelectedAdvertiser(username);
-    setIsLoading(true);
-    setError(null);
-    setUserDetails(null);
-    setIsEditing(false); // Reset edit mode on selection change
-  
-    try {
-      const response = await axios.get(`http://localhost:5000/api/advertiser/profile/${username}`);
-      
-      // Assuming response contains the advertiser object directly:
-      setUserDetails(response.data); // Adjust based on how your backend returns the data
-    } catch (err) {
-      setError('Failed to fetch user details. Please try again.');
-=======
 import { jwtDecode } from "jwt-decode";
 
 const AdvertiserProfile = () => {
@@ -93,15 +53,10 @@ const AdvertiserProfile = () => {
       } else {
         setError('Failed to fetch profile. Please try again.');
       }
->>>>>>> jwtdemo
     } finally {
       setIsLoading(false);
     }
   };
-<<<<<<< HEAD
-  
-=======
->>>>>>> jwtdemo
 
   const handleEditToggle = () => {
     setIsEditing((prev) => !prev);
@@ -117,43 +72,6 @@ const AdvertiserProfile = () => {
 
   const handleUpdate = async () => {
     try {
-<<<<<<< HEAD
-      await axios.put(`http://localhost:5000/api/advertiser/profile/${userDetails.username}`, userDetails); // Adjust this endpoint
-      setError(null);
-      setIsEditing(false);
-      alert('Profile updated successfully!'); // Or handle success response accordingly
-    } catch (err) {
-      setError('Failed to update user details. Please try again.');
-    }
-  };
-
-  return (
-    <div className="container mt-5">
-      <h2 className="mb-4">Advertiser Details</h2>
-
-      <Form.Group className="mb-3">
-        <Form.Label>Select Advertiser</Form.Label>
-        <Form.Select onChange={handleAdvertiserSelect} value={selectedAdvertiser}>
-          <option value="">Select an advertiser</option>
-          {advertisers.map((advertiser) => (
-            <option key={advertiser.username} value={advertiser.username}>
-              {advertiser.username}
-            </option>
-          ))}
-        </Form.Select>
-      </Form.Group>
-
-      {isLoading && <Alert variant="info">Loading...</Alert>}
-      {error && <Alert variant="danger">{error}</Alert>}
-
-      {userDetails && (
-        <div className="mt-4">
-          <h3>Advertiser Profile:</h3>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Username</Form.Label>
-              <Form.Control type="text" value={userDetails.username} readOnly />
-=======
       const token = localStorage.getItem('token');
       await axios.put(
         `http://localhost:5000/api/advertiser/profile/${userDetails.username}`,
@@ -209,7 +127,6 @@ const AdvertiserProfile = () => {
                 readOnly
                 className="bg-light"
               />
->>>>>>> jwtdemo
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -220,10 +137,7 @@ const AdvertiserProfile = () => {
                 value={userDetails.email}
                 onChange={handleChange}
                 readOnly={!isEditing}
-<<<<<<< HEAD
-=======
                 className={!isEditing ? 'bg-light' : ''}
->>>>>>> jwtdemo
               />
             </Form.Group>
 
@@ -235,10 +149,7 @@ const AdvertiserProfile = () => {
                 value={userDetails.companyName}
                 onChange={handleChange}
                 readOnly={!isEditing}
-<<<<<<< HEAD
-=======
                 className={!isEditing ? 'bg-light' : ''}
->>>>>>> jwtdemo
               />
             </Form.Group>
 
@@ -250,10 +161,7 @@ const AdvertiserProfile = () => {
                 value={userDetails.website}
                 onChange={handleChange}
                 readOnly={!isEditing}
-<<<<<<< HEAD
-=======
                 className={!isEditing ? 'bg-light' : ''}
->>>>>>> jwtdemo
               />
             </Form.Group>
 
@@ -265,20 +173,6 @@ const AdvertiserProfile = () => {
                 value={userDetails.hotline}
                 onChange={handleChange}
                 readOnly={!isEditing}
-<<<<<<< HEAD
-              />
-            </Form.Group>
-
-            <Button variant="primary" onClick={handleEditToggle}>
-              {isEditing ? 'Cancel' : 'Edit'}
-            </Button>
-
-            {isEditing && (
-              <Button variant="success" onClick={handleUpdate} className="ms-2">
-                Save Changes
-              </Button>
-            )}
-=======
                 className={!isEditing ? 'bg-light' : ''}
               />
             </Form.Group>
@@ -297,7 +191,6 @@ const AdvertiserProfile = () => {
                 </Button>
               )}
             </div>
->>>>>>> jwtdemo
           </Form>
         </div>
       )}
@@ -305,8 +198,4 @@ const AdvertiserProfile = () => {
   );
 };
 
-<<<<<<< HEAD
 export default AdvertiserProfile;
-=======
-export default AdvertiserProfile;
->>>>>>> jwtdemo

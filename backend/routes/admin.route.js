@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-import express from 'express';
-import { registerAdmin,loginAdmin,listAllUsers,deleteUser } from '../controllers/admin.controller.js';
-// import { authMiddleware } from '../middleware/authMiddleware.js';
-
-const router = express.Router();
-
-// Public routes
-router.post('/register', registerAdmin);
-router.post('/login', loginAdmin);
-router.get('/users', listAllUsers);
-router.delete('/users/delete',deleteUser );
-
-=======
 import express from 'express';
 import { 
     registerAdmin,
@@ -34,5 +20,4 @@ router.get('/profile', authMiddleware, adminAuthMiddleware, getAdminProfile);
 router.get('/users', authMiddleware, adminAuthMiddleware, listAllUsers);
 router.delete('/users', authMiddleware, adminAuthMiddleware, deleteUser);
 
->>>>>>> jwtdemo
 export default router;
