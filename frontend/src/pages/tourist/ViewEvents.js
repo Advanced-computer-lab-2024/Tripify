@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Card, Container, Row, Col, Spinner, Form, Button } from 'react-bootstrap';
-import { FaCopy, FaEnvelope } from 'react-icons/fa';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import {
+  Card,
+  Container,
+  Row,
+  Col,
+  Spinner,
+  Form,
+  Button,
+} from "react-bootstrap";
+import { FaCopy, FaEnvelope } from "react-icons/fa";
 
 const ViewEvents = () => {
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
@@ -9,22 +17,31 @@ const ViewEvents = () => {
   const [itineraries, setItineraries] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/historicalplace'),
-          axios.get('http://localhost:5000/api/activities'),
-          axios.get('http://localhost:5000/api/itineraries'),
-          axios.get('http://localhost:5000/api/activities/category')
-        ]);
+        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
+          await Promise.all([
+            axios.get("http://localhost:5000/api/historicalplace"),
+            axios.get("http://localhost:5000/api/activities"),
+            axios.get("http://localhost:5000/api/itineraries"),
+            axios.get("http://localhost:5000/api/activities/category"),
+          ]);
 
-        setHistoricalPlaces(historicalRes.data);
-        setActivities(activitiesRes.data);
-        setItineraries(itinerariesRes.data);
+        // Filter out flagged content for non-admin users
+        const userRole = localStorage.getItem("userRole");
+        const isAdmin = userRole === "admin";
+
+        const filterFlagged = (items) => {
+          return isAdmin ? items : items.filter((item) => !item.flagged);
+        };
+
+        setHistoricalPlaces(filterFlagged(historicalRes.data));
+        setActivities(filterFlagged(activitiesRes.data));
+        setItineraries(filterFlagged(itinerariesRes.data));
         setCategories(categoriesRes.data);
         setLoading(false);
       } catch (error) {
@@ -34,13 +51,20 @@ const ViewEvents = () => {
     };
     fetchData();
   }, []);
-
   const handleSearch = (data, query) => {
-    return data.filter(item => {
+    return data.filter((item) => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
-      const categoryMatch = item.category?.name?.toLowerCase().includes(query.toLowerCase());
-      const tagsMatch = item.tags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
-      const preferenceTagsMatch = item.preferenceTags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
+      const categoryMatch = item.category?.name
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
+      const tagsMatch =
+        item.tags?.some((tag) =>
+          tag?.name?.toLowerCase().includes(query.toLowerCase())
+        ) || false;
+      const preferenceTagsMatch =
+        item.preferenceTags?.some((tag) =>
+          tag?.name?.toLowerCase().includes(query.toLowerCase())
+        ) || false;
 
       return nameMatch || categoryMatch || tagsMatch || preferenceTagsMatch;
     });
@@ -72,7 +96,9 @@ const ViewEvents = () => {
   }
 
   const filteredActivities = categoryFilter
-    ? handleSearch(activities, searchQuery).filter(activity => activity.category?.name === categoryFilter)
+    ? handleSearch(activities, searchQuery).filter(
+        (activity) => activity.category?.name === categoryFilter
+      )
     : handleSearch(activities, searchQuery);
 
   const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);
@@ -113,12 +139,25 @@ const ViewEvents = () => {
                 <Card.Text>{place.images}</Card.Text>
                 <Card.Text>{place.openingHours}</Card.Text>
                 <Card.Text>{place.ticketPrices?.price || "100$"}</Card.Text>
-                <Card.Text>{place.tags?.map(tag => tag.name).join(', ') || "No tag yet"}</Card.Text>
+                <Card.Text>
+                  {place.tags?.map((tag) => tag.name).join(", ") ||
+                    "No tag yet"}
+                </Card.Text>
                 <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...place, type: 'historicalplace' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleShare({ ...place, type: "historicalplace" })
+                    }
+                  >
                     <FaCopy /> Copy Link
                   </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...place, type: 'historicalplace' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleEmailShare({ ...place, type: "historicalplace" })
+                    }
+                  >
                     <FaEnvelope /> Email
                   </Button>
                 </div>
@@ -137,16 +176,33 @@ const ViewEvents = () => {
                 <Card.Title>{activity.name}</Card.Title>
                 <Card.Text>{activity.description}</Card.Text>
                 <Card.Text>{activity.date}</Card.Text>
-                <Card.Text>Category: {activity.category?.name || "No Category"}</Card.Text>
-                <Card.Text>Tags: {activity.tags?.map(tag => tag.name).join(', ') || "No Tag"}</Card.Text>
+                <Card.Text>
+                  Category: {activity.category?.name || "No Category"}
+                </Card.Text>
+                <Card.Text>
+                  Tags:{" "}
+                  {activity.tags?.map((tag) => tag.name).join(", ") || "No Tag"}
+                </Card.Text>
                 <Card.Text>Price: {activity.price}$</Card.Text>
                 <Card.Text>Booking: {activity.bookingOpen}</Card.Text>
-                <Card.Text>Location: {activity.location?.coordinates}</Card.Text>
+                <Card.Text>
+                  Location: {activity.location?.coordinates}
+                </Card.Text>
                 <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...activity, type: 'activities' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleShare({ ...activity, type: "activities" })
+                    }
+                  >
                     <FaCopy /> Copy Link
                   </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...activity, type: 'activities' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleEmailShare({ ...activity, type: "activities" })
+                    }
+                  >
                     <FaEnvelope /> Email
                   </Button>
                 </div>
@@ -165,18 +221,41 @@ const ViewEvents = () => {
                 <Card.Title>{itinerary.name}</Card.Title>
                 <Card.Text>Language: {itinerary.language}</Card.Text>
                 <Card.Text>Price: {itinerary.totalPrice}$</Card.Text>
-                <Card.Text>Activities: {itinerary.activities?.map(act => act.name).join(', ') || "No Activities"}</Card.Text>
-                <Card.Text>Tags: {itinerary.preferenceTags?.map(tag => tag.name).join(', ') || "No Tags"}</Card.Text>
                 <Card.Text>
-                  Available Dates: {itinerary.availableDates?.map(date => 
-                    `${date.date} - ${date.availableTimes.join(', ')}`
-                  ).join(', ') || "No Available Dates"}
+                  Activities:{" "}
+                  {itinerary.activities?.map((act) => act.name).join(", ") ||
+                    "No Activities"}
+                </Card.Text>
+                <Card.Text>
+                  Tags:{" "}
+                  {itinerary.preferenceTags
+                    ?.map((tag) => tag.name)
+                    .join(", ") || "No Tags"}
+                </Card.Text>
+                <Card.Text>
+                  Available Dates:{" "}
+                  {itinerary.availableDates
+                    ?.map(
+                      (date) =>
+                        `${date.date} - ${date.availableTimes.join(", ")}`
+                    )
+                    .join(", ") || "No Available Dates"}
                 </Card.Text>
                 <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...itinerary, type: 'itineraries' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleShare({ ...itinerary, type: "itineraries" })
+                    }
+                  >
                     <FaCopy /> Copy Link
                   </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...itinerary, type: 'itineraries' })}>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      handleEmailShare({ ...itinerary, type: "itineraries" })
+                    }
+                  >
                     <FaEnvelope /> Email
                   </Button>
                 </div>

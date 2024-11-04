@@ -61,6 +61,7 @@ const activitySchema = new mongoose.Schema(
     flagged: {
       type: Boolean,
       default: false,
+      required: true,
     },
   },
 

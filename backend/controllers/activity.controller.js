@@ -14,13 +14,12 @@ export const createActivity = async (req, res) => {
 // GET all activities
 export const getActivities = async (req, res) => {
   try {
-    const isAdmin = req.user?.role === "admin";
-    const query = isAdmin ? {} : { flagged: { $ne: true } };
-
-    const activities = await Activity.find(query)
+    const activities = await Activity.find()
       .populate("createdBy", "username companyName")
       .populate("category")
-      .populate("tags");
+      .populate("tags")
+      .select("+flagged"); // Explicitly include flagged field
+
     res.status(200).json(activities);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -74,11 +73,15 @@ export const deleteActivity = async (req, res) => {
 
 export const flagActivity = async (req, res) => {
   try {
+    const { flagged } = req.body;
+
     const activity = await Activity.findByIdAndUpdate(
       req.params.id,
-      { flagged: req.body.flagged },
-      { new: true }
-    );
+      { $set: { flagged: flagged } },
+      { new: true, runValidators: true }
+    )
+      .populate("category")
+      .populate("tags");
 
     if (!activity) {
       return res.status(404).json({ message: "Activity not found" });
@@ -86,6 +89,7 @@ export const flagActivity = async (req, res) => {
 
     res.status(200).json(activity);
   } catch (error) {
+    console.error("Error in flagActivity:", error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -44,18 +44,17 @@ export const getItineraryById = async (req, res) => {
 
 export const getAllItineraries = async (req, res) => {
   try {
-    const isAdmin = req.user?.role === "admin";
-    const query = isAdmin ? {} : { flagged: { $ne: true } };
-
-    const itineraries = await Itinerary.find(query)
+    const itineraries = await Itinerary.find()
       .populate("createdBy", "username")
-      .populate("preferenceTags", "name");
+      .populate("preferenceTags", "name")
+      .select("+flagged"); // Explicitly include flagged field
+
     res.status(200).json(itineraries);
   } catch (error) {
+    console.error("Error in getAllItineraries:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 // Update an itinerary by ID
 export const updateItinerary = async (req, res) => {
   try {
@@ -122,11 +121,15 @@ export const searchItineraries = async (req, res) => {
 
 export const flagItinerary = async (req, res) => {
   try {
+    const { flagged } = req.body;
+
     const itinerary = await Itinerary.findByIdAndUpdate(
       req.params.id,
-      { flagged: req.body.flagged },
-      { new: true }
-    );
+      { $set: { flagged: flagged } },
+      { new: true, runValidators: true }
+    )
+      .populate("createdBy", "name")
+      .populate("preferenceTags", "name");
 
     if (!itinerary) {
       return res.status(404).json({ message: "Itinerary not found" });
@@ -134,6 +137,7 @@ export const flagItinerary = async (req, res) => {
 
     res.status(200).json(itinerary);
   } catch (error) {
+    console.error("Error in flagItinerary:", error);
     res.status(500).json({ message: error.message });
   }
 };
