@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  Button,
-  Table,
-  Modal,
-} from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Table, Modal, Alert } from "react-bootstrap";
+import { jwtDecode } from "jwt-decode";
 
 const ItineraryManagement = () => {
   const [itineraries, setItineraries] = useState([]);
   const [preferenceTags, setPreferenceTags] = useState([]);
-  const [tourGuides, setTourGuides] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [currentItinerary, setCurrentItinerary] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     language: "",
@@ -30,42 +25,67 @@ const ItineraryManagement = () => {
       visuallyImpaired: false,
     },
     preferenceTags: [],
-    createdBy: "",
     isActive: true,
   });
 
+  const getAuthConfig = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
+
   useEffect(() => {
-    fetchItineraries();
-    fetchPreferenceTags();
-    fetchTourGuides();
+    checkAuthAndFetchData();
   }, []);
+
+  const checkAuthAndFetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const decoded = jwtDecode(token);
+      setUserInfo(decoded);
+      console.log("Decoded User Info:", userInfo);
+
+      await Promise.all([
+        fetchItineraries(),
+        fetchPreferenceTags()
+      ]);
+    } catch (error) {
+      console.error("Authentication error:", error);
+      setError(error.message || "Please log in to manage itineraries.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchItineraries = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/itineraries");
+      const response = await axios.get(
+        "http://localhost:5000/api/itineraries",
+        getAuthConfig()
+      );
       setItineraries(response.data);
     } catch (error) {
       console.error("Error fetching itineraries:", error);
+      throw error;
     }
   };
 
   const fetchPreferenceTags = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/preference-tags"
+        "http://localhost:5000/api/preference-tags",
+        getAuthConfig()
       );
       setPreferenceTags(response.data);
     } catch (error) {
       console.error("Error fetching preference tags:", error);
-    }
-  };
-
-  const fetchTourGuides = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/tourguide");
-      setTourGuides(response.data);
-    } catch (error) {
-      console.error("Error fetching tour guides:", error);
     }
   };
 
@@ -127,22 +147,30 @@ const ItineraryManagement = () => {
       const payload = {
         ...formData,
         preferenceTags: formData.preferenceTags,
+        createdBy: userInfo._id
       };
+
+      const config = getAuthConfig();
+
       if (currentItinerary) {
         await axios.put(
           `http://localhost:5000/api/itineraries/${currentItinerary._id}`,
-          payload
+          payload,
+          config
         );
       } else {
-        await axios.post("http://localhost:5000/api/itineraries", {
-          itineraryData: payload,
-        });
+        await axios.post(
+          "http://localhost:5000/api/itineraries",
+          { itineraryData: payload },
+          config
+        );
       }
       fetchItineraries();
       setShowModal(false);
       resetForm();
     } catch (error) {
       console.error("Error saving itinerary:", error);
+      setError(error.response?.data?.message || "Error saving itinerary");
     }
   };
 
@@ -158,7 +186,6 @@ const ItineraryManagement = () => {
       availableDates: itinerary.availableDates,
       accessibility: itinerary.accessibility,
       preferenceTags: itinerary.preferenceTags.map((tag) => tag._id),
-      createdBy: itinerary.createdBy?._id || "",
       isActive: itinerary.isActive,
     });
     setShowModal(true);
@@ -167,10 +194,14 @@ const ItineraryManagement = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this itinerary?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/itineraries/${id}`);
+        await axios.delete(
+          `http://localhost:5000/api/itineraries/${id}`,
+          getAuthConfig()
+        );
         fetchItineraries();
       } catch (error) {
         console.error("Error deleting itinerary:", error);
+        setError(error.response?.data?.message || "Error deleting itinerary");
       }
     }
   };
@@ -191,14 +222,41 @@ const ItineraryManagement = () => {
         visuallyImpaired: false,
       },
       preferenceTags: [],
-      createdBy: "",
       isActive: true,
     });
   };
 
+  if (loading) {
+    return (
+      <Container>
+        <div className="text-center mt-5">
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Alert variant="danger" className="mt-3">
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <h1 className="my-4">Itinerary Management</h1>
+      {userInfo && (
+        <Alert variant="info" className="mb-3">
+          Logged in as: {userInfo.username}
+        </Alert>
+      )}
+
       <Button onClick={() => setShowModal(true)} className="mb-3">
         Add New Itinerary
       </Button>
@@ -223,12 +281,13 @@ const ItineraryManagement = () => {
               <td>
                 {itinerary.preferenceTags.map((tag) => tag.name).join(", ")}
               </td>
-              <td>{itinerary.createdBy?.name || "N/A"}</td>
+              <td>{itinerary.createdBy?.username || "N/A"}</td>
               <td>
                 <Button
                   variant="info"
                   size="sm"
                   onClick={() => handleEdit(itinerary)}
+                  className="me-2"
                 >
                   Edit
                 </Button>
@@ -236,7 +295,6 @@ const ItineraryManagement = () => {
                   variant="danger"
                   size="sm"
                   onClick={() => handleDelete(itinerary._id)}
-                  className="ml-2"
                 >
                   Delete
                 </Button>
@@ -254,7 +312,7 @@ const ItineraryManagement = () => {
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Name</Form.Label>
               <Form.Control
                 type="text"
@@ -264,7 +322,7 @@ const ItineraryManagement = () => {
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Language</Form.Label>
               <Form.Control
                 type="text"
@@ -274,7 +332,7 @@ const ItineraryManagement = () => {
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Total Price</Form.Label>
               <Form.Control
                 type="number"
@@ -284,7 +342,7 @@ const ItineraryManagement = () => {
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Pickup Location</Form.Label>
               <Form.Control
                 type="text"
@@ -294,7 +352,7 @@ const ItineraryManagement = () => {
                 required
               />
             </Form.Group>
-            <Form.Group>
+            <Form.Group className="mb-3">
               <Form.Label>Drop-off Location</Form.Label>
               <Form.Control
                 type="text"
@@ -307,7 +365,7 @@ const ItineraryManagement = () => {
 
             <h5 className="mt-3">Timeline</h5>
             {formData.timeline.map((item, index) => (
-              <Row key={index}>
+              <Row key={index} className="mb-3">
                 <Col>
                   <Form.Control
                     type="text"
@@ -341,6 +399,7 @@ const ItineraryManagement = () => {
             <Button
               variant="secondary"
               size="sm"
+              className="mb-3"
               onClick={() =>
                 setFormData((prevState) => ({
                   ...prevState,
@@ -356,7 +415,7 @@ const ItineraryManagement = () => {
 
             <h5 className="mt-3">Available Dates</h5>
             {formData.availableDates.map((item, index) => (
-              <Row key={index}>
+              <Row key={index} className="mb-3">
                 <Col>
                   <Form.Control
                     type="date"
@@ -385,6 +444,7 @@ const ItineraryManagement = () => {
             <Button
               variant="secondary"
               size="sm"
+              className="mb-3"
               onClick={() =>
                 setFormData((prevState) => ({
                   ...prevState,
@@ -404,50 +464,39 @@ const ItineraryManagement = () => {
               label="Wheelchair Accessible"
               checked={formData.accessibility.wheelchairAccessible}
               onChange={() => handleAccessibilityChange("wheelchairAccessible")}
+              className="mb-2"
             />
             <Form.Check
               type="checkbox"
               label="Hearing Impaired"
               checked={formData.accessibility.hearingImpaired}
               onChange={() => handleAccessibilityChange("hearingImpaired")}
+              className="mb-2"
             />
             <Form.Check
               type="checkbox"
               label="Visually Impaired"
               checked={formData.accessibility.visuallyImpaired}
               onChange={() => handleAccessibilityChange("visuallyImpaired")}
+              className="mb-3"
             />
 
             <h5 className="mt-3">Preference Tags</h5>
-            {preferenceTags.map((tag) => (
-              <Form.Check
-                key={tag._id}
-                type="checkbox"
-                label={tag.name}
-                checked={formData.preferenceTags.includes(tag._id)}
-                onChange={() => handlePreferenceTagChange(tag._id)}
-              />
-            ))}
+            <div className="mb-3">
+              {preferenceTags.map((tag) => (
+                <Form.Check
+                  key={tag._id}
+                  inline
+                  type="checkbox"
+                  label={tag.name}
+                  checked={formData.preferenceTags.includes(tag._id)}
+                  onChange={() => handlePreferenceTagChange(tag._id)}
+                  className="me-3 mb-2"
+                />
+              ))}
+            </div>
 
-            <Form.Group>
-              <Form.Label>Created By</Form.Label>
-              <Form.Control
-                as="select"
-                name="createdBy"
-                value={formData.createdBy}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Tour Guide</option>
-                {tourGuides.map((guide) => (
-                  <option key={guide._id} value={guide._id}>
-                    {guide.username}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-
-            <Form.Group>
+            <Form.Group className="mb-4">
               <Form.Check
                 type="checkbox"
                 label="Active"
@@ -457,9 +506,14 @@ const ItineraryManagement = () => {
               />
             </Form.Group>
 
-            <Button variant="primary" type="submit">
-              {currentItinerary ? "Update Itinerary" : "Create Itinerary"}
-            </Button>
+            <div className="d-flex gap-2">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                {currentItinerary ? "Update Itinerary" : "Create Itinerary"}
+              </Button>
+            </div>
           </Form>
         </Modal.Body>
       </Modal>
