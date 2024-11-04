@@ -1,6 +1,7 @@
 import TourGuide from "../models/tourguide.model.js";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
+import Itinerary from "../models/itinerary.model.js";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -248,3 +249,18 @@ export const getProfileByToken = async (req, res) => {
 };
 
 
+export const getTourGuideItineraries = async (req, res) => {
+    try {
+        console.log('Fetching itineraries for tour guide:', req.user._id);
+        
+        const itineraries = await Itinerary.find({ createdBy: req.user._id })
+            .populate('preferenceTags')
+            .sort({ createdAt: -1 });
+        
+        console.log('Found itineraries:', itineraries.length);
+        res.json(itineraries);
+    } catch (error) {
+        console.error('Error fetching tour guide itineraries:', error);
+        res.status(500).json({ message: error.message });
+    }
+};

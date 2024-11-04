@@ -1,4 +1,5 @@
 import Advertiser from "../models/advertiser.model.js";
+import Activity from "../models/activity.model.js";
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -250,5 +251,19 @@ export const getAdvertiserById = async (req, res) => {
     res.status(200).json(advertiser);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAdvertiserActivities = async (req, res) => {
+  try {
+      const activities = await Activity.find({ createdBy: req.user._id })
+          .populate('category')
+          .populate('tags')
+          .sort({ date: -1 });
+      
+      res.json(activities);
+  } catch (error) {
+      console.error('Error fetching advertiser activities:', error);
+      res.status(500).json({ message: 'Error fetching activities' });
   }
 };

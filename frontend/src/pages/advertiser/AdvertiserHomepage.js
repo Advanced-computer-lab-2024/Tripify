@@ -1,17 +1,47 @@
-import React from "react";
-import { Container, Row, Col, Button, Card} from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Container, Row, Col, Button, Card, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const AdvertiserHomepage = () => {
+  const [advertiserInfo, setAdvertiserInfo] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found. Please login.');
+        return;
+      }
+
+      const decoded = jwtDecode(token);
+      setAdvertiserInfo(decoded);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      setError('Error loading user information. Please login again.');
+    }
+  }, []);
+
+  if (error) {
+    return (
+      <Container fluid className="p-5">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container fluid className="p-5">
       <Row className="mb-4">
         <Col>
-          <h1>Welcome, Advertiser!</h1>
+          <h1>Welcome, {advertiserInfo?.username || 'Advertiser'}!</h1>
+          {advertiserInfo?.companyName && (
+            <h4 className="text-muted">{advertiserInfo.companyName}</h4>
+          )}
           <p>Manage your activities, create new ones, and view your profile.</p>
         </Col>
       </Row>
-
       <Row className="mb-4">
         <Col>
           <Card className="mb-3">
@@ -26,7 +56,6 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-
         <Col>
           <Card className="mb-3">
             <Card.Body>
@@ -40,7 +69,6 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-
         <Col>
           <Card className="mb-3">
             <Card.Body>
@@ -68,8 +96,7 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row>
-      
-
+     
       <Row>
         <Col>
           <Card>

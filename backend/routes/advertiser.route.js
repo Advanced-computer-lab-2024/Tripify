@@ -6,7 +6,8 @@ import {
     getAdvertiserById,
     getAdvertiserByUsername,
     updateAdvertiserByUsername,
-    deleteAdvertiser
+    deleteAdvertiser,
+    getAdvertiserActivities  // Add this import
 } from '../controllers/advertiser.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 
@@ -15,12 +16,15 @@ const router = express.Router();
 // Public routes (no authentication required)
 router.post('/register', registerAdvertiser);
 router.post('/login', loginAdvertiser);
-router.get('/all', getAllAdvertisers); // Public list of advertisers
+router.get('/all', getAllAdvertisers);
 
 // Protected routes (requires authentication)
 // Profile routes
 router.get('/profile/:username', authMiddleware, getAdvertiserByUsername);
 router.put('/profile/:username', authMiddleware, updateAdvertiserByUsername);
+
+// Activities route
+router.get('/activities/my', authMiddleware, getAdvertiserActivities);
 
 // ID-based routes
 router.get('/:id', authMiddleware, getAdvertiserById);

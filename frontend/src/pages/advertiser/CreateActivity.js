@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import axios from "axios";
 import { Form, Button, Container, Row, Col, Card } from "react-bootstrap";
+import { jwtDecode } from "jwt-decode";
 
 const CreateActivity = () => {
   const [formData, setFormData] = useState({
@@ -15,12 +16,10 @@ const CreateActivity = () => {
     discounts: "",
     bookingOpen: false,
     location: null,
-    createdBy: "", // Field for selected advertiser
   });
   const [marker, setMarker] = useState(null);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
-  const [advertisers, setAdvertisers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,15 +28,13 @@ const CreateActivity = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesRes, tagsRes, advertisersRes] = await Promise.all([
+        const [categoriesRes, tagsRes] = await Promise.all([
           axios.get("http://localhost:5000/api/activities/category"),
           axios.get("http://localhost:5000/api/tags"),
-          axios.get("http://localhost:5000/api/advertiser"),
         ]);
 
         setCategories(categoriesRes.data);
         setTags(tagsRes.data);
-        setAdvertisers(advertisersRes.data);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -90,7 +87,6 @@ const CreateActivity = () => {
       "price",
       "category",
       "location",
-      "createdBy",
     ];
     for (let field of requiredFields) {
       if (!formData[field]) {
@@ -101,11 +97,39 @@ const CreateActivity = () => {
     return true;
   };
 
+  const getUserIdFromToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    try {
+      const decoded = jwtDecode(token);
+      console.log('Decoded token:', decoded); // Let's see what's in the token
+      
+      // Try different possible ID fields that might be in your token
+      const userId = decoded._id || decoded.id || decoded.sub || decoded.userId;
+      
+      if (!userId) {
+        throw new Error('No user ID found in token');
+      }
+      
+      console.log('Extracted userId:', userId); // Verify the extracted ID
+      return userId;
+    } catch (error) {
+      console.error('Token decode error:', error);
+      throw new Error('Invalid authentication token');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     try {
+      const userId = getUserIdFromToken();
+      console.log('User ID for activity creation:', userId); // Verify ID before request
+      
       const geoJsonLocation = {
         type: "Point",
         coordinates: [formData.location.lng, formData.location.lat],
@@ -115,23 +139,38 @@ const CreateActivity = () => {
         ...formData,
         location: geoJsonLocation,
         price: parseFloat(formData.price),
+        createdBy: userId,
       };
 
-      console.log("Activity data being sent:", activityData);
+      console.log('Activity data being sent:', activityData); // Log the full payload
 
+      const token = localStorage.getItem('token');
       const response = await axios.post(
         "http://localhost:5000/api/activities",
-        activityData
+        activityData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
       );
+      
       console.log("Server response:", response.data);
       alert("Activity created successfully!");
     } catch (error) {
       console.error("Error creating activity:", error);
-      alert(
-        `Error creating activity: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+      if (error.message === 'No authentication token found') {
+        alert('Please log in to create an activity');
+      } else if (error.message === 'No user ID found in token') {
+        alert('Unable to identify user. Please log in again.');
+      } else {
+        alert(
+          `Error creating activity: ${
+            error.response?.data?.message || error.message
+          }`
+        );
+      }
     }
   };
 
@@ -142,28 +181,6 @@ const CreateActivity = () => {
     <Container className="mt-5">
       <h2 className="mb-4">Create New Activity</h2>
       <Form onSubmit={handleSubmit}>
-        <Card className="mb-4">
-          <Card.Body>
-            <Card.Title>Select Advertiser</Card.Title>
-            <Form.Group>
-              <Form.Control
-                as="select"
-                name="createdBy"
-                value={formData.createdBy}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Choose an advertiser</option>
-                {advertisers.map((advertiser) => (
-                  <option key={advertiser._id} value={advertiser._id}>
-                    {advertiser.companyName}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-          </Card.Body>
-        </Card>
-
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">

@@ -1,12 +1,13 @@
 import express from 'express';
-import { 
+import {
     registerTourGuide,
     loginTourGuide,
     getTourGuideByUsername,
     getAllTourGuides,
     updateTourGuideAccount,
     deleteTourGuide,
-    getProfileByToken
+    getProfileByToken,
+    getTourGuideItineraries  // Add this import
 } from '../controllers/tourGuide.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 
@@ -20,6 +21,9 @@ router.get('/guides', getAllTourGuides); // Public list of tour guides
 // Protected routes (requires authentication)
 // Get own profile using token
 router.get('/profile', authMiddleware, getProfileByToken);
+
+// Get own itineraries
+router.get('/my-itineraries', authMiddleware, getTourGuideItineraries);
 
 // Get specific tour guide profile
 router.get('/profile/:username', authMiddleware, getTourGuideByUsername);
