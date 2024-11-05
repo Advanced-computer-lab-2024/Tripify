@@ -1,7 +1,11 @@
+// Import necessary modules
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./config/db.js";
+import Preference from "./models/preference.model.js";
+
+// Other imports for routes
 import activityRoutes from "./routes/activity.route.js";
 import itineraryRoutes from "./routes/itinerary.route.js";
 import historicalplacesRoutes from "./routes/historicalplaces.route.js";
@@ -23,6 +27,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Database connection
 connectDB()
   .then(() => {
     app.listen(process.env.PORT || 5000, () => {
@@ -36,6 +41,7 @@ connectDB()
     process.exit(1);
   });
 
+// Routes configuration
 app.use("/api/activities", activityRoutes);
 app.use("/api/itineraries", itineraryRoutes);
 app.use("/api/historicalplace", historicalplacesRoutes);
@@ -49,3 +55,56 @@ app.use("/api/preference-tags", preferenceTagRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/complaints", complaintRoutes);
+
+// Tourist preferences routes
+const router = express.Router();
+
+// Create or update preferences for a tourist
+router.put("/preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { tripTypes, budgetLimit, preferredDestinations } = req.body;
+
+  try {
+    let preference = await Preference.findOne({ user: userId });
+
+    if (preference) {
+      // Update existing preferences
+      preference.tripTypes = tripTypes;
+      preference.budgetLimit = budgetLimit;
+      preference.preferredDestinations = preferredDestinations;
+    } else {
+      // Create new preferences
+      preference = new Preference({
+        user: userId,
+        tripTypes,
+        budgetLimit,
+        preferredDestinations,
+      });
+    }
+
+    await preference.save();
+    res.status(200).json(preference);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating preferences", error });
+  }
+});
+
+// Get preferences for a tourist
+router.get("/preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const preferences = await Preference.findOne({ user: userId });
+    if (!preferences) {
+      return res.status(404).json({ message: "Preferences not found" });
+    }
+    res.status(200).json(preferences);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching preferences", error });
+  }
+});
+
+// Attach preferences routes to the application
+app.use("/api/tourist", router);
+
+export default app;
