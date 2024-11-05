@@ -3,7 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./config/db.js";
-import Preference from "./models/preference.model.js";
+import Preference from "./models/preference.model.js"; // Imported for handling preferences
 
 // Other imports for routes
 import activityRoutes from "./routes/activity.route.js";
@@ -19,6 +19,7 @@ import preferenceTagRoutes from "./routes/preferenceTag.route.js";
 import tagRoutes from "./routes/tag.route.js";
 import productRoutes from "./routes/product.route.js";
 import complaintRoutes from "./routes/complaints.route.js";
+import transportationRoutes from "./routes/transportation.route.js";
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use("/api/preference-tags", preferenceTagRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/transportation", transportationRoutes);
 
 // Tourist preferences routes
 const router = express.Router();

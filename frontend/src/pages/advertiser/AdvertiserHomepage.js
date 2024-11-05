@@ -9,17 +9,17 @@ const AdvertiserHomepage = () => {
 
   useEffect(() => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError('No authentication token found. Please login.');
+        setError("No authentication token found. Please login.");
         return;
       }
 
       const decoded = jwtDecode(token);
       setAdvertiserInfo(decoded);
     } catch (error) {
-      console.error('Error decoding token:', error);
-      setError('Error loading user information. Please login again.');
+      console.error("Error decoding token:", error);
+      setError("Error loading user information. Please login again.");
     }
   }, []);
 
@@ -33,15 +33,6 @@ const AdvertiserHomepage = () => {
 
   return (
     <Container fluid className="p-5">
-      <Row className="mb-4">
-        <Col>
-          <h1>Welcome, {advertiserInfo?.username || 'Advertiser'}!</h1>
-          {advertiserInfo?.companyName && (
-            <h4 className="text-muted">{advertiserInfo.companyName}</h4>
-          )}
-          <p>Manage your activities, create new ones, and view your profile.</p>
-        </Col>
-      </Row>
       <Row className="mb-4">
         <Col>
           <Card className="mb-3">
@@ -65,6 +56,19 @@ const AdvertiserHomepage = () => {
               </Card.Text>
               <Link to="/advertiser/view-activities">
                 <Button variant="success">View Activities</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Transportation Services</Card.Title>
+              <Card.Text>
+                Manage your transportation listings and bookings.
+              </Card.Text>
+              <Link to="/advertiser/transportation">
+                <Button variant="info">Manage Transportation</Button>
               </Link>
             </Card.Body>
           </Card>
@@ -96,8 +100,8 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row>
-     
-      <Row>
+
+      {/* <Row>
         <Col>
           <Card>
             <Card.Body>
@@ -109,7 +113,7 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
     </Container>
   );
 };
