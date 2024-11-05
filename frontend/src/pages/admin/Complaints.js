@@ -20,6 +20,9 @@ const Complaints = () => {
   const [reply, setReply] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  
+  // New state variable to track the selected status filter
+  const [statusFilter, setStatusFilter] = useState("all"); 
 
   useEffect(() => {
     const fetchComplaints = async () => {
@@ -37,6 +40,12 @@ const Complaints = () => {
     };
     fetchComplaints();
   }, []);
+
+  // Filter complaints based on the selected status filter
+  const filteredComplaints = complaints.filter((complaint) => {
+    if (statusFilter === "all") return true; // Show all complaints if 'all' is selected
+    return complaint.status === statusFilter; // Show complaints that match the selected status
+  });
 
   const handleReplyChange = (e, complaintId) => {
     setReply({ ...reply, [complaintId]: e.target.value });
@@ -96,6 +105,11 @@ const Complaints = () => {
     setShowModal(true);
   };
 
+  // New function to handle status filter changes
+  const handleFilterChange = (status) => {
+    setStatusFilter(status); // Update the selected status filter
+  };
+
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -109,8 +123,30 @@ const Complaints = () => {
   return (
     <Container className="mt-5">
       <h2>Complaints</h2>
+      {/* Filter Options */}
+      <div className="mb-3">
+        <span className="me-2">Filter by status:</span>
+        <Button
+          variant={statusFilter === "all" ? "primary" : "light"}
+          onClick={() => handleFilterChange("all")}
+        >
+          All
+        </Button>
+        <Button
+          variant={statusFilter === "pending" ? "primary" : "light"}
+          onClick={() => handleFilterChange("pending")}
+        >
+          Pending
+        </Button>
+        <Button
+          variant={statusFilter === "resolved" ? "primary" : "light"}
+          onClick={() => handleFilterChange("resolved")}
+        >
+          Resolved
+        </Button>
+      </div>
       <Row>
-        {complaints.map((complaint) => (
+        {filteredComplaints.map((complaint) => (
           <Col md={6} lg={4} key={complaint._id} className="mb-4">
             <Card
               className="shadow-sm h-100"

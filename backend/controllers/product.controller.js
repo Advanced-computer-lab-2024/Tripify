@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 
+// Define exchange rates
+const exchangeRates = {
+  EGP: 49.10,
+  SAR: 3.75,
+  AED: 3.67,
+  USD: 1,
+};
+
 // Create a new product
 export const addProduct = async (req, res) => {
   try {
@@ -24,11 +32,19 @@ export const addProduct = async (req, res) => {
   }
 };
 
-// Find all products
+// Find all products with prices in multiple currencies
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
-    res.status(200).json({ products });
+    const productsWithPricesInMultipleCurrencies = products.map(product => {
+      return {
+        ...product.toObject(), // Convert to plain object to add new fields
+        priceInEGP: (product.price * exchangeRates.EGP).toFixed(2),
+        priceInSAR: (product.price * exchangeRates.SAR).toFixed(2),
+        priceInAED: (product.price * exchangeRates.AED).toFixed(2),
+      };
+    });
+    res.status(200).json({ products: productsWithPricesInMultipleCurrencies });
   } catch (error) {
     res
       .status(500)
@@ -44,7 +60,13 @@ export const findProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product);
+    const productWithPrices = {
+      ...product.toObject(),
+      priceInEGP: (product.price * exchangeRates.EGP).toFixed(2),
+      priceInSAR: (product.price * exchangeRates.SAR).toFixed(2),
+      priceInAED: (product.price * exchangeRates.AED).toFixed(2),
+    };
+    res.status(200).json(productWithPrices);
   } catch (error) {
     res
       .status(500)

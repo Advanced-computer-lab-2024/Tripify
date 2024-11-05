@@ -38,6 +38,8 @@ import ContentModeration from "./pages/admin/ContentModeration";
 import CreateTransportationListing from "./pages/advertiser/CreateTransportationListing";
 import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
+import TouristComplaints from "./pages/tourist/TouristComplaints"; 
+
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -59,6 +61,7 @@ function App() {
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
+          <Route path="/tourist/my-complaints" element={<TouristComplaints />} />
           <Route
             path="/tourist/itinerary-filter"
             element={<ItineraryFilter />}

@@ -21,6 +21,15 @@ function ProductTouristPage() {
   const [priceFilter, setPriceFilter] = useState({ min: "", max: "" });
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [currency, setCurrency] = useState("USD");
+
+  // Currency rates
+  const currencyRates = {
+    USD: 1,
+    EGP: 49.10,
+    SAR: 3.75,
+    AED: 3.67,
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -100,6 +109,11 @@ function ProductTouristPage() {
     }
   };
 
+  // Convert price based on selected currency
+  const convertPrice = (price) => {
+    return (price * currencyRates[currency]).toFixed(2);
+  };
+
   return (
     <Container>
       <h1 className="my-4">Product Catalog</h1>
@@ -148,23 +162,29 @@ function ProductTouristPage() {
         </Col>
       </Row>
 
+      <Row className="mb-3">
+        <Col md={3}>
+          <Form.Select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            <option value="USD">USD</option>
+            <option value="EGP">EGP</option>
+            <option value="SAR">SAR</option>
+            <option value="AED">AED</option>
+          </Form.Select>
+        </Col>
+      </Row>
+
       <Row>
         {filteredProducts.map((product) => (
-          <Col
-            md={6}
-            lg={4}
-            key={product._id}
-            className="mb-4"
-          >
+          <Col md={6} lg={4} key={product._id} className="mb-4">
             <Card>
-              <Card.Img
-                variant="top"
-                src={product.imageUrl}
-              />
+              <Card.Img variant="top" src={product.imageUrl} />
               <Card.Body>
                 <Card.Title>{product.name}</Card.Title>
                 <Card.Text>{product.description}</Card.Text>
-                <Card.Text>Price: ${product.price}</Card.Text>
+                <Card.Text>Price: {convertPrice(product.price)} {currency}</Card.Text>
                 <Card.Text>Quantity: {product.quantity}</Card.Text>
                 <Card.Text>Seller: {product.seller}</Card.Text>
                 <Card.Text>
@@ -218,10 +238,7 @@ function ProductTouristPage() {
       </Row>
 
       {/* Add Review Modal */}
-      <Modal
-        show={showReviewModal}
-        onHide={() => setShowReviewModal(false)}
-      >
+      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
         </Modal.Header>
@@ -238,10 +255,7 @@ function ProductTouristPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
-              <Form.Select
-                name="rating"
-                required
-              >
+              <Form.Select name="rating" required>
                 <option value="1">1 Star</option>
                 <option value="2">2 Stars</option>
                 <option value="3">3 Stars</option>
@@ -251,11 +265,7 @@ function ProductTouristPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Comment</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="comment"
-                required
-              />
+              <Form.Control as="textarea" name="comment" required />
             </Form.Group>
             <Button type="submit">Submit Review</Button>
           </Form>
