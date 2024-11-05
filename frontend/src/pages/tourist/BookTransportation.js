@@ -99,23 +99,19 @@ const BookTransportation = () => {
   const applyFilters = () => {
     let filtered = transportations;
 
-    // Vehicle Type Filter
     if (filters.vehicleType) {
       filtered = filtered.filter((t) => t.vehicleType === filters.vehicleType);
     }
 
-    // Price Range Filter
     if (filters.priceRange) {
       const [min, max] = filters.priceRange.split("-").map(Number);
       filtered = filtered.filter((t) => t.price >= min && t.price <= max);
     }
 
-    // Capacity Filter
     if (filters.capacity) {
       filtered = filtered.filter((t) => t.capacity >= Number(filters.capacity));
     }
 
-    // Date Filter
     if (filters.dateFrom && filters.dateTo) {
       const startDate = new Date(filters.dateFrom);
       const endDate = new Date(filters.dateTo);
@@ -131,7 +127,6 @@ const BookTransportation = () => {
       });
     }
 
-    // Features Filter
     if (filters.features.length > 0) {
       filtered = filtered.filter((t) =>
         filters.features.every((feature) => t.features.includes(feature))
@@ -168,11 +163,9 @@ const BookTransportation = () => {
 
       const decoded = jwtDecode(token);
 
-      // Format dates as ISO strings
       const startDate = new Date(filters.dateFrom);
       const endDate = new Date(filters.dateTo);
 
-      // Calculate total price
       const totalPrice = calculateTotalPrice(
         transport.price,
         startDate,
@@ -204,7 +197,7 @@ const BookTransportation = () => {
       setSuccess(
         `Booking request sent successfully! Total price: $${totalPrice}`
       );
-      fetchTransportations(); // Refresh the list
+      fetchTransportations();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to book transportation");
     }
@@ -397,33 +390,6 @@ const BookTransportation = () => {
                       <br />
                       {transport.description}
                     </div>
-                    {filters.dateFrom && filters.dateTo && (
-                      <div className="mt-3 p-2 bg-light rounded">
-                        <div className="mb-2">
-                          <strong>Your Booking:</strong>
-                        </div>
-                        <div className="small">
-                          From:{" "}
-                          {new Date(filters.dateFrom).toLocaleDateString()}
-                          <br />
-                          To: {new Date(filters.dateTo).toLocaleDateString()}
-                          <br />
-                          Duration:{" "}
-                          {calculateBookingDuration(
-                            filters.dateFrom,
-                            filters.dateTo
-                          )}{" "}
-                          days
-                          <br />
-                          Total Price: $
-                          {calculateTotalPrice(
-                            transport.price,
-                            filters.dateFrom,
-                            filters.dateTo
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </Card.Text>
                   <Button
                     variant="primary"
