@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Card, Container, Row, Col, Spinner, Form, Button } from 'react-bootstrap';
-import { FaCopy, FaEnvelope } from 'react-icons/fa';
+import { Card, Container, Row, Col, Spinner, Form, Button, Badge } from 'react-bootstrap';
+import { FaCopy, FaEnvelope, FaCalendarCheck, FaCalendar } from 'react-icons/fa';
+import { jwtDecode } from 'jwt-decode';
 
 const ViewEvents = () => {
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
@@ -11,6 +12,9 @@ const ViewEvents = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingItemId, setBookingItemId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +39,84 @@ const ViewEvents = () => {
     fetchData();
   }, []);
 
+  const getUserId = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    
+    try {
+      const decoded = jwtDecode(token);
+      return decoded.user?._id || decoded.userId || decoded.id || decoded._id;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  };
+
+  const handleBooking = async (item, type, e) => {
+    e.preventDefault();
+    
+    if (bookingLoading) return;
+    
+    const userId = getUserId();
+    if (!userId) {
+      alert('Please log in to book');
+      return;
+    }
+
+    if (!bookingDate) {
+      alert('Please select a date');
+      return;
+    }
+  
+    setBookingItemId(item._id);
+    setBookingLoading(true);
+  
+    try {
+      const formattedBookingDate = new Date(bookingDate);
+      formattedBookingDate.setHours(12, 0, 0, 0);
+
+      const requestData = {
+        userId,
+        bookingType: type,
+        itemId: item._id,
+        bookingDate: formattedBookingDate.toISOString(),
+      };
+  
+      const response = await axios.post('http://localhost:5000/api/bookings/create', requestData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (response.data.success) {
+        alert('Booking successful!');
+        await fetchUserBookings(userId);
+      } else {
+        alert(response.data.message || 'Booking failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert(error.response?.data?.message || 'Error creating booking');
+    } finally {
+      setBookingLoading(false);
+      setBookingItemId(null);
+    }
+  };
+
+  const fetchUserBookings = async (userId) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/bookings/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      console.log('User bookings:', response.data);
+    } catch (error) {
+      console.error('Error fetching user bookings:', error);
+    }
+  };
+
   const handleSearch = (data, query) => {
     return data.filter(item => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
@@ -57,10 +139,6 @@ const ViewEvents = () => {
     window.location.href = `mailto:?subject=Check out this ${item.type}&body=Here is the link: ${url}`;
   };
 
-  const handleCategoryFilterChange = (e) => {
-    setCategoryFilter(e.target.value);
-  };
-
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -76,8 +154,217 @@ const ViewEvents = () => {
     : handleSearch(activities, searchQuery);
 
   const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);
-  const filteredItineraries = handleSearch(itineraries, searchQuery);
+  // First filter for active itineraries, then apply search filter
+const filteredItineraries = handleSearch(
+  itineraries.filter(itinerary => itinerary.isActive === true), 
+  searchQuery
+);
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Card components with date displays
+  const HistoricalPlaceCard = ({ place }) => (
+    <Card className="mb-3 h-100">
+      <Card.Body>
+        <Card.Title>{place.name}</Card.Title>
+        <Card.Text>{place.description}</Card.Text>
+        <Card.Text>
+          <FaCalendar className="me-2" />
+          <strong>Opening Hours:</strong> {place.openingHours}
+        </Card.Text>
+        <Card.Text>
+          <strong>Price:</strong> {place.ticketPrices?.price || "100$"}
+        </Card.Text>
+        {place.tags?.length > 0 && (
+          <div className="mb-3">
+            {place.tags.map(tag => (
+              <Badge bg="secondary" className="me-1" key={tag._id}>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+        <Form.Group className="mb-3">
+          <Form.Label>Select Visit Date</Form.Label>
+          <Form.Control
+            type="date"
+            value={bookingDate}
+            onChange={(e) => setBookingDate(e.target.value)}
+            required
+          />
+        </Form.Group>
+        <div className="d-flex gap-2 mt-3">
+          <Button 
+            variant="primary"
+            onClick={(e) => handleBooking(place, 'HistoricalPlace', e)}
+            disabled={bookingLoading && bookingItemId === place._id}
+            className="me-2"
+          >
+            {bookingLoading && bookingItemId === place._id ? (
+              <Spinner animation="border" size="sm" className="me-2" />
+            ) : (
+              <FaCalendarCheck className="me-2" />
+            )}
+            Book Now
+          </Button>
+          <Button variant="outline-secondary" onClick={() => handleShare({ ...place, type: 'historicalplace' })}>
+            <FaCopy className="me-2" />Share
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+
+  const ActivityCard = ({ activity }) => (
+    <Card className="mb-3 h-100">
+      <Card.Body>
+        <Card.Title>{activity.name}</Card.Title>
+        <Card.Text>{activity.description}</Card.Text>
+        {activity.date && (
+          <Card.Text className="text-primary">
+            <FaCalendar className="me-2" />
+            <strong>Event Date:</strong> {formatDate(activity.date)}
+          </Card.Text>
+        )}
+        <Card.Text>
+          <strong>Category:</strong> {activity.category?.name || "No Category"}
+        </Card.Text>
+        <Card.Text>
+          <strong>Price:</strong> ${activity.price}
+        </Card.Text>
+        {activity.location && (
+          <Card.Text>
+            <strong>Location:</strong> {activity.location?.coordinates?.join(', ') || 'No location'}
+          </Card.Text>
+        )}
+        {activity.tags?.length > 0 && (
+          <div className="mb-3">
+            {activity.tags.map(tag => (
+              <Badge bg="secondary" className="me-1" key={tag._id}>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+        <Form.Group className="mb-3">
+          <Form.Label>Select Booking Date</Form.Label>
+          <Form.Control
+            type="date"
+            value={bookingDate}
+            onChange={(e) => setBookingDate(e.target.value)}
+            required
+          />
+          {activity.date && (
+            <Form.Text className="text-muted">
+              Note: This activity is scheduled for {formatDate(activity.date)}
+            </Form.Text>
+          )}
+        </Form.Group>
+        <div className="d-flex gap-2 mt-3">
+          <Button 
+            variant="primary"
+            onClick={(e) => handleBooking(activity, 'Activity', e)}
+            disabled={bookingLoading && bookingItemId === activity._id}
+            className="me-2"
+          >
+            {bookingLoading && bookingItemId === activity._id ? (
+              <Spinner animation="border" size="sm" className="me-2" />
+            ) : (
+              <FaCalendarCheck className="me-2" />
+            )}
+            Book Now
+          </Button>
+          <Button variant="outline-secondary" onClick={() => handleShare({ ...activity, type: 'activities' })}>
+            <FaCopy className="me-2" />Share
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+
+  const ItineraryCard = ({ itinerary }) => (
+    <Card className="mb-3 h-100">
+      <Card.Body>
+        <Card.Title>{itinerary.name}</Card.Title>
+        <Card.Text>
+          <strong>Language:</strong> {itinerary.language}
+        </Card.Text>
+        <Card.Text>
+          <strong>Price:</strong> ${itinerary.totalPrice}
+        </Card.Text>
+        {itinerary.activities?.length > 0 && (
+          <Card.Text>
+            <strong>Included Activities:</strong><br />
+            {itinerary.activities.map(act => act.name).join(', ')}
+          </Card.Text>
+        )}
+        {itinerary.availableDates?.length > 0 && (
+          <div className="mb-3">
+            <strong>Available Dates:</strong>
+            <div className="available-dates mt-2">
+              {itinerary.availableDates.map((dateObj, index) => (
+                <Badge bg="info" className="me-2 mb-2" key={index}>
+                  {formatDate(dateObj.date)}
+                  {dateObj.availableTimes?.length > 0 && (
+                    <span className="ms-1">({dateObj.availableTimes.join(', ')})</span>
+                  )}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        {itinerary.preferenceTags?.length > 0 && (
+          <div className="mb-3">
+            {itinerary.preferenceTags.map(tag => (
+              <Badge bg="secondary" className="me-1" key={tag._id}>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+        <Form.Group className="mb-3">
+          <Form.Label>Select Tour Date</Form.Label>
+          <Form.Control
+            type="date"
+            value={bookingDate}
+            onChange={(e) => setBookingDate(e.target.value)}
+            required
+          />
+          {itinerary.availableDates?.length > 0 && (
+            <Form.Text className="text-muted">
+              Note: See available dates above
+            </Form.Text>
+          )}
+        </Form.Group>
+        <div className="d-flex gap-2 mt-3">
+          <Button 
+            variant="primary"
+            onClick={(e) => handleBooking(itinerary, 'Itinerary', e)}
+            disabled={bookingLoading && bookingItemId === itinerary._id}
+            className="me-2"
+          >
+            {bookingLoading && bookingItemId === itinerary._id ? (
+              <Spinner animation="border" size="sm" className="me-2" />
+            ) : (
+              <FaCalendarCheck className="me-2" />
+            )}
+            Book Now
+          </Button>
+          <Button variant="outline-secondary" onClick={() => handleShare({ ...itinerary, type: 'itineraries' })}>
+            <FaCopy className="me-2" />Share
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+
+  // Main render
   return (
     <Container className="mt-5">
       <Form.Control
@@ -89,9 +376,8 @@ const ViewEvents = () => {
       />
 
       <Form.Select
-        aria-label="Filter by category for activities"
         value={categoryFilter}
-        onChange={handleCategoryFilterChange}
+        onChange={(e) => setCategoryFilter(e.target.value)}
         className="mb-4"
       >
         <option value="">All Categories</option>
@@ -102,89 +388,52 @@ const ViewEvents = () => {
         ))}
       </Form.Select>
 
-      <h2>Historical Places</h2>
-      <Row>
-        {filteredHistoricalPlaces.map((place) => (
-          <Col md={4} key={place._id}>
-            <Card className="mb-3">
-              <Card.Body>
-                <Card.Title>{place.name}</Card.Title>
-                <Card.Text>{place.description}</Card.Text>
-                <Card.Text>{place.images}</Card.Text>
-                <Card.Text>{place.openingHours}</Card.Text>
-                <Card.Text>{place.ticketPrices?.price || "100$"}</Card.Text>
-                <Card.Text>{place.tags?.map(tag => tag.name).join(', ') || "No tag yet"}</Card.Text>
-                <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...place, type: 'historicalplace' })}>
-                    <FaCopy /> Copy Link
-                  </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...place, type: 'historicalplace' })}>
-                    <FaEnvelope /> Email
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {filteredHistoricalPlaces.length > 0 && (
+        <>
+          <h2 className="mb-4">Historical Places</h2>
+          <Row>
+            {filteredHistoricalPlaces.map((place) => (
+              <Col md={4} key={place._id}>
+                <HistoricalPlaceCard place={place} />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
 
-      <h2>Activities</h2>
-      <Row>
-        {filteredActivities.map((activity) => (
-          <Col md={4} key={activity._id}>
-            <Card className="mb-3">
-              <Card.Body>
-                <Card.Title>{activity.name}</Card.Title>
-                <Card.Text>{activity.description}</Card.Text>
-                <Card.Text>{activity.date}</Card.Text>
-                <Card.Text>Category: {activity.category?.name || "No Category"}</Card.Text>
-                <Card.Text>Tags: {activity.tags?.map(tag => tag.name).join(', ') || "No Tag"}</Card.Text>
-                <Card.Text>Price: {activity.price}$</Card.Text>
-                <Card.Text>Booking: {activity.bookingOpen}</Card.Text>
-                <Card.Text>Location: {activity.location?.coordinates}</Card.Text>
-                <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...activity, type: 'activities' })}>
-                    <FaCopy /> Copy Link
-                  </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...activity, type: 'activities' })}>
-                    <FaEnvelope /> Email
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {filteredActivities.length > 0 && (
+        <>
+          <h2 className="mb-4 mt-5">Activities</h2>
+          <Row>
+            {filteredActivities.map((activity) => (
+              <Col md={4} key={activity._id}>
+                <ActivityCard activity={activity} />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
 
-      <h2>Itineraries</h2>
-      <Row>
-        {filteredItineraries.map((itinerary) => (
-          <Col md={4} key={itinerary._id}>
-            <Card className="mb-3">
-              <Card.Body>
-                <Card.Title>{itinerary.name}</Card.Title>
-                <Card.Text>Language: {itinerary.language}</Card.Text>
-                <Card.Text>Price: {itinerary.totalPrice}$</Card.Text>
-                <Card.Text>Activities: {itinerary.activities?.map(act => act.name).join(', ') || "No Activities"}</Card.Text>
-                <Card.Text>Tags: {itinerary.preferenceTags?.map(tag => tag.name).join(', ') || "No Tags"}</Card.Text>
-                <Card.Text>
-                  Available Dates: {itinerary.availableDates?.map(date => 
-                    `${date.date} - ${date.availableTimes.join(', ')}`
-                  ).join(', ') || "No Available Dates"}
-                </Card.Text>
-                <div className="d-flex gap-2">
-                  <Button variant="link" onClick={() => handleShare({ ...itinerary, type: 'itineraries' })}>
-                    <FaCopy /> Copy Link
-                  </Button>
-                  <Button variant="link" onClick={() => handleEmailShare({ ...itinerary, type: 'itineraries' })}>
-                    <FaEnvelope /> Email
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {filteredItineraries.length > 0 && (
+        <>
+          <h2 className="mb-4 mt-5">Itineraries</h2>
+          <Row>
+            {filteredItineraries.map((itinerary) => (
+              <Col md={4} key={itinerary._id}>
+                <ItineraryCard itinerary={itinerary} />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
+
+      {filteredHistoricalPlaces.length === 0 && 
+       filteredActivities.length === 0 && 
+       filteredItineraries.length === 0 && (
+        <div className="text-center mt-5">
+          <h3>No events found matching your search criteria.</h3>
+        </div>
+      )}
     </Container>
   );
 };

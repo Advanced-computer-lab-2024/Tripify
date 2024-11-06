@@ -34,6 +34,9 @@ import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
 import Complaints from "./pages/admin/Complaints";
 import ProductTouristPage from "./pages/product/productTouristPage";
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
+import CreateComplaint from "./pages/tourist/CreateComplaint";
+import FlightBooking from "./pages/tourist/FlightBooking";
+import ViewBookings from "./pages/tourist/ViewBookings";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -61,6 +64,9 @@ function App() {
           <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
           <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
+          <Route path="/tourist/complaints" element={<CreateComplaint />} />
+          <Route path = "/tourist/book-flight" element = {< FlightBooking/>} />
+          <Route path="/tourist/view-bookings" element={<ViewBookings />} />
 
           {/* Routes under "/tourguide" */}
           <Route path="/tourguide" element={<TourguideHomePage />} />

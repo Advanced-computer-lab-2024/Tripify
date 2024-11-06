@@ -8,10 +8,14 @@ import {
   toggleStatus,
   addReply
 } from "../controllers/complaints.controller.js";
+import authMiddleware from "../middleware/auth.middleware.js";
+import Complaint from "../models/complaints.model.js";
 
 const router = express.Router();
 
-router.post("/", createComplaint);
+
+
+router.post("/", authMiddleware, createComplaint);
 router.get("/", getComplaints);
 router.get("/:id", getComplaintById);
 router.put("/:id", updateComplaint);

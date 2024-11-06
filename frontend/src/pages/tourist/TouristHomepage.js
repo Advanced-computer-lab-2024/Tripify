@@ -46,6 +46,22 @@ const TouristHomePage = () => {
                 View Products
               </Link>
             </Col>
+            <Col xs={12} sm={6} md={4}>
+              <Link to="/tourist/book-flight" className="btn btn-primary w-100">
+                Book a Flight
+              </Link>
+            </Col>
+            <Col xs={12} sm={6} md={4}>
+              <Link to="/tourist/view-bookings" className="btn btn-primary w-100">
+                View Your Bookings
+              </Link>
+            </Col>
+            <Col xs={12} sm={6} md={4}>
+              <Link to="/tourist/complaints" className="btn btn-danger w-100">
+                File a Complaint
+              </Link>
+            </Col>
+            
           </Row>
         </Card.Body>
       </Card>

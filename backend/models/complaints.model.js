@@ -20,6 +20,11 @@ const complaintSchema = new mongoose.Schema({
     enum: ['pending', 'resolved'], // Allows only 'pending' or 'resolved' values
     default: 'pending' // Sets the default status to 'pending'
   },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tourist',
+    required: true
+  },
   replies: [
     {
       replyText: { type: String, required: true },
