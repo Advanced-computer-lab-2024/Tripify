@@ -18,6 +18,7 @@ export const addProduct = async (req, res) => {
       description,
       price,
       quantity,
+      totalSales: 0, // Initialize total sales to 0
       imageUrl,
       seller,
     });
@@ -38,7 +39,7 @@ export const getProducts = async (req, res) => {
     const products = await Product.find();
     const productsWithPricesInMultipleCurrencies = products.map(product => {
       return {
-        ...product.toObject(), // Convert to plain object to add new fields
+        ...product.toObject(),
         priceInEGP: (product.price * exchangeRates.EGP).toFixed(2),
         priceInSAR: (product.price * exchangeRates.SAR).toFixed(2),
         priceInAED: (product.price * exchangeRates.AED).toFixed(2),
@@ -84,13 +85,11 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+
+
     const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
       new: true,
     });
-
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
-    }
 
     res.status(200).json({
       message: "Product updated successfully",
