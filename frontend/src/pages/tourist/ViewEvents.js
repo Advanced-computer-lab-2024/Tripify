@@ -8,8 +8,10 @@ import {
   Spinner,
   Form,
   Button,
+  Collapse,
 } from "react-bootstrap";
-import { FaCopy, FaEnvelope } from "react-icons/fa";
+import { FaCopy, FaEnvelope, FaComment } from "react-icons/fa";
+import ItineraryComment from "../../components/ItineraryComment";
 
 const ViewEvents = () => {
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
@@ -19,6 +21,7 @@ const ViewEvents = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [expandedComments, setExpandedComments] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +54,7 @@ const ViewEvents = () => {
     };
     fetchData();
   }, []);
+
   const handleSearch = (data, query) => {
     return data.filter((item) => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
@@ -83,6 +87,13 @@ const ViewEvents = () => {
 
   const handleCategoryFilterChange = (e) => {
     setCategoryFilter(e.target.value);
+  };
+
+  const toggleComments = (itineraryId) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [itineraryId]: !prev[itineraryId],
+    }));
   };
 
   if (loading) {
@@ -241,7 +252,7 @@ const ViewEvents = () => {
                     )
                     .join(", ") || "No Available Dates"}
                 </Card.Text>
-                <div className="d-flex gap-2">
+                <div className="d-flex gap-2 mb-3">
                   <Button
                     variant="link"
                     onClick={() =>
@@ -258,7 +269,22 @@ const ViewEvents = () => {
                   >
                     <FaEnvelope /> Email
                   </Button>
+                  <Button
+                    variant="link"
+                    onClick={() => toggleComments(itinerary._id)}
+                  >
+                    <FaComment />{" "}
+                    {expandedComments[itinerary._id]
+                      ? "Hide Comments"
+                      : "Show Comments"}
+                  </Button>
                 </div>
+
+                <Collapse in={expandedComments[itinerary._id]}>
+                  <div>
+                    <ItineraryComment itineraryId={itinerary._id} />
+                  </div>
+                </Collapse>
               </Card.Body>
             </Card>
           </Col>

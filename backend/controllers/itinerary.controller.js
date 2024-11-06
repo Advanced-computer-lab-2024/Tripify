@@ -1,4 +1,5 @@
 import Itinerary from "../models/itinerary.model.js";
+import ItineraryComment from "../models/itineraryComment.model.js";
 
 // Create an itinerary
 export const createItinerary = async (req, res) => {
@@ -138,6 +139,45 @@ export const flagItinerary = async (req, res) => {
     res.status(200).json(itinerary);
   } catch (error) {
     console.error("Error in flagItinerary:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const { itineraryId } = req.params;
+    const { content } = req.body;
+    const touristId = req.user._id;
+
+    const comment = new ItineraryComment({
+      tourist: touristId,
+      itinerary: itineraryId,
+      content,
+    });
+
+    await comment.save();
+
+    // Populate tourist information before sending response
+    await comment.populate("tourist", "username");
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getComments = async (req, res) => {
+  try {
+    const { itineraryId } = req.params;
+
+    const comments = await ItineraryComment.find({ itinerary: itineraryId })
+      .populate("tourist", "username")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
     res.status(500).json({ message: error.message });
   }
 };
