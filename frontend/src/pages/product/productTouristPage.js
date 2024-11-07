@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import {
   Container,
   Row,
@@ -11,7 +12,7 @@ import {
   ListGroup,
 } from "react-bootstrap";
 
-const API_URL = "http://localhost:5000/api"; // Adjust this to your backend URL
+const API_URL = "http://localhost:5000/api";
 
 function ProductTouristPage() {
   const [products, setProducts] = useState([]);
@@ -22,8 +23,8 @@ function ProductTouristPage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [currency, setCurrency] = useState("USD");
+  const [user, setUser] = useState(null);
 
-  // Currency rates
   const currencyRates = {
     USD: 1,
     EGP: 49.10,
@@ -32,6 +33,21 @@ function ProductTouristPage() {
   };
 
   useEffect(() => {
+    // Get user information from JWT token
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setUser({
+          id: decoded.user?._id || decoded.userId || decoded.id || decoded._id,
+          name: decoded.user?.name || decoded.name,
+        });
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        // Handle invalid token
+        localStorage.removeItem('token');
+      }
+    }
     fetchProducts();
   }, []);
 
@@ -41,10 +57,19 @@ function ProductTouristPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/products`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/products`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setProducts(response.data.products);
     } catch (error) {
       console.error("Error fetching products:", error);
+      if (error.response?.status === 401) {
+        // Handle unauthorized access
+        alert("Please log in to view products");
+      }
     }
   };
 
@@ -84,15 +109,31 @@ function ProductTouristPage() {
 
   const handleAddReview = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    const reviewData = Object.fromEntries(formData.entries());
+    
+    if (!user) {
+      alert("Please log in to add a review");
+      return;
+    }
 
-    reviewData.rating = Number(reviewData.rating);
+    const formData = new FormData(event.target);
+    const reviewData = {
+      rating: Number(formData.get('rating')),
+      comment: formData.get('comment'),
+      reviewerId: user.id,
+      reviewerName: user.name
+    };
 
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.post(
         `${API_URL}/products/${selectedProduct._id}`,
-        reviewData
+        reviewData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       setProducts((prevProducts) =>
@@ -105,13 +146,24 @@ function ProductTouristPage() {
       alert("Review added successfully!");
     } catch (error) {
       console.error("Error adding review:", error);
-      alert("Failed to add review. Please try again.");
+      if (error.response?.status === 401) {
+        alert("Please log in to add a review");
+      } else {
+        alert("Failed to add review. Please try again.");
+      }
     }
   };
 
-  // Convert price based on selected currency
   const convertPrice = (price) => {
     return (price * currencyRates[currency]).toFixed(2);
+  };
+
+  const handleReviewClick = () => {
+    if (!user) {
+      alert("Please log in to add a review");
+      return;
+    }
+    setShowReviewModal(true);
   };
 
   return (
@@ -203,7 +255,7 @@ function ProductTouristPage() {
                   variant="primary"
                   onClick={() => {
                     setSelectedProduct(product);
-                    setShowReviewModal(true);
+                    handleReviewClick();
                   }}
                 >
                   Add Review
@@ -244,15 +296,6 @@ function ProductTouristPage() {
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleAddReview}>
-            <Form.Group className="mb-3">
-              <Form.Label>Your Name (Tourist ID)</Form.Label>
-              <Form.Control
-                type="text"
-                name="reviewerName"
-                required
-                placeholder="Enter your Tourist ID"
-              />
-            </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
               <Form.Select name="rating" required>
