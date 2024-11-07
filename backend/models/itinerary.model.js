@@ -45,7 +45,7 @@ const itinerarySchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TourGuide",
-    //   required: true,
+      //   required: true,
     },
     // bookings: [
     //   {
@@ -63,6 +63,11 @@ const itinerarySchema = new mongoose.Schema(
         ref: "PreferenceTag",
       },
     ],
+    flagged: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
   },
   { timestamps: true }
 );

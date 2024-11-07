@@ -23,15 +23,14 @@ const MyProfile = () => {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetchProfile();
+    if (!user || !token) {
+      navigate("/login");
+    } else {
+      fetchProfile();
+    }
   }, []);
 
   const fetchProfile = async () => {
-    if (!user || !token) {
-      navigate("/login");
-      return;
-    }
-
     try {
       const response = await axios.get(
         `http://localhost:5000/api/tourist/profile/${user.username}`,
@@ -42,7 +41,6 @@ const MyProfile = () => {
         }
       );
 
-      console.log("Profile data:", response.data);
       setProfile(response.data.tourist);
       setLoading(false);
     } catch (err) {
@@ -60,11 +58,13 @@ const MyProfile = () => {
       const response = await axios.put(
         `http://localhost:5000/api/tourist/profile/${user.username}`,
         {
-          email: profile.email,
-          mobileNumber: profile.mobileNumber,
-          nationality: profile.nationality,
-          jobStatus: profile.jobStatus,
-          jobTitle: profile.jobStatus === "job" ? profile.jobTitle : undefined,
+          email: profile?.email,
+          mobileNumber: profile?.mobileNumber,
+          nationality: profile?.nationality,
+          jobStatus: profile?.jobStatus,
+          jobTitle:
+            profile?.jobStatus === "job" ? profile?.jobTitle : undefined,
+          preferences: profile?.preferences,
         },
         {
           headers: {
@@ -92,6 +92,33 @@ const MyProfile = () => {
     }));
   };
 
+  const handlePreferencesChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (type === "checkbox") {
+      setProfile((prev) => {
+        const newTripTypes = checked
+          ? [...(prev.preferences.tripTypes || []), value]
+          : prev.preferences.tripTypes.filter((type) => type !== value);
+        return {
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            tripTypes: newTripTypes,
+          },
+        };
+      });
+    } else {
+      setProfile((prev) => ({
+        ...prev,
+        preferences: {
+          ...prev.preferences,
+          [name]: value,
+        },
+      }));
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -102,6 +129,16 @@ const MyProfile = () => {
     return (
       <Container className="mt-5">
         <div className="text-center">Loading...</div>
+      </Container>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Container className="mt-5">
+        <Alert variant="danger" className="text-center">
+          {error || "Profile not found."}
+        </Alert>
       </Container>
     );
   }
@@ -170,7 +207,28 @@ const MyProfile = () => {
                     <Col sm={4}>
                       <strong>Wallet Balance:</strong>
                     </Col>
-                    <Col>{profile?.Wallet}</Col>
+                    <Col>{profile?.wallet}</Col>
+                  </Row>
+
+                  {/* Vacation Preferences */}
+                  <h4 className="mt-4">Vacation Preferences</h4>
+                  <Row className="mb-3">
+                    <Col sm={4}>
+                      <strong>Budget Limit:</strong>
+                    </Col>
+                    <Col>{profile?.preferences?.budgetLimit}</Col>
+                  </Row>
+                  <Row className="mb-3">
+                    <Col sm={4}>
+                      <strong>Preferred Destinations:</strong>
+                    </Col>
+                    <Col>{profile?.preferences?.preferredDestinations}</Col>
+                  </Row>
+                  <Row className="mb-3">
+                    <Col sm={4}>
+                      <strong>Trip Types:</strong>
+                    </Col>
+                    <Col>{profile?.preferences?.tripTypes?.join(", ")}</Col>
                   </Row>
 
                   <Button
@@ -189,7 +247,7 @@ const MyProfile = () => {
                     <Form.Control
                       type="email"
                       name="email"
-                      value={profile.email}
+                      value={profile.email || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -200,7 +258,7 @@ const MyProfile = () => {
                     <Form.Control
                       type="text"
                       name="mobileNumber"
-                      value={profile.mobileNumber}
+                      value={profile.mobileNumber || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -211,7 +269,7 @@ const MyProfile = () => {
                     <Form.Control
                       type="text"
                       name="nationality"
-                      value={profile.nationality}
+                      value={profile.nationality || ""}
                       onChange={handleInputChange}
                       required
                     />
@@ -221,7 +279,7 @@ const MyProfile = () => {
                     <Form.Label>Job Status</Form.Label>
                     <Form.Select
                       name="jobStatus"
-                      value={profile.jobStatus}
+                      value={profile.jobStatus || ""}
                       onChange={handleInputChange}
                       required
                     >
@@ -242,6 +300,55 @@ const MyProfile = () => {
                       />
                     </Form.Group>
                   )}
+
+                  {/* Preferences */}
+                  <h4 className="mt-4">Vacation Preferences</h4>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Budget Limit</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="budgetLimit"
+                      value={profile.preferences?.budgetLimit || ""}
+                      onChange={handlePreferencesChange}
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Preferred Destinations</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="preferredDestinations"
+                      value={profile.preferences?.preferredDestinations || ""}
+                      onChange={handlePreferencesChange}
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Trip Types</Form.Label>
+                    {[
+                      "historic",
+                      "beaches",
+                      "shopping",
+                      "family-friendly",
+                      "adventures",
+                      "luxury",
+                      "budget-friendly",
+                    ].map((tripType) => (
+                      <Form.Check
+                        key={tripType}
+                        type="checkbox"
+                        label={
+                          tripType.charAt(0).toUpperCase() + tripType.slice(1)
+                        }
+                        value={tripType}
+                        checked={
+                          profile.preferences?.tripTypes?.includes(tripType) ||
+                          false
+                        }
+                        onChange={handlePreferencesChange}
+                      />
+                    ))}
+                  </Form.Group>
 
                   <div className="d-flex gap-2">
                     <Button variant="primary" type="submit" disabled={loading}>

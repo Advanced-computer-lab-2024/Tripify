@@ -19,16 +19,25 @@ const ViewEvents = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/historicalplace'),
-          axios.get('http://localhost:5000/api/activities'),
-          axios.get('http://localhost:5000/api/itineraries'),
-          axios.get('http://localhost:5000/api/activities/category')
-        ]);
+        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
+          await Promise.all([
+            axios.get("http://localhost:5000/api/historicalplace"),
+            axios.get("http://localhost:5000/api/activities"),
+            axios.get("http://localhost:5000/api/itineraries"),
+            axios.get("http://localhost:5000/api/activities/category"),
+          ]);
 
-        setHistoricalPlaces(historicalRes.data);
-        setActivities(activitiesRes.data);
-        setItineraries(itinerariesRes.data);
+        // Filter out flagged content for non-admin users
+        const userRole = localStorage.getItem("userRole");
+        const isAdmin = userRole === "admin";
+
+        const filterFlagged = (items) => {
+          return isAdmin ? items : items.filter((item) => !item.flagged);
+        };
+
+        setHistoricalPlaces(filterFlagged(historicalRes.data));
+        setActivities(filterFlagged(activitiesRes.data));
+        setItineraries(filterFlagged(itinerariesRes.data));
         setCategories(categoriesRes.data);
         setLoading(false);
       } catch (error) {
@@ -118,11 +127,19 @@ const ViewEvents = () => {
   };
 
   const handleSearch = (data, query) => {
-    return data.filter(item => {
+    return data.filter((item) => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
-      const categoryMatch = item.category?.name?.toLowerCase().includes(query.toLowerCase());
-      const tagsMatch = item.tags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
-      const preferenceTagsMatch = item.preferenceTags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
+      const categoryMatch = item.category?.name
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
+      const tagsMatch =
+        item.tags?.some((tag) =>
+          tag?.name?.toLowerCase().includes(query.toLowerCase())
+        ) || false;
+      const preferenceTagsMatch =
+        item.preferenceTags?.some((tag) =>
+          tag?.name?.toLowerCase().includes(query.toLowerCase())
+        ) || false;
 
       return nameMatch || categoryMatch || tagsMatch || preferenceTagsMatch;
     });
@@ -150,7 +167,9 @@ const ViewEvents = () => {
   }
 
   const filteredActivities = categoryFilter
-    ? handleSearch(activities, searchQuery).filter(activity => activity.category?.name === categoryFilter)
+    ? handleSearch(activities, searchQuery).filter(
+        (activity) => activity.category?.name === categoryFilter
+      )
     : handleSearch(activities, searchQuery);
 
   const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);

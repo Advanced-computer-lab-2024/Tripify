@@ -1,4 +1,5 @@
 import Itinerary from "../models/itinerary.model.js";
+import ItineraryComment from "../models/itineraryComment.model.js";
 
 // Create an itinerary
 export const createItinerary = async (req, res) => {
@@ -46,16 +47,15 @@ export const getAllItineraries = async (req, res) => {
   try {
     const itineraries = await Itinerary.find()
       .populate("createdBy", "username")
-      .populate("preferenceTags", "name");
+      .populate("preferenceTags", "name")
+      .select("+flagged"); // Explicitly include flagged field
 
-    // Debug log
     res.status(200).json(itineraries);
   } catch (error) {
-    console.error("Error in getAllItineraries:", error); // Debug log
+    console.error("Error in getAllItineraries:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 // Update an itinerary by ID
 export const updateItinerary = async (req, res) => {
   try {
@@ -116,6 +116,68 @@ export const searchItineraries = async (req, res) => {
 
     res.status(200).json(itineraries);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const flagItinerary = async (req, res) => {
+  try {
+    const { flagged } = req.body;
+
+    const itinerary = await Itinerary.findByIdAndUpdate(
+      req.params.id,
+      { $set: { flagged: flagged } },
+      { new: true, runValidators: true }
+    )
+      .populate("createdBy", "name")
+      .populate("preferenceTags", "name");
+
+    if (!itinerary) {
+      return res.status(404).json({ message: "Itinerary not found" });
+    }
+
+    res.status(200).json(itinerary);
+  } catch (error) {
+    console.error("Error in flagItinerary:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const { itineraryId } = req.params;
+    const { content } = req.body;
+    const touristId = req.user._id;
+
+    const comment = new ItineraryComment({
+      tourist: touristId,
+      itinerary: itineraryId,
+      content,
+    });
+
+    await comment.save();
+
+    // Populate tourist information before sending response
+    await comment.populate("tourist", "username");
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getComments = async (req, res) => {
+  try {
+    const { itineraryId } = req.params;
+
+    const comments = await ItineraryComment.find({ itinerary: itineraryId })
+      .populate("tourist", "username")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
     res.status(500).json({ message: error.message });
   }
 };
