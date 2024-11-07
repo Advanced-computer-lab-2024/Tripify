@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Card, Container, Row, Col, Spinner, Form, Button, Badge } from 'react-bootstrap';
-import { FaCopy, FaEnvelope, FaCalendarCheck, FaCalendar } from 'react-icons/fa';
+import { Card, Container, Row, Col, Spinner, Form, Button, Badge, Collapse } from 'react-bootstrap';
+import { FaCopy, FaEnvelope, FaCalendarCheck, FaCalendar, FaComment } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
+import ItineraryComment from "../../components/ItineraryComment";
 
 const ViewEvents = () => {
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
@@ -15,21 +16,20 @@ const ViewEvents = () => {
   const [bookingDate, setBookingDate] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingItemId, setBookingItemId] = useState(null);
+  const [expandedComments, setExpandedComments] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
-          await Promise.all([
-            axios.get("http://localhost:5000/api/historicalplace"),
-            axios.get("http://localhost:5000/api/activities"),
-            axios.get("http://localhost:5000/api/itineraries"),
-            axios.get("http://localhost:5000/api/activities/category"),
-          ]);
+        const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/historicalplace'),
+          axios.get('http://localhost:5000/api/activities'),
+          axios.get('http://localhost:5000/api/itineraries'),
+          axios.get('http://localhost:5000/api/activities/category')
+        ]);
 
-        // Filter out flagged content for non-admin users
-        const userRole = localStorage.getItem("userRole");
-        const isAdmin = userRole === "admin";
+        const userRole = localStorage.getItem('userRole');
+        const isAdmin = userRole === 'admin';
 
         const filterFlagged = (items) => {
           return isAdmin ? items : items.filter((item) => !item.flagged);
@@ -127,19 +127,11 @@ const ViewEvents = () => {
   };
 
   const handleSearch = (data, query) => {
-    return data.filter((item) => {
+    return data.filter(item => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
-      const categoryMatch = item.category?.name
-        ?.toLowerCase()
-        .includes(query.toLowerCase());
-      const tagsMatch =
-        item.tags?.some((tag) =>
-          tag?.name?.toLowerCase().includes(query.toLowerCase())
-        ) || false;
-      const preferenceTagsMatch =
-        item.preferenceTags?.some((tag) =>
-          tag?.name?.toLowerCase().includes(query.toLowerCase())
-        ) || false;
+      const categoryMatch = item.category?.name?.toLowerCase().includes(query.toLowerCase());
+      const tagsMatch = item.tags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
+      const preferenceTagsMatch = item.preferenceTags?.some(tag => tag?.name?.toLowerCase().includes(query.toLowerCase())) || false;
 
       return nameMatch || categoryMatch || tagsMatch || preferenceTagsMatch;
     });
@@ -156,6 +148,21 @@ const ViewEvents = () => {
     window.location.href = `mailto:?subject=Check out this ${item.type}&body=Here is the link: ${url}`;
   };
 
+  const toggleComments = (itineraryId) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [itineraryId]: !prev[itineraryId],
+    }));
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -167,27 +174,15 @@ const ViewEvents = () => {
   }
 
   const filteredActivities = categoryFilter
-    ? handleSearch(activities, searchQuery).filter(
-        (activity) => activity.category?.name === categoryFilter
-      )
+    ? handleSearch(activities, searchQuery).filter(activity => activity.category?.name === categoryFilter)
     : handleSearch(activities, searchQuery);
 
   const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);
-  // First filter for active itineraries, then apply search filter
-const filteredItineraries = handleSearch(
-  itineraries.filter(itinerary => itinerary.isActive === true), 
-  searchQuery
-);
+  const filteredItineraries = handleSearch(
+    itineraries.filter(itinerary => itinerary.isActive === true),
+    searchQuery
+  );
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Card components with date displays
   const HistoricalPlaceCard = ({ place }) => (
     <Card className="mb-3 h-100">
       <Card.Body>
@@ -234,6 +229,9 @@ const filteredItineraries = handleSearch(
           </Button>
           <Button variant="outline-secondary" onClick={() => handleShare({ ...place, type: 'historicalplace' })}>
             <FaCopy className="me-2" />Share
+          </Button>
+          <Button variant="outline-secondary" onClick={() => handleEmailShare({ ...place, type: 'historicalplace' })}>
+            <FaEnvelope className="me-2" />Email
           </Button>
         </div>
       </Card.Body>
@@ -301,6 +299,9 @@ const filteredItineraries = handleSearch(
           </Button>
           <Button variant="outline-secondary" onClick={() => handleShare({ ...activity, type: 'activities' })}>
             <FaCopy className="me-2" />Share
+          </Button>
+          <Button variant="outline-secondary" onClick={() => handleEmailShare({ ...activity, type: 'activities' })}>
+            <FaEnvelope className="me-2" />Email
           </Button>
         </div>
       </Card.Body>
@@ -378,12 +379,22 @@ const filteredItineraries = handleSearch(
           <Button variant="outline-secondary" onClick={() => handleShare({ ...itinerary, type: 'itineraries' })}>
             <FaCopy className="me-2" />Share
           </Button>
+          <Button variant="outline-secondary" onClick={() => handleEmailShare({ ...itinerary, type: 'itineraries' })}>
+            <FaEnvelope className="me-2" />Email
+          </Button>
+          <Button variant="outline-secondary" onClick={() => toggleComments(itinerary._id)}>
+            <FaComment /> {expandedComments[itinerary._id] ?"Hide Comments" : "Show Comments"}
+          </Button>
         </div>
+        <Collapse in={expandedComments[itinerary._id]}>
+          <div>
+            <ItineraryComment itineraryId={itinerary._id} />
+          </div>
+        </Collapse>
       </Card.Body>
     </Card>
   );
 
-  // Main render
   return (
     <Container className="mt-5">
       <Form.Control
