@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
+import { GridFsStorage } from "multer-gridfs-storage"; // Import GridFsStorage
+import multer from "multer"; // Import multer for file uploads
 
 dotenv.config();
 
@@ -20,6 +22,23 @@ const generateToken = (tourGuide) => {
   );
 };
 
+// Configure Multer with GridFS storage
+const storage = new GridFsStorage({
+  url: process.env.MONGODB_URI, // Use environment variable for MongoDB URI
+  file: (req, file) => {
+    return new Promise((resolve, reject) => {
+      const filename = `${Date.now()}-${file.originalname}`;
+      const fileInfo = {
+        filename: filename,
+        bucketName: "uploads", // Name of MongoDB collection for files
+      };
+      resolve(fileInfo);
+    });
+  },
+});
+
+export const upload = multer({ storage }); // Export the configured multer instance
+
 // Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
   const { username, email, password, mobileNumber, yearsOfExperience, previousWork } = req.body;
@@ -35,7 +54,7 @@ export const registerTourGuide = async (req, res) => {
     const newTourGuide = new TourGuide({
       username,
       email,
-      password,
+      password: await bcrypt.hash(password, 10),
       mobileNumber,
       yearsOfExperience,
       previousWork,
@@ -73,7 +92,7 @@ export const loginTourGuide = async (req, res) => {
       return res.status(404).json({ message: "Invalid username or password" });
     }
 
-    const isMatch = await tourGuide.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, tourGuide.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
@@ -118,7 +137,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Get Tour Guide Profile (Protected Route)
+// Get Tour Guide Profile by Username (Protected Route)
 export const getTourGuideByUsername = async (req, res) => {
   const { username } = req.params;
 
@@ -217,7 +236,7 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// Get All Tour Guides (Optional: Could be admin-only route)
+// Get All Tour Guides
 export const getAllTourGuides = async (req, res) => {
   try {
     const tourGuides = await TourGuide.find().select("-password");
@@ -290,20 +309,3 @@ export const getTourGuideItineraries = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// Configure Multer with GridFS storage
-const storage = new GridFsStorage({
-  url: "mongodb+srv://anastamer136:WiRCmFKq4hmIe7DG@cluster0.b5hrz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const filename = file.originalname;
-      const fileInfo = {
-        filename: filename,
-        bucketName: "uploads",
-      };
-      resolve(fileInfo);
-    });
-  },
-});
-
-export const upload = multer({ storage });

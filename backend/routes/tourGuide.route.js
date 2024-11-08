@@ -8,12 +8,12 @@ import {
   deleteTourGuide,
   getProfileByToken,
   getTourGuideItineraries,
-  changePassword, // Import changePassword function
-  resetPassword,   // Import resetPassword function
-  upload,
-} from "../controllers/tourGuide.controller.js";
+  changePassword,
+  resetPassword,
+} from "../controllers/tourGuide.controller.js"; // Removed 'upload' from here
+
 import authMiddleware from "../middleware/auth.middleware.js";
-import { upload } from "../utils/upload.js";
+import { upload } from "../utils/upload.js"; // Only keep this 'upload' import
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ const router = express.Router();
 router.post("/register", registerTourGuide);
 router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
-router.post("/upload", upload.single("file"));
+router.post("/upload", upload.single("file")); // File upload route
 router.post("/reset-password", resetPassword); // Public route for resetting password
 
 // Protected routes (requires authentication)
