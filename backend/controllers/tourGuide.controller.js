@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
-import multer from "multer";
-import { GridFsStorage } from "multer-gridfs-storage";
 
 dotenv.config();
 

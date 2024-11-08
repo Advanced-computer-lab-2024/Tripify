@@ -223,7 +223,7 @@ export const bookingController = {
       const { bookingId } = req.params;
       const { status } = req.body;
 
-      if (!['confirmed', 'cancelled', 'completed'].includes(status)) {
+      if (!['confirmed', 'cancelled', 'attended'].includes(status)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid status value',

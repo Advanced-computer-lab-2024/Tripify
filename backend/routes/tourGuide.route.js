@@ -13,6 +13,7 @@ import {
   upload,
 } from "../controllers/tourGuide.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
+import { upload } from "../utils/upload.js";
 
 const router = express.Router();
 

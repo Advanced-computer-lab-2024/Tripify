@@ -20,6 +20,7 @@ import tagRoutes from "./routes/tag.route.js";
 import productRoutes from "./routes/product.route.js";
 import complaintRoutes from "./routes/complaints.route.js";
 import flightRoutes from "./routes/flight.route.js";
+import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
 
@@ -58,8 +59,11 @@ app.use("/api/preference-tags", preferenceTagRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/complaints", complaintRoutes);
-app.use("/api/flights", flightRoutes); 
-app.use("/api/bookings", bookingRoutes);app.use("/api/transportation", transportationRoutes);
+app.use("/api/flights", flightRoutes);
+app.use("/api/hotels", hotelRoutes);
+app.use("/api/bookings", bookingRoutes);
+
+app.use("/api/transportation", transportationRoutes);
 
 // Tourist preferences routes
 const router = express.Router();

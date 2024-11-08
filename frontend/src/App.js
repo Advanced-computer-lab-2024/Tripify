@@ -66,7 +66,10 @@ function App() {
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
-          <Route path="/tourist/my-complaints" element={<TouristComplaints />} />
+          <Route
+            path="/tourist/my-complaints"
+            element={<TouristComplaints />}
+          />
           <Route
             path="/tourist/itinerary-filter"
             element={<ItineraryFilter />}
@@ -77,7 +80,9 @@ function App() {
           />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
           <Route path="/tourist/complaints" element={<CreateComplaint />} />
-          <Route path = "/tourist/book-flight" element = {< FlightBooking/>} />
+          <Route path="/tourist/book-flight" element={<FlightBooking />} />
+          <Route path="/tourist/book-hotel" element={<HotelBooking />} />
+
           <Route path="/tourist/view-bookings" element={<ViewBookings />} />
           <Route
             path="/tourist/book-transportation"
