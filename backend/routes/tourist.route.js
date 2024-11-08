@@ -7,7 +7,6 @@ import {
   getAllTourists,
   addToWallet,
   deductFromWallet,
-
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -18,7 +17,7 @@ router.post("/login", loginTourist);
 router.get("/", getAllTourists);
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
-router.put("/wallet/add", authMiddleware, addToWallet);
-router.put("/wallet/deduct", authMiddleware, deductFromWallet);
+router.post("/wallet/add/:id", authMiddleware, addToWallet);
+router.post("/wallet/deduct/:id", authMiddleware, deductFromWallet);
 
 export default router;
