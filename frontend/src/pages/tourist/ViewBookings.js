@@ -1,8 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Container, Card, Button, Row, Col, Spinner, Badge, OverlayTrigger, Tooltip, Modal, Form } from 'react-bootstrap';
-import { jwtDecode } from 'jwt-decode';
-import { FaCalendarTimes, FaInfoCircle, FaStar } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Container,
+  Card,
+  Button,
+  Row,
+  Col,
+  Spinner,
+  Badge,
+  OverlayTrigger,
+  Tooltip,
+  Modal,
+  Form,
+} from "react-bootstrap";
+import { jwtDecode } from "jwt-decode";
+import {
+  FaCalendarTimes,
+  FaInfoCircle,
+  FaStar,
+  FaWallet,
+} from "react-icons/fa";
+const getItemPrice = (booking) => {
+  const item = booking.itemId;
+  if (!item) return 0;
+
+  switch (booking.bookingType) {
+    case "HistoricalPlace":
+      return item.ticketPrices?.price || 100;
+    case "Activity":
+      return item.price || 0;
+    case "Itinerary":
+      return item.totalPrice || 0;
+    default:
+      return 0;
+  }
+};
 
 const ViewBookings = () => {
   // State management
@@ -12,14 +44,14 @@ const ViewBookings = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [rating, setRating] = useState(0);
-  const [review, setReview] = useState('');
+  const [review, setReview] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
 
   // Get user ID from JWT token
   const getUserId = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return null;
-    
+
     try {
       const decoded = jwtDecode(token);
       return decoded.user?._id || decoded.userId || decoded.id || decoded._id;
@@ -38,25 +70,25 @@ const ViewBookings = () => {
 
   // Format date for display
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   // Get status badge color
   const getStatusBadge = (status) => {
     const statusColors = {
-      pending: 'warning',
-      confirmed: 'success',
-      cancelled: 'danger',
-      completed: 'info',
-      attended: 'primary'
+      pending: "warning",
+      confirmed: "success",
+      cancelled: "danger",
+      completed: "info",
+      attended: "primary",
     };
-    return statusColors[status] || 'secondary';
+    return statusColors[status] || "secondary";
   };
 
   // Check if booking can be cancelled (48 hours before)
@@ -72,10 +104,10 @@ const ViewBookings = () => {
     const now = new Date();
     const bookingTime = new Date(bookingDate);
     const diff = bookingTime - now;
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0) {
       return `${days} days and ${hours} hours`;
     }
@@ -86,37 +118,42 @@ const ViewBookings = () => {
   const fetchBookings = async () => {
     const userId = getUserId();
     if (!userId) {
-      alert('Please log in to view bookings');
+      alert("Please log in to view bookings");
       return;
     }
 
     try {
-      const response = await axios.get(`http://localhost:5000/api/bookings/user/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+      const response = await axios.get(
+        `http://localhost:5000/api/bookings/user/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      });
+      );
 
       // Process each booking
       const updatedBookings = await Promise.all(
         response.data.data.map(async (booking) => {
-          if (booking.status !== 'cancelled' && 
-              booking.status !== 'attended' && 
-              isEventPassed(booking.bookingDate)) {
+          if (
+            booking.status !== "cancelled" &&
+            booking.status !== "attended" &&
+            isEventPassed(booking.bookingDate)
+          ) {
             try {
               const updateResponse = await axios.patch(
                 `http://localhost:5000/api/bookings/${booking._id}/status`,
-                { status: 'attended' },
+                { status: "attended" },
                 {
                   headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                  }
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
                 }
               );
               return updateResponse.data.data;
             } catch (error) {
-              console.error('Error updating booking status:', error);
-              return { ...booking, status: 'attended' };
+              console.error("Error updating booking status:", error);
+              return { ...booking, status: "attended" };
             }
           }
           return booking;
@@ -125,8 +162,8 @@ const ViewBookings = () => {
 
       setBookings(updatedBookings || []);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
-      alert('Error loading bookings');
+      console.error("Error fetching bookings:", error);
+      alert("Error loading bookings");
     } finally {
       setLoading(false);
     }
@@ -134,41 +171,108 @@ const ViewBookings = () => {
 
   // Cancel booking
   const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) {
       return;
     }
 
     setCancellingId(bookingId);
     try {
-      const response = await axios.patch(
+      // Find the booking to get the price for refund
+      const booking = bookings.find((b) => b._id === bookingId);
+      if (!booking) {
+        alert("Booking not found");
+        return;
+      }
+
+      const refundAmount = getItemPrice(booking);
+
+      // Cancel the booking
+      const cancelResponse = await axios.patch(
         `http://localhost:5000/api/bookings/cancel/${bookingId}`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
-      if (response.data.success) {
-        alert('Booking cancelled successfully');
-        fetchBookings();
+      if (cancelResponse.data.success) {
+        // Process the refund
+        const userId = getUserId();
+        const refundResponse = await axios.post(
+          `http://localhost:5000/api/tourist/wallet/refund/${userId}`,
+          { amount: refundAmount },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (refundResponse.data.success) {
+          // Update stored tourist data with new wallet balance
+          const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+          localStorage.setItem(
+            "tourist",
+            JSON.stringify({
+              ...touristData,
+              wallet: refundResponse.data.currentBalance,
+            })
+          );
+
+          alert(
+            `Booking cancelled successfully. $${refundAmount} has been refunded to your wallet.`
+          );
+          fetchBookings(); // Refresh the bookings list
+        } else {
+          alert("Booking cancelled but refund failed. Please contact support.");
+        }
       } else {
-        alert(response.data.message || 'Failed to cancel booking');
+        alert(cancelResponse.data.message || "Failed to cancel booking");
       }
     } catch (error) {
-      console.error('Error cancelling booking:', error);
-      alert(error.response?.data?.message || 'Error cancelling booking');
+      console.error("Error cancelling booking:", error);
+      alert(error.response?.data?.message || "Error cancelling booking");
     } finally {
       setCancellingId(null);
     }
+  };
+
+  const WalletBalance = () => {
+    const [balance, setBalance] = useState(0);
+
+    useEffect(() => {
+      const fetchWalletBalance = async () => {
+        try {
+          const touristData = JSON.parse(localStorage.getItem("tourist"));
+          if (touristData?.wallet !== undefined) {
+            setBalance(touristData.wallet);
+          }
+        } catch (error) {
+          console.error("Error fetching wallet balance:", error);
+        }
+      };
+
+      fetchWalletBalance();
+    }, [bookings]); // Refresh when bookings change
+
+    return (
+      <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
+        <FaWallet className="me-2 text-primary" size={24} />
+        <div>
+          <h4 className="mb-0">Wallet Balance: ${balance}</h4>
+          <small className="text-muted">Available for bookings</small>
+        </div>
+      </div>
+    );
   };
 
   // Handle rating booking
   const handleRateBooking = (booking) => {
     setSelectedBooking(booking);
     setRating(booking.rating || 0);
-    setReview(booking.review || '');
+    setReview(booking.review || "");
     setShowRatingModal(true);
   };
 
@@ -183,19 +287,19 @@ const ViewBookings = () => {
         { rating, review },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
       if (response.data.success) {
-        alert('Rating submitted successfully');
+        alert("Rating submitted successfully");
         setShowRatingModal(false);
         fetchBookings();
       }
     } catch (error) {
-      console.error('Error submitting rating:', error);
-      alert('Failed to submit rating');
+      console.error("Error submitting rating:", error);
+      alert("Failed to submit rating");
     } finally {
       setSubmittingRating(false);
     }
@@ -240,7 +344,8 @@ const ViewBookings = () => {
   return (
     <Container className="py-5">
       <h2 className="mb-4">My Bookings</h2>
-      
+      <WalletBalance />
+
       {bookings.length === 0 ? (
         <Card className="text-center p-5">
           <Card.Body>
@@ -260,13 +365,17 @@ const ViewBookings = () => {
                   </Badge>
                 </Card.Header>
                 <Card.Body>
-                  <Card.Title>{booking.itemId?.name || 'Item Unavailable'}</Card.Title>
+                  <Card.Title>
+                    {booking.itemId?.name || "Item Unavailable"}
+                  </Card.Title>
                   <Card.Text>
-                    <strong>Booking Date:</strong> {formatDate(booking.bookingDate)}
+                    <strong>Booking Date:</strong>{" "}
+                    {formatDate(booking.bookingDate)}
                   </Card.Text>
                   {!isEventPassed(booking.bookingDate) && (
                     <Card.Text>
-                      <strong>Time Until Event:</strong> {getTimeRemaining(booking.bookingDate)}
+                      <strong>Time Until Event:</strong>{" "}
+                      {getTimeRemaining(booking.bookingDate)}
                     </Card.Text>
                   )}
                   <Card.Text>
@@ -274,14 +383,14 @@ const ViewBookings = () => {
                   </Card.Text>
                   {booking.rating && (
                     <Card.Text>
-                      <strong>Your Rating:</strong>{' '}
+                      <strong>Your Rating:</strong>{" "}
                       {[...Array(booking.rating)].map((_, i) => (
                         <FaStar key={i} color="#ffc107" className="me-1" />
                       ))}
                     </Card.Text>
                   )}
                   <div className="d-grid gap-2">
-                    {booking.status === 'attended' && !booking.rating && (
+                    {booking.status === "attended" && !booking.rating && (
                       <Button
                         variant="primary"
                         onClick={() => handleRateBooking(booking)}
@@ -289,51 +398,53 @@ const ViewBookings = () => {
                         Rate Your Experience
                       </Button>
                     )}
-                    {!isEventPassed(booking.bookingDate) && booking.status !== 'cancelled' && (
-                      <>
-                        {canCancelBooking(booking.bookingDate) ? (
-                          <Button
-                            variant="danger"
-                            onClick={() => handleCancelBooking(booking._id)}
-                            disabled={cancellingId === booking._id}
-                          >
-                            {cancellingId === booking._id ? (
-                              <Spinner
-                                as="span"
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                aria-hidden="true"
-                                className="me-2"
-                              />
-                            ) : (
-                              <FaCalendarTimes className="me-2" />
-                            )}
-                            Cancel Booking
-                          </Button>
-                        ) : (
-                          <OverlayTrigger
-                            placement="top"
-                            overlay={
-                              <Tooltip>
-                                Cancellation is only allowed up to 48 hours before the event
-                              </Tooltip>
-                            }
-                          >
-                            <div>
-                              <Button
-                                variant="danger"
-                                disabled
-                                className="w-100"
-                              >
-                                <FaInfoCircle className="me-2" />
-                                Cannot Cancel
-                              </Button>
-                            </div>
-                          </OverlayTrigger>
-                        )}
-                      </>
-                    )}
+                    {!isEventPassed(booking.bookingDate) &&
+                      booking.status !== "cancelled" && (
+                        <>
+                          {canCancelBooking(booking.bookingDate) ? (
+                            <Button
+                              variant="danger"
+                              onClick={() => handleCancelBooking(booking._id)}
+                              disabled={cancellingId === booking._id}
+                            >
+                              {cancellingId === booking._id ? (
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                  className="me-2"
+                                />
+                              ) : (
+                                <FaCalendarTimes className="me-2" />
+                              )}
+                              Cancel Booking
+                            </Button>
+                          ) : (
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={
+                                <Tooltip>
+                                  Cancellation is only allowed up to 48 hours
+                                  before the event
+                                </Tooltip>
+                              }
+                            >
+                              <div>
+                                <Button
+                                  variant="danger"
+                                  disabled
+                                  className="w-100"
+                                >
+                                  <FaInfoCircle className="me-2" />
+                                  Cannot Cancel
+                                </Button>
+                              </div>
+                            </OverlayTrigger>
+                          )}
+                        </>
+                      )}
                   </div>
                 </Card.Body>
                 <Card.Footer className="text-muted">
@@ -391,7 +502,7 @@ const ViewBookings = () => {
                 Submitting...
               </>
             ) : (
-              'Submit Rating'
+              "Submit Rating"
             )}
           </Button>
         </Modal.Footer>
