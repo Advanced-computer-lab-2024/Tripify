@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Card, Container, Row, Col, Spinner, Form, Button, Badge, Collapse } from 'react-bootstrap';
-import { FaCopy, FaEnvelope, FaCalendarCheck, FaCalendar, FaComment } from 'react-icons/fa';
+import { FaCopy, FaEnvelope, FaCalendarCheck, FaCalendar, FaComment, FaWallet, FaInfoCircle } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
 import ItineraryComment from "../../components/ItineraryComment";
 
@@ -12,15 +12,22 @@ const ViewEvents = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');  
   const [bookingDate, setBookingDate] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingItemId, setBookingItemId] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
+  const [userWallet, setUserWallet] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Get user's wallet balance from stored tourist data
+        const touristData = JSON.parse(localStorage.getItem('tourist'));
+        if (touristData && touristData.wallet !== undefined) {
+          setUserWallet(touristData.wallet);
+        }
+
         const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] = await Promise.all([
           axios.get('http://localhost:5000/api/historicalplace'),
           axios.get('http://localhost:5000/api/activities'),
@@ -39,6 +46,7 @@ const ViewEvents = () => {
         setActivities(filterFlagged(activitiesRes.data));
         setItineraries(filterFlagged(itinerariesRes.data));
         setCategories(categoriesRes.data);
+        
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -54,10 +62,23 @@ const ViewEvents = () => {
     
     try {
       const decoded = jwtDecode(token);
-      return decoded.user?._id || decoded.userId || decoded.id || decoded._id;
+      return decoded._id;
     } catch (error) {
       console.error("Error decoding token:", error);
       return null;
+    }
+  };
+
+  const getItemPrice = (item, type) => {
+    switch (type) {
+      case 'HistoricalPlace':
+        return item.ticketPrices?.price || 100;
+      case 'Activity':
+        return item.price || 0;
+      case 'Itinerary':
+        return item.totalPrice || 0;
+      default:
+        return 0;
     }
   };
 
@@ -76,6 +97,13 @@ const ViewEvents = () => {
       alert('Please select a date');
       return;
     }
+
+    // Get item price and check balance
+    const bookingCost = getItemPrice(item, type);
+    if (userWallet < bookingCost) {
+      alert(`Insufficient funds in your wallet. You need $${bookingCost} but have $${userWallet}`);
+      return;
+    }
   
     setBookingItemId(item._id);
     setBookingLoading(true);
@@ -84,25 +112,63 @@ const ViewEvents = () => {
       const formattedBookingDate = new Date(bookingDate);
       formattedBookingDate.setHours(12, 0, 0, 0);
 
-      const requestData = {
-        userId,
-        bookingType: type,
-        itemId: item._id,
-        bookingDate: formattedBookingDate.toISOString(),
-      };
-  
-      const response = await axios.post('http://localhost:5000/api/bookings/create', requestData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      // 1. Create booking
+      const bookingResponse = await axios.post(
+        'http://localhost:5000/api/bookings/create',
+        {
+          userId,
+          bookingType: type,
+          itemId: item._id,
+          bookingDate: formattedBookingDate.toISOString(),
+          amount: bookingCost
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
-  
-      if (response.data.success) {
-        alert('Booking successful!');
-        await fetchUserBookings(userId);
+      );
+
+      if (bookingResponse.data.success) {
+        try {
+          // 2. Deduct funds from wallet
+          const deductResponse = await axios.post(
+            `http://localhost:5000/api/tourist/deduct/${userId}`,
+            { amount: bookingCost },
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (deductResponse.data.success) {
+            // Update wallet balance locally
+            setUserWallet(deductResponse.data.currentBalance);
+            
+            // Update stored tourist data
+            const touristData = JSON.parse(localStorage.getItem('tourist'));
+            if (touristData) {
+              touristData.wallet = deductResponse.data.currentBalance;
+              localStorage.setItem('tourist', JSON.stringify(touristData));
+            }
+            
+            alert('Booking successful! Amount has been deducted from your wallet.');
+            await fetchUserBookings(userId);
+          } else {
+            // If payment fails, cancel the booking
+            await cancelBooking(bookingResponse.data.data._id);
+            alert('Booking failed: Payment could not be processed');
+          }
+        } catch (paymentError) {
+          console.error('Payment error:', paymentError);
+          await cancelBooking(bookingResponse.data.data._id);
+          alert(paymentError.response?.data?.message || 'Payment failed. Booking has been cancelled.');
+        }
       } else {
-        alert(response.data.message || 'Booking failed. Please try again.');
+        alert(bookingResponse.data.message || 'Booking failed. Please try again.');
       }
     } catch (error) {
       console.error('Booking error:', error);
@@ -110,16 +176,36 @@ const ViewEvents = () => {
     } finally {
       setBookingLoading(false);
       setBookingItemId(null);
+      setBookingDate(''); // Reset booking date after completion
+    }
+  };
+
+  const cancelBooking = async (bookingId) => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/bookings/cancel/${bookingId}`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
     }
   };
 
   const fetchUserBookings = async (userId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/bookings/user/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+      const response = await axios.get(
+        `http://localhost:5000/api/bookings/user/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         }
-      });
+      );
       console.log('User bookings:', response.data);
     } catch (error) {
       console.error('Error fetching user bookings:', error);
@@ -163,25 +249,26 @@ const ViewEvents = () => {
     });
   };
 
-  if (loading) {
-    return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </Container>
-    );
-  }
+  const getTimeRemaining = (bookingDate) => {
+    const now = new Date();
+    const bookingTime = new Date(bookingDate);
+    const diff = bookingTime - now;
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+      return `${days} days and ${hours} hours`;
+    }
+    return `${hours} hours`;
+  };
 
-  const filteredActivities = categoryFilter
-    ? handleSearch(activities, searchQuery).filter(activity => activity.category?.name === categoryFilter)
-    : handleSearch(activities, searchQuery);
-
-  const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);
-  const filteredItineraries = handleSearch(
-    itineraries.filter(itinerary => itinerary.isActive === true),
-    searchQuery
-  );
+  const canCancelBooking = (bookingDate) => {
+    const now = new Date();
+    const bookingTime = new Date(bookingDate);
+    const hoursUntilBooking = (bookingTime - now) / (1000 * 60 * 60);
+    return hoursUntilBooking >= 48;
+  };
 
   const HistoricalPlaceCard = ({ place }) => (
     <Card className="mb-3 h-100">
@@ -193,7 +280,7 @@ const ViewEvents = () => {
           <strong>Opening Hours:</strong> {place.openingHours}
         </Card.Text>
         <Card.Text>
-          <strong>Price:</strong> {place.ticketPrices?.price || "100$"}
+          <strong>Price:</strong> ${getItemPrice(place, 'HistoricalPlace')}
         </Card.Text>
         {place.tags?.length > 0 && (
           <div className="mb-3">
@@ -210,6 +297,7 @@ const ViewEvents = () => {
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
             required
           />
         </Form.Group>
@@ -218,14 +306,13 @@ const ViewEvents = () => {
             variant="primary"
             onClick={(e) => handleBooking(place, 'HistoricalPlace', e)}
             disabled={bookingLoading && bookingItemId === place._id}
-            className="me-2"
           >
             {bookingLoading && bookingItemId === place._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
             ) : (
               <FaCalendarCheck className="me-2" />
             )}
-            Book Now
+            Book Now (${getItemPrice(place, 'HistoricalPlace')})
           </Button>
           <Button variant="outline-secondary" onClick={() => handleShare({ ...place, type: 'historicalplace' })}>
             <FaCopy className="me-2" />Share
@@ -275,6 +362,7 @@ const ViewEvents = () => {
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
             required
           />
           {activity.date && (
@@ -288,14 +376,13 @@ const ViewEvents = () => {
             variant="primary"
             onClick={(e) => handleBooking(activity, 'Activity', e)}
             disabled={bookingLoading && bookingItemId === activity._id}
-            className="me-2"
           >
             {bookingLoading && bookingItemId === activity._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
             ) : (
               <FaCalendarCheck className="me-2" />
             )}
-            Book Now
+            Book Now (${activity.price})
           </Button>
           <Button variant="outline-secondary" onClick={() => handleShare({ ...activity, type: 'activities' })}>
             <FaCopy className="me-2" />Share
@@ -354,11 +441,12 @@ const ViewEvents = () => {
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
             required
           />
           {itinerary.availableDates?.length > 0 && (
             <Form.Text className="text-muted">
-              Note: See available dates above
+              Note: Please select from the available dates above
             </Form.Text>
           )}
         </Form.Group>
@@ -367,14 +455,13 @@ const ViewEvents = () => {
             variant="primary"
             onClick={(e) => handleBooking(itinerary, 'Itinerary', e)}
             disabled={bookingLoading && bookingItemId === itinerary._id}
-            className="me-2"
           >
             {bookingLoading && bookingItemId === itinerary._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
             ) : (
               <FaCalendarCheck className="me-2" />
             )}
-            Book Now
+            Book Now (${itinerary.totalPrice})
           </Button>
           <Button variant="outline-secondary" onClick={() => handleShare({ ...itinerary, type: 'itineraries' })}>
             <FaCopy className="me-2" />Share
@@ -383,11 +470,11 @@ const ViewEvents = () => {
             <FaEnvelope className="me-2" />Email
           </Button>
           <Button variant="outline-secondary" onClick={() => toggleComments(itinerary._id)}>
-            <FaComment /> {expandedComments[itinerary._id] ?"Hide Comments" : "Show Comments"}
+            <FaComment /> {expandedComments[itinerary._id] ? "Hide Comments" : "Show Comments"}
           </Button>
         </div>
         <Collapse in={expandedComments[itinerary._id]}>
-          <div>
+          <div className="mt-3">
             <ItineraryComment itineraryId={itinerary._id} />
           </div>
         </Collapse>
@@ -395,31 +482,64 @@ const ViewEvents = () => {
     </Card>
   );
 
+  const filteredActivities = categoryFilter
+    ? handleSearch(activities, searchQuery).filter(activity => activity.category?.name === categoryFilter)
+    : handleSearch(activities, searchQuery);
+
+  const filteredHistoricalPlaces = handleSearch(historicalPlaces, searchQuery);
+  const filteredItineraries = handleSearch(
+    itineraries.filter(itinerary => itinerary.isActive === true),
+    searchQuery
+  );
+
+  if (loading) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </Container>
+    );
+  }
+
   return (
     <Container className="mt-5">
-      <Form.Control
-        type="text"
-        placeholder="Search by name, category, or tags"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="mb-4"
-      />
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>Available Events</h1>
+        <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center">
+          <FaWallet className="me-2 text-primary" size={24} />
+          <div>
+            <h4 className="mb-0">Wallet Balance: ${userWallet}</h4>
+            <small className="text-muted">Available for bookings</small>
+          </div>
+        </div>
+      </div>
 
-      <Form.Select
-        value={categoryFilter}
-        onChange={(e) => setCategoryFilter(e.target.value)}
-        className="mb-4"
-      >
-        <option value="">All Categories</option>
-        {categories.map((category) => (
-          <option key={category._id} value={category.name}>
-            {category.name}
-          </option>
-        ))}
-      </Form.Select>
+      <div className="mb-4 p-3 bg-white rounded shadow-sm">
+        <Form.Control
+          type="text"
+          placeholder="Search by name, category, or tags"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mb-3"
+        />
 
+        <Form.Select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
+          <option value="">All Categories</option>
+          {categories.map((category) => (
+            <option key={category._id} value={category.name}>
+              {category.name}
+            </option>
+          ))}
+        </Form.Select>
+      </div>
+
+      {/* Historical Places Section */}
       {filteredHistoricalPlaces.length > 0 && (
-        <>
+        <div className="mb-5">
           <h2 className="mb-4">Historical Places</h2>
           <Row>
             {filteredHistoricalPlaces.map((place) => (
@@ -428,12 +548,13 @@ const ViewEvents = () => {
               </Col>
             ))}
           </Row>
-        </>
+        </div>
       )}
 
+      {/* Activities Section */}
       {filteredActivities.length > 0 && (
-        <>
-          <h2 className="mb-4 mt-5">Activities</h2>
+        <div className="mb-5">
+          <h2 className="mb-4">Activities</h2>
           <Row>
             {filteredActivities.map((activity) => (
               <Col md={4} key={activity._id}>
@@ -441,12 +562,13 @@ const ViewEvents = () => {
               </Col>
             ))}
           </Row>
-        </>
+        </div>
       )}
 
+      {/* Itineraries Section */}
       {filteredItineraries.length > 0 && (
-        <>
-          <h2 className="mb-4 mt-5">Itineraries</h2>
+        <div className="mb-5">
+          <h2 className="mb-4">Itineraries</h2>
           <Row>
             {filteredItineraries.map((itinerary) => (
               <Col md={4} key={itinerary._id}>
@@ -454,14 +576,16 @@ const ViewEvents = () => {
               </Col>
             ))}
           </Row>
-        </>
+        </div>
       )}
 
       {filteredHistoricalPlaces.length === 0 && 
        filteredActivities.length === 0 && 
        filteredItineraries.length === 0 && (
-        <div className="text-center mt-5">
+        <div className="text-center mt-5 p-5 bg-light rounded">
+          <FaInfoCircle size={48} className="text-muted mb-3" />
           <h3>No events found matching your search criteria.</h3>
+          <p>Try adjusting your search or category filter.</p>
         </div>
       )}
     </Container>

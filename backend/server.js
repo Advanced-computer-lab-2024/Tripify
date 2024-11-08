@@ -59,7 +59,8 @@ app.use("/api/tags", tagRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/flights", flightRoutes); 
-app.use("/api/bookings", bookingRoutes);app.use("/api/transportation", transportationRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/transportation", transportationRoutes);
 
 // Tourist preferences routes
 const router = express.Router();

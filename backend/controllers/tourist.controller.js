@@ -215,3 +215,64 @@ export const getAllTourists = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+// Add money to wallet
+export const addToWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    tourist.wallet += amount;
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Amount added to wallet successfully",
+      currentBalance: tourist.wallet
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const deductFromWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+    if(tourist.wallet < amount){
+      return res.status(400).json({ message: "Insufficient funds" });
+    }else{
+      tourist.wallet -= amount;
+      await tourist.save();
+      res.status(200).json({
+        success: true,
+        message: "Amount deducted from wallet successfully",
+        currentBalance: tourist.wallet
+      });
+    }
+  }
+  catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
