@@ -1,3 +1,5 @@
+// middleware/auth.middleware.js
+
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
@@ -10,10 +12,11 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
+    req.user = decoded; // Attach decoded token data to req.user
+    next(); // Proceed to the next middleware or route handler
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized: Invalid token" });
+    console.error("Token verification failed:", error);
+    res.status(403).json({ message: "Unauthorized: Invalid token" });
   }
 };
 

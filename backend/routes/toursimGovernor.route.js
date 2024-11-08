@@ -8,6 +8,7 @@ import {
     getTourismGovernorProfile,
     getTourismGovernors,
     updateTourismGovernorProfile,
+    changePassword, // Import changePassword function
     getGovernorPlaces,
     createHistoricalPlace,
     updateHistoricalPlace,
@@ -19,16 +20,17 @@ const router = express.Router();
 // Public routes
 router.post('/register', registerTourismGovernor);
 router.post('/login', loginTourismGovernor);
-router.get('/', getTourismGovernors);
+router.get('/', getTourismGovernors); // List all tourism governors
 
 // Protected routes
-router.get('/profile', authMiddleware, getTourismGovernorProfile);
-router.put('/profile', authMiddleware, updateTourismGovernorProfile);
+router.get('/profile', authMiddleware, getTourismGovernorProfile); // Get logged-in governor's profile
+router.put('/profile', authMiddleware, updateTourismGovernorProfile); // Update logged-in governor's profile
+router.put('/change-password', authMiddleware, changePassword); // Change governor's password
 
 // Historical places routes
-router.get('/my-places', authMiddleware, getGovernorPlaces);
-router.post('/places', authMiddleware, createHistoricalPlace);
-router.put('/places/:id', authMiddleware, updateHistoricalPlace);
-router.delete('/places/:id', authMiddleware, deleteHistoricalPlace);
+router.get('/my-places', authMiddleware, getGovernorPlaces); // Get historical places created by the governor
+router.post('/places', authMiddleware, createHistoricalPlace); // Create a new historical place
+router.put('/places/:id', authMiddleware, updateHistoricalPlace); // Update a specific historical place
+router.delete('/places/:id', authMiddleware, deleteHistoricalPlace); // Delete a specific historical place
 
 export default router;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Container,
   Row,
@@ -18,8 +19,15 @@ const AuthPage = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track login status
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState("tourist");
+  const [changePasswordData, setChangePasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const navigate = useNavigate();
 
   const [loginData, setLoginData] = useState({
@@ -32,18 +40,15 @@ const AuthPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    // Tourist fields
     mobileNumber: "",
     nationality: "",
     dob: "",
     jobStatus: "student",
     jobTitle: "",
-    // Advertiser fields
     companyName: "",
     companyDescription: "",
     website: "",
     hotline: "",
-    // Tour guide fields
     yearsOfExperience: "",
   });
 
@@ -53,11 +58,7 @@ const AuthPage = () => {
     { value: "advertiser", label: "Advertiser", endpoint: "advertiser" },
     { value: "seller", label: "Seller", endpoint: "seller" },
     { value: "tourguide", label: "Tour Guide", endpoint: "tourguide" },
-    {
-      value: "governor",
-      label: "Tourism Governor",
-      endpoint: "tourismGovernor",
-    },
+    { value: "governor", label: "Tourism Governor", endpoint: "tourismGovernor" },
   ];
 
   const handleLoginChange = (e) => {
@@ -70,6 +71,13 @@ const AuthPage = () => {
   const handleRegisterChange = (e) => {
     setRegisterData({
       ...registerData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleChangePasswordChange = (e) => {
+    setChangePasswordData({
+      ...changePasswordData,
       [e.target.name]: e.target.value,
     });
   };
@@ -94,17 +102,14 @@ const AuthPage = () => {
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify(response.data[role.value] || response.data.tourist)
-        );
+        localStorage.setItem("user", JSON.stringify(response.data[role.value] || response.data.tourist));
         localStorage.setItem("userRole", role.value);
+        setIsAuthenticated(true); // Set authenticated to true upon successful login
         navigate(`/${role.value}`);
       }
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your credentials."
+        err.response?.data?.message || "Login failed. Please check your credentials."
       );
     } finally {
       setLoading(false);
@@ -126,7 +131,6 @@ const AuthPage = () => {
       const registrationData = { ...registerData };
       delete registrationData.confirmPassword;
 
-      // Add validation for tourist registration
       if (selectedRole === "tourist" && registerData.dob) {
         const today = new Date();
         const birthDate = new Date(registerData.dob);
@@ -145,11 +149,49 @@ const AuthPage = () => {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data[role.value]));
         localStorage.setItem("userRole", role.value);
+        setIsAuthenticated(true); // Automatically log in the user after registration
         navigate(`/${role.value}`);
       }
     } catch (err) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (changePasswordData.newPassword !== changePasswordData.confirmNewPassword) {
+      setError("New passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const role = localStorage.getItem("userRole");
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/${role}/profile/${loginData.username}/change-password`,
+        {
+          oldPassword: changePasswordData.oldPassword,
+          newPassword: changePasswordData.newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("Password changed successfully!");
+      setShowChangePassword(false);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Password change failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -329,6 +371,16 @@ const AuthPage = () => {
                     Register
                   </Nav.Link>
                 </Nav.Item>
+                {isAuthenticated && (
+                  <Nav.Item>
+                    <Nav.Link
+                      onClick={() => setShowChangePassword(!showChangePassword)}
+                      active={showChangePassword}
+                    >
+                      Change Password
+                    </Nav.Link>
+                  </Nav.Item>
+                )}
               </Nav>
 
               {activeTab === "login" ? (
@@ -353,6 +405,14 @@ const AuthPage = () => {
                       onChange={handleLoginChange}
                       required
                     />
+                    <div className="mt-2 text-end">
+                      <Link 
+                        to="auth/forgot-password" 
+                        className="text-primary text-decoration-none"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
                   </Form.Group>
 
                   <Button
@@ -379,74 +439,44 @@ const AuthPage = () => {
                   </Button>
                 </Form>
               ) : (
-                <Form onSubmit={handleRegister}>
+                <Form onSubmit={handleChangePassword}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Username</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="username"
-                      value={registerData.username}
-                      onChange={handleRegisterChange}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={registerData.email}
-                      onChange={handleRegisterChange}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Password</Form.Label>
+                    <Form.Label>Old Password</Form.Label>
                     <Form.Control
                       type="password"
-                      name="password"
-                      value={registerData.password}
-                      onChange={handleRegisterChange}
+                      name="oldPassword"
+                      value={changePasswordData.oldPassword}
+                      onChange={handleChangePasswordChange}
                       required
                     />
                   </Form.Group>
-
                   <Form.Group className="mb-3">
-                    <Form.Label>Confirm Password</Form.Label>
+                    <Form.Label>New Password</Form.Label>
                     <Form.Control
                       type="password"
-                      name="confirmPassword"
-                      value={registerData.confirmPassword}
-                      onChange={handleRegisterChange}
+                      name="newPassword"
+                      value={changePasswordData.newPassword}
+                      onChange={handleChangePasswordChange}
                       required
                     />
                   </Form.Group>
-
-                  {renderRoleSpecificFields()}
-
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirm New Password</Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="confirmNewPassword"
+                      value={changePasswordData.confirmNewPassword}
+                      onChange={handleChangePasswordChange}
+                      required
+                    />
+                  </Form.Group>
                   <Button
                     variant="primary"
                     type="submit"
                     className="w-100"
                     disabled={loading}
                   >
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        Registering...
-                      </>
-                    ) : (
-                      "Register"
-                    )}
+                    {loading ? "Changing Password..." : "Change Password"}
                   </Button>
                 </Form>
               )}
@@ -455,7 +485,6 @@ const AuthPage = () => {
         </Col>
       </Row>
 
-      {/* Role Selection Modal */}
       <Modal show={showRoleModal} onHide={() => setShowRoleModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Select Role</Modal.Title>
@@ -465,9 +494,7 @@ const AuthPage = () => {
             {roles.map((role) => (
               <Button
                 key={role.value}
-                variant={
-                  selectedRole === role.value ? "primary" : "outline-primary"
-                }
+                variant={selectedRole === role.value ? "primary" : "outline-primary"}
                 onClick={() => handleRoleSelect(role.value)}
                 className="text-start"
               >

@@ -8,7 +8,9 @@ import {
   deleteTourGuide,
   getProfileByToken,
   getTourGuideItineraries,
-  upload, // Add this import
+  changePassword, // Import changePassword function
+  resetPassword,   // Import resetPassword function
+  upload,
 } from "../controllers/tourGuide.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -19,6 +21,7 @@ router.post("/register", registerTourGuide);
 router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
 router.post("/upload", upload.single("file"));
+router.post("/reset-password", resetPassword); // Public route for resetting password
 
 // Protected routes (requires authentication)
 // Get own profile using token
@@ -32,6 +35,9 @@ router.get("/profile/:username", authMiddleware, getTourGuideByUsername);
 
 // Update own profile
 router.put("/profile/:username", authMiddleware, updateTourGuideAccount);
+
+// Change password
+router.put("/profile/:id/change-password", authMiddleware, changePassword);
 
 // Delete account
 router.delete("/profile/:username", authMiddleware, deleteTourGuide);

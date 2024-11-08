@@ -4,8 +4,9 @@ import {
     loginSeller, 
     getSellerProfile,
     updateSellerAccount,
+    changePassword,  // Import changePassword function
+    resetPassword,    // Import resetPassword function
     getAllSellers,
- 
     deleteSellerAccount 
 } from '../controllers/seller.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
@@ -15,6 +16,7 @@ const router = express.Router();
 // Public routes (no authentication required)
 router.post('/register', registerSeller);
 router.post('/login', loginSeller);
+router.post('/reset-password', resetPassword); // Public route for resetting password
 
 // Protected routes (requires authentication)
 // Get seller's own profile
@@ -22,6 +24,9 @@ router.get('/profile/:username', authMiddleware, getSellerProfile);
 
 // Update seller's own account
 router.put('/profile/:id', authMiddleware, updateSellerAccount);
+
+// Change password route
+router.put('/profile/:id/change-password', authMiddleware, changePassword);
 
 // Delete seller's own account
 router.delete('/profile/:id', authMiddleware, deleteSellerAccount);

@@ -1,3 +1,5 @@
+// touristController.js
+
 import Tourist from "../models/tourist.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -21,28 +23,14 @@ const generateToken = (tourist) => {
 // Register Tourist
 export const registerTourist = async (req, res) => {
   try {
-    const {
-      email,
-      username,
-      password,
-      mobileNumber,
-      nationality,
-      dob,
-      jobStatus,
-      jobTitle,
-    } = req.body;
+    const { email, username, password, mobileNumber, nationality, dob, jobStatus, jobTitle } = req.body;
 
     // Check if user already exists
-    const existingUser = await Tourist.findOne({
-      $or: [{ email }, { username }],
-    });
+    const existingUser = await Tourist.findOne({ $or: [{ email }, { username }] });
 
     if (existingUser) {
       return res.status(400).json({
-        message:
-          existingUser.email === email
-            ? "Email is already registered"
-            : "Username is already taken",
+        message: existingUser.email === email ? "Email is already registered" : "Username is already taken",
       });
     }
 
@@ -52,9 +40,7 @@ export const registerTourist = async (req, res) => {
     }
 
     if (jobStatus === "job" && !jobTitle) {
-      return res
-        .status(400)
-        .json({ message: "Job title is required if you are employed." });
+      return res.status(400).json({ message: "Job title is required if you are employed." });
     }
 
     const newTourist = new Tourist({
@@ -99,9 +85,7 @@ export const loginTourist = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const tourist =
-      (await Tourist.findOne({ username })) ||
-      (await Tourist.findOne({ email: username }));
+    const tourist = await Tourist.findOne({ $or: [{ username }, { email: username }] });
     if (!tourist) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
@@ -171,14 +155,7 @@ export const updateTouristProfile = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const {
-      email,
-      mobileNumber,
-      nationality,
-      jobStatus,
-      jobTitle,
-      preferences,
-    } = req.body;
+    const { email, mobileNumber, nationality, jobStatus, jobTitle, preferences } = req.body;
 
     const tourist = await Tourist.findOne({ username });
     if (!tourist) {
@@ -199,6 +176,37 @@ export const updateTouristProfile = async (req, res) => {
       message: "Tourist profile updated successfully",
       tourist,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Change Password
+export const changePassword = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    // Check authorization using the decoded token from middleware
+    if (req.user.username !== username) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const tourist = await Tourist.findOne({ username });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const isMatch = await tourist.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    tourist.password = newPassword; // Ensure password is hashed within the model or before saving
+    await tourist.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error });

@@ -42,6 +42,7 @@ import CreateTransportationListing from "./pages/advertiser/CreateTransportation
 import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints"; 
+import ForgotPassword from "./pages/auth/ForgetPassword";
 
 
 // Import Bootstrap CSS
@@ -59,6 +60,7 @@ function App() {
           {/* <Route path="/" element={<AuthPage />} /> */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           {/* Tourist Routes */}
           <Route path="/tourist" element={<TouristHomePage />} />
           <Route path="/tourist/register" element={<TouristRegister />} />
