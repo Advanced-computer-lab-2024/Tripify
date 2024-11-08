@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
-import { GridFsStorage } from "multer-gridfs-storage"; // Import GridFsStorage
-import multer from "multer"; // Import multer for file uploads
 
 dotenv.config();
 
@@ -22,32 +20,27 @@ const generateToken = (tourGuide) => {
   );
 };
 
-// Configure Multer with GridFS storage
-const storage = new GridFsStorage({
-  url: process.env.MONGODB_URI, // Use environment variable for MongoDB URI
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}-${file.originalname}`;
-      const fileInfo = {
-        filename: filename,
-        bucketName: "uploads", // Name of MongoDB collection for files
-      };
-      resolve(fileInfo);
-    });
-  },
-});
-
-export const upload = multer({ storage }); // Export the configured multer instance
-
 // Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
-  const { username, email, password, mobileNumber, yearsOfExperience, previousWork } = req.body;
+  const {
+    username,
+    email,
+    password,
+    mobileNumber,
+    yearsOfExperience,
+    previousWork,
+  } = req.body;
 
   try {
-    const existingTourGuide = await TourGuide.findOne({ $or: [{ email }, { username }] });
+    const existingTourGuide = await TourGuide.findOne({
+      $or: [{ email }, { username }],
+    });
     if (existingTourGuide) {
       return res.status(400).json({
-        message: existingTourGuide.email === email ? "Email already exists" : "Username already taken",
+        message:
+          existingTourGuide.email === email
+            ? "Email already exists"
+            : "Username already taken",
       });
     }
 
@@ -78,7 +71,9 @@ export const registerTourGuide = async (req, res) => {
     });
   } catch (error) {
     console.error("Error registering tour guide:", error);
-    return res.status(500).json({ message: "Error registering tour guide", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error registering tour guide", error: error.message });
   }
 };
 
@@ -87,7 +82,9 @@ export const loginTourGuide = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const tourGuide = await TourGuide.findOne({ $or: [{ username }, { email: username }] });
+    const tourGuide = await TourGuide.findOne({
+      $or: [{ username }, { email: username }],
+    });
     if (!tourGuide) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
@@ -113,7 +110,9 @@ export const loginTourGuide = async (req, res) => {
     });
   } catch (error) {
     console.error("Error logging in:", error);
-    return res.status(500).json({ message: "Error logging in", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error logging in", error: error.message });
   }
 };
 
@@ -122,7 +121,9 @@ export const resetPassword = async (req, res) => {
   const { identifier, newPassword } = req.body;
 
   try {
-    const tourGuide = await TourGuide.findOne({ $or: [{ email: identifier }, { username: identifier }] });
+    const tourGuide = await TourGuide.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
@@ -133,7 +134,9 @@ export const resetPassword = async (req, res) => {
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Error resetting password:", error);
-    return res.status(500).json({ message: "Error resetting password", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error resetting password", error: error.message });
   }
 };
 
@@ -153,14 +156,17 @@ export const getTourGuideByUsername = async (req, res) => {
     res.status(200).json(tourGuide);
   } catch (error) {
     console.error("Error fetching tour guide:", error);
-    return res.status(500).json({ message: "Error fetching tour guide", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error fetching tour guide", error: error.message });
   }
 };
 
 // Update Tour Guide Profile (Protected Route)
 export const updateTourGuideAccount = async (req, res) => {
   const { id } = req.params;
-  const { username, email, mobileNumber, yearsOfExperience, previousWork } = req.body;
+  const { username, email, mobileNumber, yearsOfExperience, previousWork } =
+    req.body;
 
   try {
     if (req.user._id !== id) {
@@ -175,7 +181,8 @@ export const updateTourGuideAccount = async (req, res) => {
     tourGuide.username = username || tourGuide.username;
     tourGuide.email = email || tourGuide.email;
     tourGuide.mobileNumber = mobileNumber || tourGuide.mobileNumber;
-    tourGuide.yearsOfExperience = yearsOfExperience || tourGuide.yearsOfExperience;
+    tourGuide.yearsOfExperience =
+      yearsOfExperience || tourGuide.yearsOfExperience;
 
     if (Array.isArray(previousWork)) {
       tourGuide.previousWork = previousWork.map((work) => ({
@@ -202,7 +209,9 @@ export const updateTourGuideAccount = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating tour guide:", error);
-    return res.status(500).json({ message: "Error updating tour guide", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error updating tour guide", error: error.message });
   }
 };
 
@@ -232,7 +241,9 @@ export const changePassword = async (req, res) => {
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
     console.error("Error updating password:", error);
-    res.status(500).json({ message: "Error updating password", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating password", error: error.message });
   }
 };
 
@@ -243,7 +254,9 @@ export const getAllTourGuides = async (req, res) => {
     res.status(200).json(tourGuides);
   } catch (error) {
     console.error("Error fetching tour guides:", error);
-    return res.status(500).json({ message: "Error fetching tour guides", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error fetching tour guides", error: error.message });
   }
 };
 
@@ -265,7 +278,9 @@ export const deleteTourGuide = async (req, res) => {
     return res.status(200).json({ message: "Tour guide deleted successfully" });
   } catch (error) {
     console.error("Error deleting tour guide:", error);
-    return res.status(500).json({ message: "Error deleting tour guide", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error deleting tour guide", error: error.message });
   }
 };
 
@@ -292,7 +307,9 @@ export const getProfileByToken = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching profile:", error);
-    res.status(500).json({ message: "Error fetching profile", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching profile", error: error.message });
   }
 };
 
