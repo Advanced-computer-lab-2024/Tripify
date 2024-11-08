@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
-import multer from "multer";
-import { GridFsStorage } from "multer-gridfs-storage";
 
 dotenv.config();
 
@@ -287,20 +285,3 @@ export const getTourGuideItineraries = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-const storage = new GridFsStorage({
-  url: "mongodb+srv://anastamer136:WiRCmFKq4hmIe7DG@cluster0.b5hrz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const filename = file.originalname;
-      const fileInfo = {
-        filename: filename,
-        bucketName: "uploads",
-      };
-      resolve(fileInfo);
-    });
-  },
-});
-
-// Configure Multer with GridFS storage
-export const upload = multer({ storage });

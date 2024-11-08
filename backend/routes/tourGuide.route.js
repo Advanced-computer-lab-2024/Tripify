@@ -8,7 +8,6 @@ import {
   deleteTourGuide,
   getProfileByToken,
   getTourGuideItineraries,
-  upload, // Add this import
 } from "../controllers/tourGuide.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -18,7 +17,6 @@ const router = express.Router();
 router.post("/register", registerTourGuide);
 router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
-router.post("/upload", upload.single("file"));
 
 // Protected routes (requires authentication)
 // Get own profile using token
