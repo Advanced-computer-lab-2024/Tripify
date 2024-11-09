@@ -36,6 +36,23 @@ const ViewEvents = () => {
   const [bookingItemId, setBookingItemId] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
   const [userWallet, setUserWallet] = useState(0);
+  const getUserSpecificKey = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return `tourist_${user?.username}`;
+  };
+
+  // Update storage function
+  const updateWalletStorage = (wallet) => {
+    const userKey = getUserSpecificKey();
+    const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
+    localStorage.setItem(
+      userKey,
+      JSON.stringify({
+        ...touristData,
+        wallet: wallet,
+      })
+    );
+  };
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -57,12 +74,11 @@ const ViewEvents = () => {
 
       if (response.data.tourist) {
         setUserWallet(response.data.tourist.wallet);
-        // Update localStorage with the latest wallet balance
-        const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+        // Use user-specific key
+        const userKey = getUserSpecificKey();
         localStorage.setItem(
-          "tourist",
+          userKey,
           JSON.stringify({
-            ...touristData,
             wallet: response.data.tourist.wallet,
           })
         );
@@ -71,24 +87,65 @@ const ViewEvents = () => {
       console.error("Error fetching user profile:", error);
     }
   };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get user's wallet balance from stored tourist data
-        const touristData = JSON.parse(localStorage.getItem("tourist"));
-        if (touristData && touristData.wallet !== undefined) {
-          setUserWallet(touristData.wallet);
+        // Get token and user information
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!token || !user) {
+          console.error("No token or user found");
+          setLoading(false);
+          return;
         }
 
+        // Fetch user's profile and wallet balance
+        try {
+          const profileResponse = await axios.get(
+            `http://localhost:5000/api/tourist/profile/${user.username}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (profileResponse.data.tourist) {
+            setUserWallet(profileResponse.data.tourist.wallet);
+            // Store in user-specific localStorage
+            const userKey = `tourist_${user.username}`;
+            localStorage.setItem(
+              userKey,
+              JSON.stringify({
+                ...JSON.parse(localStorage.getItem(userKey) || "{}"),
+                wallet: profileResponse.data.tourist.wallet,
+              })
+            );
+          }
+        } catch (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          // Don't return here, continue fetching other data
+        }
+
+        // Fetch all other required data in parallel
         const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
           await Promise.all([
-            axios.get("http://localhost:5000/api/historicalplace"),
-            axios.get("http://localhost:5000/api/activities"),
-            axios.get("http://localhost:5000/api/itineraries"),
-            axios.get("http://localhost:5000/api/activities/category"),
+            axios.get("http://localhost:5000/api/historicalplace", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/activities", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/itineraries", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/activities/category", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
           ]);
 
+        // Get user role and filter flagged items
         const userRole = localStorage.getItem("userRole");
         const isAdmin = userRole === "admin";
 
@@ -96,20 +153,61 @@ const ViewEvents = () => {
           return isAdmin ? items : items.filter((item) => !item.flagged);
         };
 
+        // Set state with fetched data
         setHistoricalPlaces(filterFlagged(historicalRes.data));
         setActivities(filterFlagged(activitiesRes.data));
         setItineraries(filterFlagged(itinerariesRes.data));
         setCategories(categoriesRes.data);
-
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
+        if (error.response?.status === 401) {
+          // Handle unauthorized access
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          // You might want to redirect to login page here
+        }
+      } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
+    // Cleanup function
+    const cleanup = () => {
+      setHistoricalPlaces([]);
+      setActivities([]);
+      setItineraries([]);
+      setCategories([]);
+      setUserWallet(0);
+      setLoading(true);
+    };
+
+    // Function to handle storage events (for multi-tab synchronization)
+    const handleStorageChange = (e) => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user && e.key === `tourist_${user.username}`) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          if (newData && typeof newData.wallet !== "undefined") {
+            setUserWallet(newData.wallet);
+          }
+        } catch (error) {
+          console.error("Error parsing storage data:", error);
+        }
+      }
+    };
+
+    // Add storage event listener
+    window.addEventListener("storage", handleStorageChange);
+
+    // Initial data fetch
+    fetchData();
+
+    // Cleanup on unmount
+    return () => {
+      cleanup();
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []); // Empty dependency array since we want this to run only once on mount
   const getUserId = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
