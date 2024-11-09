@@ -1,5 +1,6 @@
 import Advertiser from "../models/advertiser.model.js";
 import Activity from "../models/activity.model.js";
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -59,7 +60,6 @@ export const registerAdvertiser = async (req, res) => {
 
     await newAdvertiser.save();
 
-    // Generate token
     const token = generateToken(newAdvertiser);
 
     res.status(201).json({
@@ -99,7 +99,6 @@ export const loginAdvertiser = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // Generate token
     const token = generateToken(advertiser);
 
     res.status(200).json({
@@ -121,12 +120,56 @@ export const loginAdvertiser = async (req, res) => {
   }
 };
 
+// Reset Password for Advertiser
+export const resetPassword = async (req, res) => {
+  const { identifier, newPassword } = req.body;
+
+  try {
+    // Find advertiser by email or username
+    const advertiser = await Advertiser.findOne({ $or: [{ email: identifier }, { username: identifier }] });
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    // Hash and update the new password
+    advertiser.password = await bcrypt.hash(newPassword, 10);
+    await advertiser.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error resetting password", error: error.message });
+  }
+};
+
+// Change Password for Advertiser (Protected Route)
+export const changeAdvertiserPassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const advertiser = await Advertiser.findById(req.user._id);
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, advertiser.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    advertiser.password = await bcrypt.hash(newPassword, 10);
+    await advertiser.save();
+
+    return res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error changing password", error: error.message });
+  }
+};
+
 // Get Advertiser Profile (Protected Route)
 export const getAdvertiserByUsername = async (req, res) => {
   const { username } = req.params;
 
   try {
-    // Check authorization
     if (req.user.username !== username && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -157,7 +200,6 @@ export const updateAdvertiserByUsername = async (req, res) => {
   const updates = req.body;
 
   try {
-    // Check authorization
     if (req.user.username !== username) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -167,14 +209,12 @@ export const updateAdvertiserByUsername = async (req, res) => {
       return res.status(404).json({ message: "Advertiser not found" });
     }
 
-    // Update fields that are provided
     Object.keys(updates).forEach((update) => {
       if (update !== 'password' && update !== '_id') {
         advertiser[update] = updates[update];
       }
     });
 
-    // Handle password update separately
     if (updates.password) {
       advertiser.password = updates.password;
     }
@@ -204,7 +244,6 @@ export const deleteAdvertiser = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Check authorization
     if (req.user._id !== id && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -235,7 +274,6 @@ export const getAdvertiserById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Check authorization
     if (req.user._id !== id && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -254,6 +292,7 @@ export const getAdvertiserById = async (req, res) => {
   }
 };
 
+// Get Advertiser Activities (Protected Route)
 export const getAdvertiserActivities = async (req, res) => {
   try {
       const activities = await Activity.find({ createdBy: req.user._id })

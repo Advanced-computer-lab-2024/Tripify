@@ -62,6 +62,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/flights", flightRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/bookings", bookingRoutes);
+
 app.use("/api/transportation", transportationRoutes);
 
 // Tourist preferences routes

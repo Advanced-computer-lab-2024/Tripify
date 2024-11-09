@@ -1,3 +1,5 @@
+// touristController.js
+
 import Tourist from "../models/tourist.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -99,9 +101,9 @@ export const loginTourist = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const tourist =
-      (await Tourist.findOne({ username })) ||
-      (await Tourist.findOne({ email: username }));
+    const tourist = await Tourist.findOne({
+      $or: [{ username }, { email: username }],
+    });
     if (!tourist) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
@@ -205,6 +207,37 @@ export const updateTouristProfile = async (req, res) => {
   }
 };
 
+// Change Password
+export const changePassword = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    // Check authorization using the decoded token from middleware
+    if (req.user.username !== username) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const tourist = await Tourist.findOne({ username });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const isMatch = await tourist.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    tourist.password = newPassword; // Ensure password is hashed within the model or before saving
+    await tourist.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
 // Get all tourists
 export const getAllTourists = async (req, res) => {
   try {
@@ -213,5 +246,255 @@ export const getAllTourists = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Add money to wallet
+
+export const deductFromWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    console.log("Deduct from wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
+    if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      console.log("Tourist not found:", id);
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    console.log("Current wallet balance:", tourist.wallet);
+    console.log("Attempting to deduct:", amount);
+
+    if (tourist.wallet < amount) {
+      console.log("Insufficient funds:", {
+        balance: tourist.wallet,
+        required: amount,
+      });
+
+
+      return res.status(400).json({
+        message: "Insufficient funds",
+        currentBalance: tourist.wallet,
+        requiredAmount: amount,
+      });
+    }
+    // Calculate and add loyalty points based on level
+    const earnedPoints = calculateLoyaltyPoints(tourist.level, amount);
+    tourist.loyaltypoints += earnedPoints;
+    
+    // Update tourist level based on total points
+    tourist.level = determineTouristLevel(tourist.loyaltypoints);
+
+    tourist.wallet = tourist.wallet - amount;
+    await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
+
+    res.status(200).json({
+      success: true,
+      message: "Amount deducted from wallet successfully",
+      currentBalance: tourist.wallet,
+      earnedPoints,
+      totalPoints: tourist.loyaltypoints,
+      newLevel: tourist.level
+    });
+
+  } catch (error) {
+    console.error("Deduct from wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
+export const addToWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    console.log("Add to wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
+    if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      console.log("Tourist not found:", id);
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    tourist.wallet = (tourist.wallet || 0) + amount;
+    await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
+
+    res.status(200).json({
+      success: true,
+      message: "Amount added to wallet successfully",
+      currentBalance: tourist.wallet,
+      addedAmount: amount,
+    });
+  } catch (error) {
+    console.error("Add to wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
+export const refundToWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    console.log("Refund to wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
+    if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      console.log("Tourist not found:", id);
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    tourist.wallet = (tourist.wallet || 0) + amount;
+    await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
+
+    res.status(200).json({
+      success: true,
+      message: "Amount refunded to wallet successfully",
+      currentBalance: tourist.wallet,
+      refundedAmount: amount,
+    });
+  } catch (error) {
+    console.error("Refund to wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+const calculateLoyaltyPoints = (level, amount) => {
+  const multipliers = {
+    1: 0.5,
+    2: 1.0,
+    3: 1.5
+  };
+  return Math.floor(amount * (multipliers[level] || 0.5)); // Default to level 1 multiplier if level is invalid
+};
+
+// Helper function to determine level based on loyalty points
+const determineTouristLevel = (points) => {
+  if (points >= 500000) return 3;
+  if (points >= 100000) return 2;
+  return 1;
+};
+
+// Get tourist loyalty status
+export const getLoyaltyStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      loyaltyStatus: {
+        points: tourist.loyaltypoints,
+        level: tourist.level,
+        nextLevelPoints: tourist.level === 3 ? null : (tourist.level === 2 ? 500000 : 100000),
+        pointsToNextLevel: tourist.level === 3 ? 0 : (tourist.level === 2 ? 500000 - tourist.loyaltypoints : 100000 - tourist.loyaltypoints)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  } 
+};
+export const redeemLoyaltyPoints = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pointsToRedeem } = req.body;
+
+    if (!pointsToRedeem || pointsToRedeem < 10000 || pointsToRedeem % 10000 !== 0) {
+      return res.status(400).json({ 
+        message: "Points must be at least 10,000 and in multiples of 10,000" 
+      });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    if (tourist.loyaltypoints < pointsToRedeem) {
+      return res.status(400).json({ 
+        message: "Insufficient loyalty points",
+        currentPoints: tourist.loyaltypoints
+      });
+    }
+
+    // Calculate EGP (10000 points = 100 EGP)
+    const egpToAdd = (pointsToRedeem / 10000) * 100;
+
+    // Update tourist's points and wallet
+    tourist.loyaltypoints -= pointsToRedeem;
+    tourist.wallet += egpToAdd;
+    
+    // Update level based on new points total
+    tourist.level = determineTouristLevel(tourist.loyaltypoints);
+
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Points redeemed successfully",
+      redeemedPoints: pointsToRedeem,
+      addedAmount: egpToAdd,
+      currentBalance: tourist.wallet,
+      remainingPoints: tourist.loyaltypoints,
+      newLevel: tourist.level
+    });
+
+  } catch (error) {
+    console.error("Redeem points error:", error);
+    res.status(500).json({ 
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };

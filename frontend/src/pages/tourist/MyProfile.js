@@ -11,11 +11,77 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// Redeemption Points Component
+const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
+  const [pointsToRedeem, setPointsToRedeem] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleRedeem = async () => {
+    const points = parseInt(pointsToRedeem);
+    if (!points || points < 10000 || points % 10000 !== 0) {
+      setError('Points must be at least 10,000 and in multiples of 10,000');
+      return;
+    }
+
+    if (points > loyaltyPoints) {
+      setError('Insufficient points');
+      return;
+    }
+
+    try {
+      const userId = JSON.parse(localStorage.getItem("user"))._id;
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.post(
+        `http://localhost:5000/api/tourist/loyalty/redeem/${userId}`,
+        { pointsToRedeem: points },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setSuccess(`Successfully redeemed ${points} points for ${(points/10000) * 100} EGP`);
+        setPointsToRedeem('');
+        setError('');
+        if (onRedeem) onRedeem();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to redeem points');
+    }
+  };
+
+  return (
+    <div className="mt-4">
+      <h4>Redeem Loyalty Points</h4>
+      <p className="text-muted">10,000 points = 100 EGP</p>
+      <Form.Group className="mb-3">
+        <Form.Label>Points to Redeem</Form.Label>
+        <Form.Control
+          type="number"
+          value={pointsToRedeem}
+          onChange={(e) => setPointsToRedeem(e.target.value)}
+          placeholder="Enter points (minimum 10,000)"
+          step="10000"
+        />
+      </Form.Group>
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+      <Button onClick={handleRedeem} disabled={!pointsToRedeem}>
+        Redeem Points
+      </Button>
+    </div>
+  );
+};
+
 const MyProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [touristLevel, setTouristLevel] = useState("null");
   const navigate = useNavigate();
 
   // Get user data from localStorage
@@ -27,7 +93,13 @@ const MyProfile = () => {
       navigate("/login");
     } else {
       fetchProfile();
+      fetchLoyaltyStatus();
     }
+    const storedPoints = JSON.parse(localStorage.getItem("loyaltyPoints"));
+    const storedLevel = JSON.parse(localStorage.getItem("touristLevel"));
+
+    if (storedPoints !== null) setLoyaltyPoints(storedPoints);
+    if (storedLevel !== null) setTouristLevel(storedLevel);
   }, []);
 
   const fetchProfile = async () => {
@@ -36,7 +108,7 @@ const MyProfile = () => {
         `http://localhost:5000/api/tourist/profile/${user.username}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`, 
           },
         }
       );
@@ -47,6 +119,29 @@ const MyProfile = () => {
       console.error("Error fetching profile:", err);
       setError(err.response?.data?.message || "Failed to load profile");
       setLoading(false);
+    }
+  };
+
+  const fetchLoyaltyStatus = async () => {
+    try {
+      const userId = user._id;
+      if (!userId) return;
+
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setLoyaltyPoints(response.data.loyaltyStatus.points);
+        setTouristLevel(response.data.loyaltyStatus.level);
+      }
+    } catch (error) {
+      console.error("Error fetching loyalty status:", error);
     }
   };
 
@@ -207,7 +302,21 @@ const MyProfile = () => {
                     <Col sm={4}>
                       <strong>Wallet Balance:</strong>
                     </Col>
-                    <Col>{profile?.wallet}</Col>
+                    <Col>{profile?.wallet} EGP</Col>
+                  </Row>
+
+                  {/* Loyalty Information */}
+                  <Row className="mb-3">
+                    <Col sm={4}>
+                      <strong>Loyalty Points:</strong>
+                    </Col>
+                    <Col>{loyaltyPoints}</Col>
+                  </Row>
+                  <Row className="mb-3">
+                    <Col sm={4}>
+                      <strong>Tourist Level:</strong>
+                    </Col>
+                    <Col>{touristLevel}</Col>
                   </Row>
 
                   {/* Vacation Preferences */}
@@ -231,6 +340,15 @@ const MyProfile = () => {
                     <Col>{profile?.preferences?.tripTypes?.join(", ")}</Col>
                   </Row>
 
+                  {/* Loyalty Points Redemption */}
+                  <RedeemPoints 
+                    loyaltyPoints={loyaltyPoints}
+                    onRedeem={() => {
+                      fetchProfile();
+                      fetchLoyaltyStatus();
+                    }}
+                  />
+
                   <Button
                     variant="primary"
                     onClick={() => setIsEditing(true)}
@@ -247,9 +365,8 @@ const MyProfile = () => {
                     <Form.Control
                       type="email"
                       name="email"
-                      value={profile.email || ""}
+                      value={profile?.email || ""}
                       onChange={handleInputChange}
-                      required
                     />
                   </Form.Group>
 
@@ -258,9 +375,8 @@ const MyProfile = () => {
                     <Form.Control
                       type="text"
                       name="mobileNumber"
-                      value={profile.mobileNumber || ""}
+                      value={profile?.mobileNumber || ""}
                       onChange={handleInputChange}
-                      required
                     />
                   </Form.Group>
 
@@ -269,9 +385,8 @@ const MyProfile = () => {
                     <Form.Control
                       type="text"
                       name="nationality"
-                      value={profile.nationality || ""}
+                      value={profile?.nationality || ""}
                       onChange={handleInputChange}
-                      required
                     />
                   </Form.Group>
 
@@ -279,37 +394,35 @@ const MyProfile = () => {
                     <Form.Label>Job Status</Form.Label>
                     <Form.Select
                       name="jobStatus"
-                      value={profile.jobStatus || ""}
+                      value={profile?.jobStatus || ""}
                       onChange={handleInputChange}
-                      required
                     >
                       <option value="student">Student</option>
                       <option value="job">Employed</option>
                     </Form.Select>
                   </Form.Group>
 
-                  {profile.jobStatus === "job" && (
+                  {profile?.jobStatus === "job" && (
                     <Form.Group className="mb-3">
                       <Form.Label>Job Title</Form.Label>
                       <Form.Control
                         type="text"
                         name="jobTitle"
-                        value={profile.jobTitle || ""}
+                        value={profile?.jobTitle || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   )}
 
-                  {/* Preferences */}
+                  {/* Preferences Section */}
                   <h4 className="mt-4">Vacation Preferences</h4>
                   <Form.Group className="mb-3">
                     <Form.Label>Budget Limit</Form.Label>
                     <Form.Control
                       type="number"
                       name="budgetLimit"
-                      value={profile.preferences?.budgetLimit || ""}
-                      onChange={handlePreferencesChange}
+                      value={profile?.preferences?.budgetLimit || ""}
+                      onChange={(e) => handlePreferencesChange(e)}
                     />
                   </Form.Group>
 
@@ -318,41 +431,34 @@ const MyProfile = () => {
                     <Form.Control
                       type="text"
                       name="preferredDestinations"
-                      value={profile.preferences?.preferredDestinations || ""}
-                      onChange={handlePreferencesChange}
+                      value={profile?.preferences?.preferredDestinations || ""}
+                      onChange={(e) => handlePreferencesChange(e)}
                     />
                   </Form.Group>
 
                   <Form.Group className="mb-3">
                     <Form.Label>Trip Types</Form.Label>
-                    {[
-                      "historic",
-                      "beaches",
-                      "shopping",
-                      "family-friendly",
-                      "adventures",
-                      "luxury",
-                      "budget-friendly",
-                    ].map((tripType) => (
-                      <Form.Check
-                        key={tripType}
-                        type="checkbox"
-                        label={
-                          tripType.charAt(0).toUpperCase() + tripType.slice(1)
-                        }
-                        value={tripType}
-                        checked={
-                          profile.preferences?.tripTypes?.includes(tripType) ||
-                          false
-                        }
-                        onChange={handlePreferencesChange}
-                      />
-                    ))}
+                    <div>
+                      {["Adventure", "Relaxation", "Cultural", "Nature"].map(
+                        (type) => (
+                          <Form.Check
+                            key={type}
+                            type="checkbox"
+                            label={type}
+                            value={type}
+                            checked={profile?.preferences?.tripTypes?.includes(
+                              type
+                            )}
+                            onChange={(e) => handlePreferencesChange(e)}
+                          />
+                        )
+                      )}
+                    </div>
                   </Form.Group>
 
-                  <div className="d-flex gap-2">
-                    <Button variant="primary" type="submit" disabled={loading}>
-                      {loading ? "Saving..." : "Save Changes"}
+                  <div className="mt-4">
+                    <Button type="submit" variant="primary" className="me-2">
+                      Save Changes
                     </Button>
                     <Button
                       variant="secondary"

@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
-import multer from "multer";
-import { GridFsStorage } from "multer-gridfs-storage";
 
 dotenv.config();
 
@@ -34,11 +32,9 @@ export const registerTourGuide = async (req, res) => {
   } = req.body;
 
   try {
-    // Check if the email or username already exists
     const existingTourGuide = await TourGuide.findOne({
       $or: [{ email }, { username }],
     });
-
     if (existingTourGuide) {
       return res.status(400).json({
         message:
@@ -48,11 +44,10 @@ export const registerTourGuide = async (req, res) => {
       });
     }
 
-    // Create a new tour guide
     const newTourGuide = new TourGuide({
       username,
       email,
-      password, // Will be hashed by the model's pre-save hook
+      password: await bcrypt.hash(password, 10),
       mobileNumber,
       yearsOfExperience,
       previousWork,
@@ -60,7 +55,6 @@ export const registerTourGuide = async (req, res) => {
 
     await newTourGuide.save();
 
-    // Generate token
     const token = generateToken(newTourGuide);
 
     return res.status(201).json({
@@ -88,25 +82,20 @@ export const loginTourGuide = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Check if the tour guide exists by username or email
     const tourGuide = await TourGuide.findOne({
       $or: [{ username }, { email: username }],
     });
-
     if (!tourGuide) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
 
-    // Compare passwords
-    const isMatch = await tourGuide.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, tourGuide.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // Generate token
     const token = generateToken(tourGuide);
 
-    // Successful login
     return res.status(200).json({
       message: "Login successful",
       tourGuide: {
@@ -127,12 +116,35 @@ export const loginTourGuide = async (req, res) => {
   }
 };
 
-// Get Tour Guide Profile (Protected Route)
+// Reset Password for Tour Guide
+export const resetPassword = async (req, res) => {
+  const { identifier, newPassword } = req.body;
+
+  try {
+    const tourGuide = await TourGuide.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour guide not found" });
+    }
+
+    tourGuide.password = await bcrypt.hash(newPassword, 10);
+    await tourGuide.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res
+      .status(500)
+      .json({ message: "Error resetting password", error: error.message });
+  }
+};
+
+// Get Tour Guide Profile by Username (Protected Route)
 export const getTourGuideByUsername = async (req, res) => {
   const { username } = req.params;
 
   try {
-    // Check authorization
     if (req.user.username !== username) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -157,7 +169,6 @@ export const updateTourGuideAccount = async (req, res) => {
     req.body;
 
   try {
-    // Check authorization
     if (req.user._id !== id) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -167,7 +178,6 @@ export const updateTourGuideAccount = async (req, res) => {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    // Update fields
     tourGuide.username = username || tourGuide.username;
     tourGuide.email = email || tourGuide.email;
     tourGuide.mobileNumber = mobileNumber || tourGuide.mobileNumber;
@@ -205,7 +215,39 @@ export const updateTourGuideAccount = async (req, res) => {
   }
 };
 
-// Get All Tour Guides (Optional: Could be admin-only route)
+// Change Password (Protected Route)
+export const changePassword = async (req, res) => {
+  const { id } = req.params;
+  const { oldPassword, newPassword } = req.body;
+
+  try {
+    if (req.user._id !== id) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const tourGuide = await TourGuide.findById(id);
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour guide not found" });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, tourGuide.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect old password" });
+    }
+
+    tourGuide.password = await bcrypt.hash(newPassword, 10);
+    await tourGuide.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating password", error: error.message });
+  }
+};
+
+// Get All Tour Guides
 export const getAllTourGuides = async (req, res) => {
   try {
     const tourGuides = await TourGuide.find().select("-password");
@@ -223,7 +265,6 @@ export const deleteTourGuide = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Check authorization
     if (req.user._id !== id) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -243,9 +284,9 @@ export const deleteTourGuide = async (req, res) => {
   }
 };
 
+// Get Tour Guide Profile by Token (Protected Route)
 export const getProfileByToken = async (req, res) => {
   try {
-    // req.user contains the decoded token information from authMiddleware
     const { _id } = req.user;
 
     const tourGuide = await TourGuide.findById(_id).select("-password");
@@ -272,35 +313,16 @@ export const getProfileByToken = async (req, res) => {
   }
 };
 
+// Get Tour Guide Itineraries (Protected Route)
 export const getTourGuideItineraries = async (req, res) => {
   try {
-    console.log("Fetching itineraries for tour guide:", req.user._id);
-
     const itineraries = await Itinerary.find({ createdBy: req.user._id })
       .populate("preferenceTags")
       .sort({ createdAt: -1 });
 
-    console.log("Found itineraries:", itineraries.length);
     res.json(itineraries);
   } catch (error) {
     console.error("Error fetching tour guide itineraries:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
-const storage = new GridFsStorage({
-  url: "mongodb+srv://anastamer136:WiRCmFKq4hmIe7DG@cluster0.b5hrz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const filename = file.originalname;
-      const fileInfo = {
-        filename: filename,
-        bucketName: "uploads",
-      };
-      resolve(fileInfo);
-    });
-  },
-});
-
-// Configure Multer with GridFS storage
-export const upload = multer({ storage });
