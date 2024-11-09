@@ -40,7 +40,8 @@ import ContentModeration from "./pages/admin/ContentModeration";
 import CreateTransportationListing from "./pages/advertiser/CreateTransportationListing";
 import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
-import TouristComplaints from "./pages/tourist/TouristComplaints"; 
+import TouristComplaints from "./pages/tourist/TouristComplaints";
+import HotelBooking from "./pages/tourist/HotelBooking";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -58,41 +59,87 @@ function App() {
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
-          <Route path="/tourist/my-complaints" element={<TouristComplaints />} />
-          <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
-          <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
+          <Route
+            path="/tourist/my-complaints"
+            element={<TouristComplaints />}
+          />
+          <Route
+            path="/tourist/itinerary-filter"
+            element={<ItineraryFilter />}
+          />
+          <Route
+            path="/tourist/filtered-activities"
+            element={<FilteredActivities />}
+          />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
           <Route path="/tourist/complaints" element={<CreateComplaint />} />
           <Route path="/tourist/book-flight" element={<FlightBooking />} />
+          <Route path="/tourist/book-hotel" element={<HotelBooking />} />
           <Route path="/tourist/view-bookings" element={<ViewBookings />} />
-          <Route path="/tourist/book-transportation" element={<BookTransportation />} />
-          
+          <Route
+            path="/tourist/book-transportation"
+            element={<BookTransportation />}
+          />
+
           {/* Tour Guide Routes */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
-          <Route path="/tourguide/itinerary-management" element={<ItineraryManagement />} />
-          <Route path="/tourguide/MyItineraries" element={<TourGuideItineraries />} />
+          <Route
+            path="/tourguide/itinerary-management"
+            element={<ItineraryManagement />}
+          />
+          <Route
+            path="/tourguide/MyItineraries"
+            element={<TourGuideItineraries />}
+          />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
-          <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
-          <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
+          <Route
+            path="/admin/activity-categories"
+            element={<ActivityCategoryManagement />}
+          />
+          <Route
+            path="/admin/preference-tags"
+            element={<PreferenceTagManagement />}
+          />
           <Route path="/admin/complaints" element={<Complaints />} />
-          <Route path="/admin/content-moderation" element={<ContentModeration />} />
+          <Route
+            path="/admin/content-moderation"
+            element={<ContentModeration />}
+          />
 
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
-          <Route path="/advertiser/create-activity" element={<CreateActivity />} />
-          <Route path="/advertiser/view-activities" element={<ActivityList />} />
+          <Route
+            path="/advertiser/create-activity"
+            element={<CreateActivity />}
+          />
+          <Route
+            path="/advertiser/view-activities"
+            element={<ActivityList />}
+          />
           <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
-          <Route path="/advertiser/activities" element={<AdvertiserActivities />} />
-          <Route path="/advertiser/create-transportation" element={<CreateTransportationListing />} />
-          <Route path="/advertiser/transportation" element={<ManageTransportations />} />
+          <Route
+            path="/advertiser/activities"
+            element={<AdvertiserActivities />}
+          />
+          <Route
+            path="/advertiser/create-transportation"
+            element={<CreateTransportationListing />}
+          />
+          <Route
+            path="/advertiser/transportation"
+            element={<ManageTransportations />}
+          />
 
           {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
-          <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
+          <Route
+            path="/governor/my-places"
+            element={<GovernorCreatedPlaces />}
+          />
           <Route path="/governor/tag-management" element={<TagManagement />} />
 
           {/* Seller Routes */}
@@ -105,7 +152,10 @@ function App() {
           <Route path="/register/tourist" element={<TouristRegister />} />
           <Route path="/register/tourguide" element={<TourGuideReg />} />
           <Route path="/register/advertiser" element={<AdvertiserReg />} />
-          <Route path="/register/tourism-governor" element={<TourismGovReg />} />
+          <Route
+            path="/register/tourism-governor"
+            element={<TourismGovReg />}
+          />
           <Route path="/register/seller" element={<SellerReg />} />
         </Routes>
       </Router>
