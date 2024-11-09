@@ -10,7 +10,7 @@ import {
   Col,
 } from "react-bootstrap";
 import { Star, StarFill } from "react-bootstrap-icons";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 
 const TourGuideRating = () => {
   const [bookings, setBookings] = useState([]);
@@ -22,53 +22,69 @@ const TourGuideRating = () => {
   const [submitStatus, setSubmitStatus] = useState({});
 
   useEffect(() => {
-    fetchAttendedBookings();
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchAttendedBookings();
+    } else {
+      setError("No authentication token found");
+      setLoading(false);
+    }
   }, []);
 
   const fetchAttendedBookings = async () => {
     try {
-      const token = localStorage.getItem("jwt");
+      const token = localStorage.getItem("token");
+      console.log("Token retrieved:", token); // Debug: Confirm token retrieval
       if (!token) {
         throw new Error("No authentication token found");
       }
-
+  
+      const userId = getUserIdFromToken(token);
+      console.log("User ID from token:", userId); // Debug: Confirm extracted userId
+  
       const response = await fetch(
-        `/api/bookings/user/${getUserIdFromToken(token)}`,
+        `http://localhost:5000/api/bookings/user/${userId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
+  
       if (!response.ok) throw new Error("Failed to fetch bookings");
-
+  
       const data = await response.json();
-
-      // Filter for attended itinerary bookings that haven't been rated
+      console.log("Fetched bookings data:", data);
+  
+      // Your filtering logic here
       const attendedBookings = data.data.filter(
         (booking) =>
           booking.status === "attended" &&
           booking.bookingType === "Itinerary" &&
           !booking.rating
       );
-
+  
       setBookings(attendedBookings);
     } catch (err) {
+      console.error("Error fetching bookings:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+  
 
   const getUserIdFromToken = (token) => {
     try {
-      const decodedToken = jwtDecode(token);
-      return decodedToken.id;
+      const decodedToken = jwtDecode(token); // Ensure jwtDecode is correctly imported and used
+      console.log("Decoded token:", decodedToken); // Debug: check the structure of decoded token
+      return decodedToken.id; // Make sure 'id' matches the actual key for userId in your token payload
     } catch (err) {
+      console.error("Error decoding token:", err);
       throw new Error("Invalid token");
     }
   };
+  
 
   const handleMouseEnter = (bookingId, rating) => {
     setHoverRating((prev) => ({
@@ -100,7 +116,7 @@ const TourGuideRating = () => {
 
   const handleSubmitRating = async (bookingId) => {
     try {
-      const token = localStorage.getItem("jwt");
+      const token = localStorage.getItem("token");
       const rating = activeRating[bookingId];
       const review = reviews[bookingId] || "";
 
@@ -108,7 +124,7 @@ const TourGuideRating = () => {
         throw new Error("Please select a rating");
       }
 
-      const response = await fetch(`/api/bookings/${bookingId}/rating`, {
+      const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/rating`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +143,6 @@ const TourGuideRating = () => {
         },
       }));
 
-      // Remove the rated booking from the list
       setBookings((prev) =>
         prev.filter((booking) => booking._id !== bookingId)
       );
@@ -145,10 +160,7 @@ const TourGuideRating = () => {
         className="d-flex justify-content-center align-items-center"
         style={{ minHeight: "200px" }}
       >
-        <Spinner
-          animation="border"
-          role="status"
-        >
+        <Spinner animation="border" role="status">
           <span className="visually-hidden">Loading...</span>
         </Spinner>
       </Container>
@@ -200,11 +212,7 @@ const TourGuideRating = () => {
       <h2 className="mb-4">Rate Your Tour Guides</h2>
       <Row>
         {bookings.map((booking) => (
-          <Col
-            key={booking._id}
-            xs={12}
-            className="mb-4"
-          >
+          <Col key={booking._id} xs={12} className="mb-4">
             <Card>
               <Card.Header>
                 <div className="d-flex justify-content-between align-items-center">
