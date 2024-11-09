@@ -7,20 +7,32 @@ import {
   getTouristProfile,
   updateTouristProfile,
   getAllTourists,
-  changePassword, // Import the changePassword function
+  changePassword,
+  addToWallet,
+  deductFromWallet,
+  refundToWallet,
 } from "../controllers/tourist.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js"; // Correct import path for auth middleware
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 // Public routes
 router.post("/register", registerTourist);
 router.post("/login", loginTourist);
-router.get("/", getAllTourists); // Get all tourists
+router.get("/", getAllTourists);
 
 // Protected routes (requires authentication)
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
-router.put("/profile/:username/change-password", authMiddleware, changePassword); // Change password route
+router.put(
+  "/profile/:username/change-password",
+  authMiddleware,
+  changePassword
+);
+
+// Wallet routes
+router.post("/wallet/add/:id", authMiddleware, addToWallet);
+router.post("/wallet/deduct/:id", authMiddleware, deductFromWallet);
+router.post("/wallet/refund/:id", authMiddleware, refundToWallet);
 
 export default router;

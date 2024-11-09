@@ -154,9 +154,17 @@ const ViewEvents = () => {
 
     // Get item price and check balance
     const bookingCost = getItemPrice(item, type);
+    console.log("Booking attempt:", {
+      userId,
+      itemId: item._id,
+      type,
+      cost: bookingCost,
+      currentWallet: userWallet,
+    });
+
     if (userWallet < bookingCost) {
       alert(
-        `Insufficient funds in your wallet. You need $${bookingCost} but have $${userWallet}`
+        `Insufficient funds in your wallet. Required: $${bookingCost}, Available: $${userWallet}`
       );
       return;
     }
@@ -187,9 +195,17 @@ const ViewEvents = () => {
       if (bookingResponse.data.success) {
         try {
           // Then deduct from wallet
+          console.log("Attempting wallet deduction:", {
+            userId,
+            amount: bookingCost,
+          });
+
           const deductResponse = await axios.post(
             `http://localhost:5000/api/tourist/wallet/deduct/${userId}`,
-            { amount: bookingCost },
+            {
+              amount: bookingCost,
+              bookingId: bookingResponse.data.data._id,
+            },
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -215,32 +231,34 @@ const ViewEvents = () => {
             alert(
               "Booking successful! Amount has been deducted from your wallet."
             );
-            await fetchUserProfile(); // Refresh user profile to get updated wallet balance
-          } else {
-            // If payment fails, cancel the booking
-            await cancelBooking(bookingResponse.data.data._id);
-            alert("Booking failed: Payment could not be processed");
+            await fetchUserProfile(); // Refresh user profile
           }
         } catch (paymentError) {
           console.error("Payment error:", paymentError);
+          console.log("Payment error details:", {
+            status: paymentError.response?.status,
+            data: paymentError.response?.data,
+          });
+
+          // If payment fails, cancel the booking
           await cancelBooking(bookingResponse.data.data._id);
           alert(
             paymentError.response?.data?.message ||
               "Payment failed. Booking has been cancelled."
           );
         }
-      } else {
-        alert(
-          bookingResponse.data.message || "Booking failed. Please try again."
-        );
       }
     } catch (error) {
       console.error("Booking error:", error);
+      console.log("Booking error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       alert(error.response?.data?.message || "Error creating booking");
     } finally {
       setBookingLoading(false);
       setBookingItemId(null);
-      setBookingDate(""); // Reset booking date after completion
+      setBookingDate("");
     }
   };
   const cancelBooking = async (bookingId) => {

@@ -23,14 +23,28 @@ const generateToken = (tourist) => {
 // Register Tourist
 export const registerTourist = async (req, res) => {
   try {
-    const { email, username, password, mobileNumber, nationality, dob, jobStatus, jobTitle } = req.body;
+    const {
+      email,
+      username,
+      password,
+      mobileNumber,
+      nationality,
+      dob,
+      jobStatus,
+      jobTitle,
+    } = req.body;
 
     // Check if user already exists
-    const existingUser = await Tourist.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await Tourist.findOne({
+      $or: [{ email }, { username }],
+    });
 
     if (existingUser) {
       return res.status(400).json({
-        message: existingUser.email === email ? "Email is already registered" : "Username is already taken",
+        message:
+          existingUser.email === email
+            ? "Email is already registered"
+            : "Username is already taken",
       });
     }
 
@@ -40,7 +54,9 @@ export const registerTourist = async (req, res) => {
     }
 
     if (jobStatus === "job" && !jobTitle) {
-      return res.status(400).json({ message: "Job title is required if you are employed." });
+      return res
+        .status(400)
+        .json({ message: "Job title is required if you are employed." });
     }
 
     const newTourist = new Tourist({
@@ -85,7 +101,9 @@ export const loginTourist = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const tourist = await Tourist.findOne({ $or: [{ username }, { email: username }] });
+    const tourist = await Tourist.findOne({
+      $or: [{ username }, { email: username }],
+    });
     if (!tourist) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
@@ -155,7 +173,14 @@ export const updateTouristProfile = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const { email, mobileNumber, nationality, jobStatus, jobTitle, preferences } = req.body;
+    const {
+      email,
+      mobileNumber,
+      nationality,
+      jobStatus,
+      jobTitle,
+      preferences,
+    } = req.body;
 
     const tourist = await Tourist.findOne({ username });
     if (!tourist) {
@@ -225,90 +250,147 @@ export const getAllTourists = async (req, res) => {
 };
 
 // Add money to wallet
-export const addToWallet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { amount } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const tourist = await Tourist.findById(id);
-    if (!tourist) {
-      return res.status(404).json({ message: "Tourist not found" });
-    }
-
-    tourist.wallet += amount;
-    await tourist.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Amount added to wallet successfully",
-      currentBalance: tourist.wallet,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
 
 export const deductFromWallet = async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
 
+    console.log("Deduct from wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
     if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
       return res.status(400).json({ message: "Invalid amount" });
     }
 
     const tourist = await Tourist.findById(id);
     if (!tourist) {
+      console.log("Tourist not found:", id);
       return res.status(404).json({ message: "Tourist not found" });
     }
+
+    console.log("Current wallet balance:", tourist.wallet);
+    console.log("Attempting to deduct:", amount);
+
     if (tourist.wallet < amount) {
-      return res.status(400).json({ message: "Insufficient funds" });
-    } else {
-      tourist.wallet -= amount;
-      await tourist.save();
-      res.status(200).json({
-        success: true,
-        message: "Amount deducted from wallet successfully",
+      console.log("Insufficient funds:", {
+        balance: tourist.wallet,
+        required: amount,
+      });
+      return res.status(400).json({
+        message: "Insufficient funds",
         currentBalance: tourist.wallet,
+        requiredAmount: amount,
       });
     }
+
+    tourist.wallet = tourist.wallet - amount;
+    await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
+
+    res.status(200).json({
+      success: true,
+      message: "Amount deducted from wallet successfully",
+      currentBalance: tourist.wallet,
+      deductedAmount: amount,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error", error });
+    console.error("Deduct from wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
 
-// Add this to your tourist.controller.js
+export const addToWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    console.log("Add to wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
+    if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      console.log("Tourist not found:", id);
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    tourist.wallet = (tourist.wallet || 0) + amount;
+    await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
+
+    res.status(200).json({
+      success: true,
+      message: "Amount added to wallet successfully",
+      currentBalance: tourist.wallet,
+      addedAmount: amount,
+    });
+  } catch (error) {
+    console.error("Add to wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
 
 export const refundToWallet = async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
 
+    console.log("Refund to wallet request:", {
+      userId: id,
+      amount,
+      body: req.body,
+    });
+
     if (!amount || amount <= 0) {
+      console.log("Invalid amount:", amount);
       return res.status(400).json({ message: "Invalid amount" });
     }
 
     const tourist = await Tourist.findById(id);
     if (!tourist) {
+      console.log("Tourist not found:", id);
       return res.status(404).json({ message: "Tourist not found" });
     }
 
-    tourist.wallet += amount;
+    tourist.wallet = (tourist.wallet || 0) + amount;
     await tourist.save();
+
+    console.log("New wallet balance:", tourist.wallet);
 
     res.status(200).json({
       success: true,
       message: "Amount refunded to wallet successfully",
       currentBalance: tourist.wallet,
+      refundedAmount: amount,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error", error });
+    console.error("Refund to wallet error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
