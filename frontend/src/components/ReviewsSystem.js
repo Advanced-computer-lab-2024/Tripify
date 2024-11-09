@@ -1,255 +1,239 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import {
-  Container,
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Card, 
+  Button, 
+  Form, 
+  Alert, 
+  Spinner,
   Row,
-  Col,
-  Card,
-  Button,
-  Alert,
-  Form,
-  Modal
-} from "react-bootstrap";
-import { FaStar } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+  Col
+} from 'react-bootstrap';
+import { Star, StarFill } from 'react-bootstrap-icons';
 
-const API_URL = "http://localhost:5000/api";
-
-const ReviewsSystem = ({ reviewType }) => {
-  const [items, setItems] = useState([]);
+const TourGuideRating = () => {
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [authToken, setAuthToken] = useState(null);
+  const [activeRating, setActiveRating] = useState({});
+  const [hoverRating, setHoverRating] = useState({});
+  const [reviews, setReviews] = useState({});
+  const [submitStatus, setSubmitStatus] = useState({});
 
-  const navigate = useNavigate();
-
-  // Separate useEffect for token initialization
   useEffect(() => {
+    fetchAttendedBookings();
+  }, []);
+
+  const fetchAttendedBookings = async () => {
     try {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        navigate('/login');
-        return;
-      }
-      
-      const parsedUserData = JSON.parse(userData);
-      if (!parsedUserData.token) {
-        console.error('No token found in user data');
-        navigate('/login');
-        return;
-      }
-      
-      setAuthToken(parsedUserData.token);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      navigate('/login');
-    }
-  }, [navigate]);
-
-  // Only fetch items when we have a valid token
-  useEffect(() => {
-    if (authToken) {
-      fetchReviewableItems();
-    }
-  }, [reviewType, authToken]);
-
-  const fetchReviewableItems = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (!authToken) {
-        throw new Error('No authentication token available');
+      const token = localStorage.getItem('jwt');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
-      const response = await axios.get(
-        `${API_URL}/reviews/completed/${reviewType.toLowerCase()}s`,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
-          }
+      const response = await fetch(`/api/bookings/user/${getUserIdFromToken(token)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+
+      const data = await response.json();
+      
+      // Filter for attended itinerary bookings that haven't been rated
+      const attendedBookings = data.data.filter(booking => 
+        booking.status === 'attended' && 
+        booking.bookingType === 'Itinerary' &&
+        !booking.rating
       );
 
-      if (response.data.success) {
-        setItems(response.data.data || []);
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch data');
-      }
+      setBookings(attendedBookings);
     } catch (err) {
-      console.error('Error fetching items:', err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem('user');
-        navigate('/login');
-        return;
-      }
-      setError(err.message || 'An error occurred while fetching data');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
+  const getUserIdFromToken = (token) => {
     try {
-      if (!authToken) {
-        throw new Error('No authentication token available');
-      }
-
-      const formData = new FormData(e.target);
-      
-      const reviewData = {
-        entityId: selectedItem._id,
-        reviewType: reviewType.toLowerCase(),
-        rating: parseInt(formData.get('rating')),
-        comment: formData.get('comment')
-      };
-
-      const response = await axios.post(
-        `${API_URL}/reviews`,
-        reviewData,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setShowReviewModal(false);
-        fetchReviewableItems();
-        alert('Review submitted successfully!');
-      } else {
-        throw new Error(response.data.message || 'Failed to submit review');
-      }
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id;
     } catch (err) {
-      alert(err.message || 'Failed to submit review');
-      console.error('Review submission error:', err);
-      if (err.response?.status === 401) {
-        navigate('/login');
-      }
+      throw new Error('Invalid token');
     }
   };
 
-  const renderRating = (rating) => {
-    return [...Array(5)].map((_, index) => (
-      <FaStar
-        key={index}
-        color={index < rating ? "#ffc107" : "#e4e5e9"}
-        className="me-1"
-      />
-    ));
+  const handleMouseEnter = (bookingId, rating) => {
+    setHoverRating(prev => ({
+      ...prev,
+      [bookingId]: rating
+    }));
+  };
+
+  const handleMouseLeave = (bookingId) => {
+    setHoverRating(prev => ({
+      ...prev,
+      [bookingId]: 0
+    }));
+  };
+
+  const handleRatingClick = (bookingId, rating) => {
+    setActiveRating(prev => ({
+      ...prev,
+      [bookingId]: rating
+    }));
+  };
+
+  const handleReviewChange = (bookingId, review) => {
+    setReviews(prev => ({
+      ...prev,
+      [bookingId]: review
+    }));
+  };
+
+  const handleSubmitRating = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('jwt');
+      const rating = activeRating[bookingId];
+      const review = reviews[bookingId] || '';
+
+      if (!rating) {
+        throw new Error('Please select a rating');
+      }
+
+      const response = await fetch(`/api/bookings/${bookingId}/rating`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating, review })
+      });
+
+      if (!response.ok) throw new Error('Failed to submit rating');
+
+      setSubmitStatus(prev => ({
+        ...prev,
+        [bookingId]: { success: true, message: 'Rating submitted successfully!' }
+      }));
+
+      // Remove the rated booking from the list
+      setBookings(prev => prev.filter(booking => booking._id !== bookingId));
+
+    } catch (err) {
+      setSubmitStatus(prev => ({
+        ...prev,
+        [bookingId]: { success: false, message: err.message }
+      }));
+    }
   };
 
   if (loading) {
     return (
-      <Container className="py-5">
-        <Alert variant="info">Loading {reviewType}s...</Alert>
+      <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
       </Container>
     );
   }
 
   if (error) {
     return (
-      <Container className="py-5">
-        <Alert variant="danger">
-          {error}
-          <Button
-            variant="outline-danger"
-            className="ms-3"
-            onClick={fetchReviewableItems}
-          >
-            Retry
-          </Button>
-        </Alert>
+      <Container className="mt-4">
+        <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
 
+  if (!bookings.length) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="info">No unrated attended itineraries found.</Alert>
+      </Container>
+    );
+  }
+
+  const StarRating = ({ bookingId }) => {
+    const rating = hoverRating[bookingId] || activeRating[bookingId] || 0;
+    
+    return (
+      <div className="d-flex gap-1 mb-3">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <div
+            key={star}
+            onMouseEnter={() => handleMouseEnter(bookingId, star)}
+            onMouseLeave={() => handleMouseLeave(bookingId)}
+            onClick={() => handleRatingClick(bookingId, star)}
+            style={{ cursor: 'pointer', fontSize: '1.5rem' }}
+          >
+            {star <= rating ? (
+              <StarFill className="text-warning" />
+            ) : (
+              <Star className="text-warning" />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <Container className="py-5">
-      <h2 className="mb-4 text-center">{reviewType} Reviews</h2>
-      
-      <Row className="g-4">
-        {items.length > 0 ? (
-          items.map((item) => (
-            <Col key={item._id} md={6} lg={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <Card.Title>{item.name || item.title}</Card.Title>
-                  <div className="mb-3">
-                    {renderRating(item.averageRating || 0)}
-                    <small className="text-muted ms-2">
-                      ({item.totalReviews || 0} reviews)
+    <Container className="py-4">
+      <h2 className="mb-4">Rate Your Tour Guides</h2>
+      <Row>
+        {bookings.map(booking => (
+          <Col key={booking._id} xs={12} className="mb-4">
+            <Card>
+              <Card.Header>
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 className="mb-0">{booking.itemId.title || 'Itinerary'}</h5>
+                    <small className="text-muted">
+                      {new Date(booking.bookingDate).toLocaleDateString()}
                     </small>
                   </div>
-                  <Card.Text>{item.description}</Card.Text>
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowReviewModal(true);
-                    }}
-                  >
-                    Write Review
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))
-        ) : (
-          <Col>
-            <Alert variant="info">
-              No {reviewType.toLowerCase()}s available for review.
-            </Alert>
-          </Col>
-        )}
-      </Row>
-
-      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Write Review</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleReviewSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Rating</Form.Label>
-              <div className="d-flex gap-3">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <Form.Check
-                    key={num}
-                    type="radio"
-                    name="rating"
-                    value={num}
-                    label={`${num} Star${num !== 1 ? 's' : ''}`}
-                    required
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <StarRating bookingId={booking._id} />
+                
+                <Form.Group className="mb-3">
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    placeholder="Write your review (optional)"
+                    value={reviews[booking._id] || ''}
+                    onChange={(e) => handleReviewChange(booking._id, e.target.value)}
                   />
-                ))}
-              </div>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Comment</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="comment"
-                rows={3}
-                required
-                minLength={10}
-                maxLength={500}
-              />
-            </Form.Group>
-            <Button type="submit" variant="primary">
-              Submit Review
-            </Button>
-          </Form>
-        </Modal.Body>
-      </Modal>
+                </Form.Group>
+
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubmitRating(booking._id)}
+                  disabled={!activeRating[booking._id]}
+                  className="w-100"
+                >
+                  Submit Rating
+                </Button>
+
+                {submitStatus[booking._id] && (
+                  <Alert 
+                    variant={submitStatus[booking._id].success ? "success" : "danger"}
+                    className="mt-3 mb-0"
+                  >
+                    {submitStatus[booking._id].message}
+                  </Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
     </Container>
   );
 };
 
-export default ReviewsSystem;
+export default TourGuideRating;

@@ -377,4 +377,265 @@ export const bookingController = {
       });
     }
   },
+  addRating: async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      const { rating, review } = req.body;
+
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rating must be between 1 and 5'
+        });
+      }
+
+      const booking = await Booking.findById(bookingId)
+        .populate({
+          path: 'itemId',
+          model: 'Itinerary',
+          select: 'guideId'
+        });
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: 'Booking not found'
+        });
+      }
+
+      if (booking.bookingType !== 'Itinerary') {
+        return res.status(400).json({
+          success: false,
+          message: 'Ratings can only be given for Itinerary bookings'
+        });
+      }
+
+      if (booking.status !== 'attended') {
+        return res.status(400).json({
+          success: false,
+          message: 'Can only rate attended bookings'
+        });
+      }
+
+      if (booking.rating > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'This booking has already been rated'
+        });
+      }
+
+      booking.rating = rating;
+      booking.review = review || '';
+      await booking.save();
+
+      // Get updated guide ratings
+      const guideRatings = await Booking.getGuideRatings(booking.itemId.guideId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          booking,
+          guideStats: {
+            averageRating: guideRatings.averageRating,
+            totalRatings: guideRatings.totalRatings
+          }
+        }
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Get guide ratings
+  getGuideRatings: async (req, res) => {
+    try {
+      const { guideId } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+
+      const ratingsData = await Booking.getGuideRatingsPaginated(
+        guideId,
+        parseInt(page),
+        parseInt(limit)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: ratingsData
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Get guide rating statistics
+  getGuideRatingStats: async (req, res) => {
+    try {
+      const { guideId } = req.params;
+
+      const ratings = await Booking.aggregate([
+        {
+          $match: {
+            bookingType: 'Itinerary',
+            status: 'attended',
+            rating: { $gt: 0 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'itineraries',
+            localField: 'itemId',
+            foreignField: '_id',
+            as: 'itinerary'
+          }
+        },
+        {
+          $unwind: '$itinerary'
+        },
+        {
+          $match: {
+            'itinerary.guideId': new mongoose.Types.ObjectId(guideId)
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: '$rating' },
+            totalRatings: { $sum: 1 },
+            ratingDistribution: {
+              $push: '$rating'
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            averageRating: { $round: ['$averageRating', 1] },
+            totalRatings: 1,
+            ratingDistribution: {
+              1: {
+                $size: {
+                  $filter: {
+                    input: '$ratingDistribution',
+                    cond: { $eq: ['$$this', 1] }
+                  }
+                }
+              },
+              2: {
+                $size: {
+                  $filter: {
+                    input: '$ratingDistribution',
+                    cond: { $eq: ['$$this', 2] }
+                  }
+                }
+              },
+              3: {
+                $size: {
+                  $filter: {
+                    input: '$ratingDistribution',
+                    cond: { $eq: ['$$this', 3] }
+                  }
+                }
+              },
+              4: {
+                $size: {
+                  $filter: {
+                    input: '$ratingDistribution',
+                    cond: { $eq: ['$$this', 4] }
+                  }
+                }
+              },
+              5: {
+                $size: {
+                  $filter: {
+                    input: '$ratingDistribution',
+                    cond: { $eq: ['$$this', 5] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]);
+
+      res.status(200).json({
+        success: true,
+        data: ratings[0] || {
+          averageRating: 0,
+          totalRatings: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+        }
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Update a rating
+  updateRating: async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      const { rating, review } = req.body;
+
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rating must be between 1 and 5'
+        });
+      }
+
+      const booking = await Booking.findById(bookingId)
+        .populate({
+          path: 'itemId',
+          model: 'Itinerary',
+          select: 'guideId'
+        });
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: 'Booking not found'
+        });
+      }
+
+      if (booking.rating === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No existing rating to update'
+        });
+      }
+
+      booking.rating = rating;
+      booking.review = review || booking.review;
+      await booking.save();
+
+      // Get updated guide ratings
+      const guideRatings = await Booking.getGuideRatings(booking.itemId.guideId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          booking,
+          guideStats: {
+            averageRating: guideRatings.averageRating,
+            totalRatings: guideRatings.totalRatings
+          }
+        }
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 };
+

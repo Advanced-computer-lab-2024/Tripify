@@ -3,25 +3,26 @@ import { bookingController } from '../controllers/booking.controller.js';
 
 const router = express.Router();
 
-// Route to create a new booking
+// Existing booking routes
 router.post('/create', bookingController.createBooking);
-
-// Route to get bookings by user ID
 router.get('/user/:userId', bookingController.getUserBookings);
-
-// Route to get upcoming bookings for a user
 router.get('/user/:userId/upcoming', bookingController.getUpcomingBookings);
-
-// Route to get bookings for a specific item
 router.get('/item/:bookingType/:itemId', bookingController.getItemBookings);
-
-// Route to update booking status
 router.patch('/status/:bookingId', bookingController.updateBookingStatus);
-
-// Route to cancel a booking
 router.patch('/cancel/:bookingId', bookingController.cancelBooking);
-
-// Route to check availability for a specific date
 router.get('/availability', bookingController.checkAvailability);
+
+// New rating routes
+// Add a rating to a booking
+router.post('/:bookingId/rating', bookingController.addRating);
+
+// Update an existing rating
+router.put('/:bookingId/rating', bookingController.updateRating);
+
+// Get guide ratings (paginated)
+router.get('/guide/:guideId/ratings', bookingController.getGuideRatings);
+
+// Get guide rating statistics
+router.get('/guide/:guideId/rating-stats', bookingController.getGuideRatingStats);
 
 export default router;
