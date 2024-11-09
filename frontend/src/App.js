@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import AuthPage from "./pages/auth/AuthPage"; // Combined login/register page
 import TouristRegister from "./pages/tourist/TouristRegister";
-import ReviewsSystem from './components/ReviewsSystem';
+import ReviewsSystem from "./components/ReviewsSystem";
 import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
 import MyProfile from "./pages/tourist/MyProfile";
@@ -47,6 +47,7 @@ import TourGuideReviews from "./pages/reviews/TourGuideReviews";
 import EventReviews from "./pages/reviews/EventReviews";
 import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
+import RateTourGuides from "./pages/tourist/RateTourGuides";
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -55,14 +56,35 @@ function App() {
     <div className="App">
       <Router>
         <Routes>
-          <Route path="/" element={<AuthPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/login" element={<AuthPage />} />
+          <Route
+            path="/"
+            element={<AuthPage />}
+          />
+          <Route
+            path="/auth"
+            element={<AuthPage />}
+          />
+          <Route
+            path="/login"
+            element={<AuthPage />}
+          />
           {/* Tourist Routes */}
-          <Route path="/tourist" element={<TouristHomePage />} />
-          <Route path="/tourist/register" element={<TouristRegister />} />
-          <Route path="/tourist/view-events" element={<ViewEvents />} />
-          <Route path="/tourist/my-profile" element={<MyProfile />} />
+          <Route
+            path="/tourist"
+            element={<TouristHomePage />}
+          />
+          <Route
+            path="/tourist/register"
+            element={<TouristRegister />}
+          />
+          <Route
+            path="/tourist/view-events"
+            element={<ViewEvents />}
+          />
+          <Route
+            path="/tourist/my-profile"
+            element={<MyProfile />}
+          />
           <Route
             path="/tourist/my-complaints"
             element={<TouristComplaints />}
@@ -75,25 +97,57 @@ function App() {
             path="/tourist/filtered-activities"
             element={<FilteredActivities />}
           />
-          <Route path="/tourist/products" element={<ProductTouristPage />} />
-          <Route path="/tourist/complaints" element={<CreateComplaint />} />
-          <Route path="/tourist/book-flight" element={<FlightBooking />} />
-          <Route path="/tourist/book-hotel" element={<HotelBooking />} />
-          <Route path="/tourist/view-bookings" element={<ViewBookings />} />
+          <Route
+            path="/tourist/products"
+            element={<ProductTouristPage />}
+          />
+          <Route
+            path="/tourist/complaints"
+            element={<CreateComplaint />}
+          />
+          <Route
+            path="/tourist/book-flight"
+            element={<FlightBooking />}
+          />
+          <Route
+            path="/tourist/book-hotel"
+            element={<HotelBooking />}
+          />
+          <Route
+            path="/tourist/view-bookings"
+            element={<ViewBookings />}
+          />
           <Route
             path="/tourist/book-transportation"
             element={<BookTransportation />}
           />
           {/* Review System Routes */}
-          <Route path="/tourist/reviews/tour-guides" element={<TourGuideReviews />} />
-          <Route path="/tourist/reviews/events" element={<EventReviews />} />
-          <Route path="/tourist/reviews/products" element={<ProductReviews />} />
-          <Route path="/tourist/my-reviews" element={<MyReviews />} />
-          <Route path="/tourist/reviews" element={<ReviewsSystem />} /> {/* Keep your existing general reviews route */}
-          
-
+          <Route
+            path="/tourist/reviews/tour-guides"
+            element={<RateTourGuides />}
+          />
+          <Route
+            path="/tourist/reviews/events"
+            element={<EventReviews />}
+          />
+          <Route
+            path="/tourist/reviews/products"
+            element={<ProductReviews />}
+          />
+          <Route
+            path="/tourist/my-reviews"
+            element={<MyReviews />}
+          />
+          <Route
+            path="/tourist/reviews"
+            element={<ReviewsSystem />}
+          />{" "}
+          {/* Keep your existing general reviews route */}
           {/* Tour Guide Routes */}
-          <Route path="/tourguide" element={<TourguideHomePage />} />
+          <Route
+            path="/tourguide"
+            element={<TourguideHomePage />}
+          />
           <Route
             path="/tourguide/itinerary-management"
             element={<ItineraryManagement />}
@@ -102,10 +156,15 @@ function App() {
             path="/tourguide/MyItineraries"
             element={<TourGuideItineraries />}
           />
-
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminHomePage />} />
-          <Route path="/admin/manage-users" element={<ListUsers />} />
+          <Route
+            path="/admin"
+            element={<AdminHomePage />}
+          />
+          <Route
+            path="/admin/manage-users"
+            element={<ListUsers />}
+          />
           <Route
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
@@ -114,14 +173,19 @@ function App() {
             path="/admin/preference-tags"
             element={<PreferenceTagManagement />}
           />
-          <Route path="/admin/complaints" element={<Complaints />} />
+          <Route
+            path="/admin/complaints"
+            element={<Complaints />}
+          />
           <Route
             path="/admin/content-moderation"
             element={<ContentModeration />}
           />
-
           {/* Advertiser Routes */}
-          <Route path="/advertiser" element={<AdvertiserHomepage />} />
+          <Route
+            path="/advertiser"
+            element={<AdvertiserHomepage />}
+          />
           <Route
             path="/advertiser/create-activity"
             element={<CreateActivity />}
@@ -130,7 +194,10 @@ function App() {
             path="/advertiser/view-activities"
             element={<ActivityList />}
           />
-          <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+          <Route
+            path="/advertiser/profile"
+            element={<AdvertiserProfile />}
+          />
           <Route
             path="/advertiser/activities"
             element={<AdvertiserActivities />}
@@ -143,31 +210,61 @@ function App() {
             path="/advertiser/transportation"
             element={<ManageTransportations />}
           />
-
           {/* Tourism Governor Routes */}
-          <Route path="/governor" element={<GovernorHomePage />} />
-          <Route path="/governor/view-places" element={<ViewHistorical />} />
+          <Route
+            path="/governor"
+            element={<GovernorHomePage />}
+          />
+          <Route
+            path="/governor/view-places"
+            element={<ViewHistorical />}
+          />
           <Route
             path="/governor/my-places"
             element={<GovernorCreatedPlaces />}
           />
-          <Route path="/governor/tag-management" element={<TagManagement />} />
-
+          <Route
+            path="/governor/tag-management"
+            element={<TagManagement />}
+          />
           {/* Seller Routes */}
-          <Route path="/seller" element={<SellerHomePage />} />
-          <Route path="/seller/products" element={<ProductPage />} />
-          <Route path="/seller/profile" element={<UserDisplay />} />
-
+          <Route
+            path="/seller"
+            element={<SellerHomePage />}
+          />
+          <Route
+            path="/seller/products"
+            element={<ProductPage />}
+          />
+          <Route
+            path="/seller/profile"
+            element={<UserDisplay />}
+          />
           {/* Registration Routes */}
-          <Route path="/register/admin" element={<AdminRegister />} />
-          <Route path="/register/tourist" element={<TouristRegister />} />
-          <Route path="/register/tourguide" element={<TourGuideReg />} />
-          <Route path="/register/advertiser" element={<AdvertiserReg />} />
+          <Route
+            path="/register/admin"
+            element={<AdminRegister />}
+          />
+          <Route
+            path="/register/tourist"
+            element={<TouristRegister />}
+          />
+          <Route
+            path="/register/tourguide"
+            element={<TourGuideReg />}
+          />
+          <Route
+            path="/register/advertiser"
+            element={<AdvertiserReg />}
+          />
           <Route
             path="/register/tourism-governor"
             element={<TourismGovReg />}
           />
-          <Route path="/register/seller" element={<SellerReg />} />
+          <Route
+            path="/register/seller"
+            element={<SellerReg />}
+          />
         </Routes>
       </Router>
     </div>
