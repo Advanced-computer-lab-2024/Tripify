@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage"; // Register page component
 import AuthPage from "./pages/auth/AuthPage"; // Combined login/register page
 import TouristRegister from "./pages/tourist/TouristRegister";
+import ReviewsSystem from './components/ReviewsSystem';
 import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
 import MyProfile from "./pages/tourist/MyProfile";
@@ -43,7 +44,10 @@ import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints";
 import HotelBooking from "./pages/tourist/HotelBooking";
-
+import TourGuideReviews from "./pages/reviews/TourGuideReviews";
+import EventReviews from "./pages/reviews/EventReviews";
+import ProductReviews from "./pages/reviews/ProductReviews";
+import MyReviews from "./pages/reviews/MyReviews";
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -86,6 +90,13 @@ function App() {
             path="/tourist/book-transportation"
             element={<BookTransportation />}
           />
+          {/* Review System Routes */}
+          <Route path="/tourist/reviews/tour-guides" element={<TourGuideReviews />} />
+          <Route path="/tourist/reviews/events" element={<EventReviews />} />
+          <Route path="/tourist/reviews/products" element={<ProductReviews />} />
+          <Route path="/tourist/my-reviews" element={<MyReviews />} />
+          <Route path="/tourist/reviews" element={<ReviewsSystem />} /> {/* Keep your existing general reviews route */}
+          
 
           {/* Routes under "/tourguide" */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
