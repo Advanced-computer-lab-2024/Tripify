@@ -11,6 +11,9 @@ import {
   addToWallet,
   deductFromWallet,
   refundToWallet,
+  getLoyaltyStatus ,
+  redeemLoyaltyPoints, 
+
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -29,10 +32,14 @@ router.put(
   authMiddleware,
   changePassword
 );
+router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
 
 // Wallet routes
 router.post("/wallet/add/:id", authMiddleware, addToWallet);
 router.post("/wallet/deduct/:id", authMiddleware, deductFromWallet);
 router.post("/wallet/refund/:id", authMiddleware, refundToWallet);
+router.post("/loyalty/redeem/:id", authMiddleware, redeemLoyaltyPoints);
+
+
 
 export default router;

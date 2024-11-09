@@ -87,6 +87,14 @@ const touristSchema = new mongoose.Schema({
     type: preferenceSchema,
     default: {},
   },
+  loyaltypoints: {
+    type: Number,
+    default: 0,
+  },
+  level: {
+    type: Number,
+    default: 0,
+  },
 });
 
 // Pre-save hook to hash the password

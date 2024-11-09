@@ -36,11 +36,34 @@ const ViewEvents = () => {
   const [bookingItemId, setBookingItemId] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
   const [userWallet, setUserWallet] = useState(0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+const [touristLevel, setTouristLevel] = useState(1);
   const getUserSpecificKey = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
   };
-
+  const fetchLoyaltyStatus = async () => {
+    try {
+      const userId = getUserId();
+      if (!userId) return;
+  
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        setLoyaltyPoints(response.data.loyaltyStatus.points);
+        setTouristLevel(response.data.loyaltyStatus.level);
+      }
+    } catch (error) {
+      console.error("Error fetching loyalty status:", error);
+    }
+  };
   // Update storage function
   const updateWalletStorage = (wallet) => {
     const userKey = getUserSpecificKey();
@@ -127,7 +150,12 @@ const ViewEvents = () => {
           console.error("Error fetching user profile:", profileError);
           // Don't return here, continue fetching other data
         }
-
+        const storedPoints = JSON.parse(localStorage.getItem("loyaltyPoints"));
+        const storedLevel = JSON.parse(localStorage.getItem("touristLevel"));
+        if (storedPoints && storedLevel) {
+          setLoyaltyPoints(storedPoints);
+          setTouristLevel(storedLevel);
+        }
         // Fetch all other required data in parallel
         const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
           await Promise.all([
@@ -143,6 +171,7 @@ const ViewEvents = () => {
             axios.get("http://localhost:5000/api/activities/category", {
               headers: { Authorization: `Bearer ${token}` },
             }),
+            fetchLoyaltyStatus(),
           ]);
 
         // Get user role and filter flagged items
@@ -289,7 +318,7 @@ const ViewEvents = () => {
           },
         }
       );
-
+      
       if (bookingResponse.data.success) {
         try {
           // Then deduct from wallet
@@ -313,8 +342,12 @@ const ViewEvents = () => {
 
           if (deductResponse.data.success) {
             // Update wallet balance in state and localStorage
-            setUserWallet(deductResponse.data.currentBalance);
-
+            setUserWallet(deductResponse.data.currentBalance);    
+            setLoyaltyPoints(deductResponse.data.totalPoints);
+            setTouristLevel(deductResponse.data.newLevel);
+            localStorage.setItem("loyaltyPoints", JSON.stringify(deductResponse.data.totalPoints));
+            localStorage.setItem("touristLevel", JSON.stringify(deductResponse.data.newLevel));
+            
             // Update stored tourist data
             const touristData =
               JSON.parse(localStorage.getItem("tourist")) || {};
@@ -330,6 +363,7 @@ const ViewEvents = () => {
               "Booking successful! Amount has been deducted from your wallet."
             );
             await fetchUserProfile(); // Refresh user profile
+            await fetchLoyaltyStatus();
           }
         } catch (paymentError) {
           console.error("Payment error:", paymentError);
@@ -730,7 +764,23 @@ const ViewEvents = () => {
       </Container>
     );
   }
-
+  const LoyaltyInfo = () => (
+    <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
+      <div className="me-4">
+        <FaWallet className="me-2 text-warning" size={24} />
+        <div>
+          <h4 className="mb-0">Level {touristLevel}</h4>
+          <small className="text-muted">Tourist Status</small>
+        </div>
+      </div>
+      <div>
+        <h4 className="mb-0">{loyaltyPoints} Points</h4>
+        <small className="text-muted">
+          Earn {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"} points on purchases
+        </small>
+      </div>
+    </div>
+  );
   return (
     <Container className="mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -743,7 +793,9 @@ const ViewEvents = () => {
           </div>
         </div>
       </div>
-
+      <div className="d-flex gap-3">
+        <LoyaltyInfo />
+      </div>
       <div className="mb-4 p-3 bg-white rounded shadow-sm">
         <Form.Control
           type="text"
