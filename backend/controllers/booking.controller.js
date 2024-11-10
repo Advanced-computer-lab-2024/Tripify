@@ -2,6 +2,7 @@ import Booking from "../models/booking.model.js";
 import Activity from "../models/activity.model.js";
 import HistoricalPlace from "../models/histroicalplace.model.js";
 import Itinerary from "../models/itinerary.model.js";
+import mongoose from "mongoose";
 
 const validateBookingDate = async (eventItem, bookingType, requestedDate) => {
   const currentDate = new Date();
@@ -36,6 +37,7 @@ const validateBookingDate = async (eventItem, bookingType, requestedDate) => {
         return availableDate.getTime() === requestedDate.getTime();
       });
 
+      // Commented out date validation for now
       // if (!isAvailableDate) {
       //   return {
       //     success: false,
@@ -53,7 +55,6 @@ const validateBookingDate = async (eventItem, bookingType, requestedDate) => {
 };
 
 export const bookingController = {
-  // Create a new booking
   createBooking: async (req, res) => {
     try {
       const { userId, bookingType, itemId, bookingDate } = req.body;
@@ -68,7 +69,6 @@ export const bookingController = {
       const requestedDate = new Date(bookingDate);
       requestedDate.setHours(0, 0, 0, 0);
 
-      // Get the event/item details based on bookingType
       let eventItem;
       switch (bookingType) {
         case "Activity":
@@ -94,7 +94,6 @@ export const bookingController = {
         });
       }
 
-      // Check if the requested date is valid for the event
       const isDateValid = await validateBookingDate(
         eventItem,
         bookingType,
@@ -107,7 +106,6 @@ export const bookingController = {
         });
       }
 
-      // Check for existing bookings on the same date
       const startDate = new Date(requestedDate);
       const endDate = new Date(requestedDate);
       endDate.setHours(23, 59, 59, 999);
@@ -150,7 +148,6 @@ export const bookingController = {
     }
   },
 
-  // Get bookings by user ID
   getUserBookings: async (req, res) => {
     try {
       const { userId } = req.params;
@@ -170,7 +167,6 @@ export const bookingController = {
     }
   },
 
-  // Get upcoming bookings for a user
   getUpcomingBookings: async (req, res) => {
     try {
       const { userId } = req.params;
@@ -197,7 +193,6 @@ export const bookingController = {
     }
   },
 
-  // Get bookings for a specific item
   getItemBookings: async (req, res) => {
     try {
       const { bookingType, itemId } = req.params;
@@ -207,7 +202,7 @@ export const bookingController = {
         status: { $ne: "cancelled" },
       })
         .sort("-bookingDate")
-        .populate("userId", "name email"); // Populate user details if needed
+        .populate("userId", "name email");
 
       res.status(200).json({
         success: true,
@@ -221,7 +216,6 @@ export const bookingController = {
     }
   },
 
-  // Update booking status
   updateBookingStatus: async (req, res) => {
     try {
       const { bookingId } = req.params;
@@ -259,11 +253,9 @@ export const bookingController = {
     }
   },
 
-  // Cancel a booking
   cancelBooking: async (req, res) => {
     try {
       const { bookingId } = req.params;
-
       const booking = await Booking.findById(bookingId);
 
       if (!booking) {
@@ -273,15 +265,12 @@ export const bookingController = {
         });
       }
 
-      // Optional: Add cancellation policy checks here
-      // For example, check if cancellation is allowed based on the booking date
       const currentDate = new Date();
       const bookingDate = new Date(booking.bookingDate);
       const timeDifference = bookingDate.getTime() - currentDate.getTime();
       const daysDifference = timeDifference / (1000 * 3600 * 24);
 
       if (daysDifference < 1) {
-        // Example: Cannot cancel less than 24 hours before
         return res.status(400).json({
           success: false,
           message:
@@ -304,7 +293,6 @@ export const bookingController = {
     }
   },
 
-  // Check if a date is available for booking
   checkAvailability: async (req, res) => {
     try {
       const { bookingType, itemId, bookingDate } = req.query;
@@ -319,7 +307,6 @@ export const bookingController = {
       const requestedDate = new Date(bookingDate);
       requestedDate.setHours(0, 0, 0, 0);
 
-      // Get the event/item details
       let eventItem;
       switch (bookingType) {
         case "Activity":
@@ -345,7 +332,6 @@ export const bookingController = {
         });
       }
 
-      // Validate the date against event dates
       const dateValidation = await validateBookingDate(
         eventItem,
         bookingType,
@@ -359,7 +345,6 @@ export const bookingController = {
         });
       }
 
-      // Check for existing bookings
       const startDate = new Date(requestedDate);
       const endDate = new Date(requestedDate);
       endDate.setHours(23, 59, 59, 999);
@@ -387,6 +372,7 @@ export const bookingController = {
       });
     }
   },
+
   addRating: async (req, res) => {
     try {
       const { bookingId } = req.params;
@@ -414,11 +400,15 @@ export const bookingController = {
         });
       }
 
-      if (!["Itinerary", "HistoricalPlace"].includes(booking.bookingType)) {
+      if (
+        !["Itinerary", "HistoricalPlace", "Activity"].includes(
+          booking.bookingType
+        )
+      ) {
         return res.status(400).json({
           success: false,
           message:
-            "Ratings can only be given for Itinerary or Historical Place bookings",
+            "Ratings can only be given for Itinerary, Historical Place, or Activity bookings",
         });
       }
 
@@ -447,26 +437,38 @@ export const bookingController = {
         },
       };
 
-      // Get ratings stats based on booking type
-      if (booking.bookingType === "Itinerary") {
-        // Handle itinerary/guide ratings
-        const guideRatings = await Booking.getGuideRatings(
-          booking.itemId.createdBy._id
-        );
-        responseData.data.guideStats = {
-          averageRating: guideRatings.averageRating,
-          totalRatings: guideRatings.totalRatings,
-        };
-      } else if (booking.bookingType === "HistoricalPlace") {
-        // Handle historical place ratings
-        const placeRatings = await Booking.getItemRatings(
-          booking.itemId._id,
-          "HistoricalPlace"
-        );
-        responseData.data.placeStats = {
-          averageRating: placeRatings.averageRating,
-          totalRatings: placeRatings.totalRatings,
-        };
+      switch (booking.bookingType) {
+        case "Itinerary":
+          const guideRatings = await Booking.getGuideRatings(
+            booking.itemId.createdBy._id
+          );
+          responseData.data.guideStats = {
+            averageRating: guideRatings.averageRating,
+            totalRatings: guideRatings.totalRatings,
+          };
+          break;
+
+        case "HistoricalPlace":
+          const placeRatings = await Booking.getItemRatings(
+            booking.itemId._id,
+            "HistoricalPlace"
+          );
+          responseData.data.placeStats = {
+            averageRating: placeRatings.averageRating,
+            totalRatings: placeRatings.totalRatings,
+          };
+          break;
+
+        case "Activity":
+          const activityRatings = await Booking.getItemRatings(
+            booking.itemId._id,
+            "Activity"
+          );
+          responseData.data.activityStats = {
+            averageRating: activityRatings.averageRating,
+            totalRatings: activityRatings.totalRatings,
+          };
+          break;
       }
 
       res.status(200).json(responseData);
@@ -475,6 +477,30 @@ export const bookingController = {
       res.status(500).json({
         success: false,
         message: error.message || "Error adding rating",
+      });
+    }
+  },
+
+  getActivityRatings: async (req, res) => {
+    try {
+      const { activityId } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+
+      const ratingsData = await Booking.getItemRatingsPaginated(
+        activityId,
+        "Activity",
+        parseInt(page),
+        parseInt(limit)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: ratingsData,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
       });
     }
   },
@@ -503,7 +529,6 @@ export const bookingController = {
     }
   },
 
-  // Get guide ratings
   getGuideRatings: async (req, res) => {
     try {
       const { guideId } = req.params;
@@ -527,7 +552,6 @@ export const bookingController = {
     }
   },
 
-  // Get guide rating statistics
   getGuideRatingStats: async (req, res) => {
     try {
       const { guideId } = req.params;
@@ -633,7 +657,6 @@ export const bookingController = {
     }
   },
 
-  // Update a rating
   updateRating: async (req, res) => {
     try {
       const { bookingId } = req.params;
@@ -680,17 +703,27 @@ export const bookingController = {
       };
 
       // Get updated stats based on booking type
-      if (booking.bookingType === "Itinerary") {
-        const guideRatings = await Booking.getGuideRatings(
-          booking.itemId.createdBy._id
-        );
-        responseData.data.guideStats = guideRatings;
-      } else if (booking.bookingType === "HistoricalPlace") {
-        const placeRatings = await Booking.getItemRatings(
-          booking.itemId._id,
-          "HistoricalPlace"
-        );
-        responseData.data.placeStats = placeRatings;
+      switch (booking.bookingType) {
+        case "Itinerary":
+          const guideRatings = await Booking.getGuideRatings(
+            booking.itemId.createdBy._id
+          );
+          responseData.data.guideStats = guideRatings;
+          break;
+        case "HistoricalPlace":
+          const placeRatings = await Booking.getItemRatings(
+            booking.itemId._id,
+            "HistoricalPlace"
+          );
+          responseData.data.placeStats = placeRatings;
+          break;
+        case "Activity":
+          const activityRatings = await Booking.getItemRatings(
+            booking.itemId._id,
+            "Activity"
+          );
+          responseData.data.activityStats = activityRatings;
+          break;
       }
 
       res.status(200).json(responseData);

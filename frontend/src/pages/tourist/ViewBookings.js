@@ -278,9 +278,12 @@ const ViewBookings = () => {
       } else if (booking.rating) {
         message += "You have already rated this booking. ";
       } else if (
-        !["Itinerary", "HistoricalPlace"].includes(booking.bookingType)
+        !["Itinerary", "HistoricalPlace", "Activity"].includes(
+          booking.bookingType
+        )
       ) {
-        message += "Only itineraries and historical places can be rated. ";
+        message +=
+          "Only itineraries, historical places, and activities can be rated. ";
       }
       alert(message);
       return;
@@ -354,8 +357,9 @@ const ViewBookings = () => {
   const canBeRated = (booking) => {
     return (
       booking.status === "attended" &&
-      (booking.bookingType === "Itinerary" ||
-        booking.bookingType === "HistoricalPlace") &&
+      ["Itinerary", "HistoricalPlace", "Activity"].includes(
+        booking.bookingType
+      ) &&
       !booking.rating
     );
   };
@@ -449,25 +453,25 @@ const ViewBookings = () => {
                         Rate{" "}
                         {booking.bookingType === "Itinerary"
                           ? "Tour Guide"
-                          : "Historical Place"}
+                          : booking.bookingType === "HistoricalPlace"
+                          ? "Historical Place"
+                          : "Activity"}
                       </Button>
                     )}
-
                     {/* Show existing rating if it exists */}
                     {booking.rating > 0 && (
                       <div className="mt-2">
-                        <strong>Your Rating: </strong>
+                        <strong>Your {booking.bookingType} Rating: </strong>
                         {[...Array(booking.rating)].map((_, i) => (
                           <FaStar key={i} className="text-warning" />
                         ))}
                         {booking.review && (
                           <p className="mt-1 text-muted small">
-                            {booking.review}
+                            <strong>Review:</strong> {booking.review}
                           </p>
                         )}
                       </div>
                     )}
-
                     {/* Cancellation Button - Show only for future, non-cancelled bookings */}
                     {!isEventPassed(booking.bookingDate) &&
                       booking.status !== "cancelled" && (
