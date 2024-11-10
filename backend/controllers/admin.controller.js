@@ -1,5 +1,5 @@
 import Admin from "../models/admin.model.js";
-import TourGuide from "../models/tourguide.model.js";
+import TourGuide from "../models/tourGuide.model.js";
 import Tourist from "../models/tourist.model.js";
 import Advertiser from "../models/advertiser.model.js";
 import Seller from "../models/seller.model.js";

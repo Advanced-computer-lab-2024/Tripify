@@ -1,7 +1,7 @@
 // controllers/review.controller.js
 import mongoose from 'mongoose';
 import Review from '../models/review.model.js';
-import TourGuide from '../models/tourguide.model.js';
+import TourGuide from '../models/tourGuide.model.js';
 import Product from '../models/product.model.js';
 import Booking from '../models/booking.model.js';
 import Event from '../models/event.model.js';  // Import the Event model

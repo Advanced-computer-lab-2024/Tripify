@@ -1,4 +1,4 @@
-import TourGuide from "../models/tourguide.model.js";
+import TourGuide from "../models/tourGuide.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
