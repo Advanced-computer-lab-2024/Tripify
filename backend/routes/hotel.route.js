@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import HotelBooking from "../models/HotelBooking.model.js";
 
 dotenv.config();
 const router = express.Router();
@@ -133,100 +134,63 @@ router.post("/search", async (req, res) => {
   }
 });
 
+// Book a hotel
 router.post("/book", async (req, res) => {
   try {
     console.log("Booking params:", req.body);
-    const { offerId, guests } = req.body;
+    const {
+      guests,
+      userId,
+      hotelDetails,
+      checkInDate,
+      checkOutDate,
+      numberOfGuests,
+      numberOfRooms,
+      totalPrice,
+      offerId,
+    } = req.body;
 
     // Validate required fields
-    if (!offerId || !guests || !Array.isArray(guests) || guests.length === 0) {
+    if (
+      !guests ||
+      !Array.isArray(guests) ||
+      guests.length === 0 ||
+      !userId ||
+      !hotelDetails
+    ) {
       return res.status(400).json({
         error: [{ detail: "Missing required booking parameters" }],
       });
     }
 
-    // Get token
-    const token = await getAccessToken();
-    console.log("Using token:", token);
-
-    // Verify offer first
-    console.log("Verifying offer availability...");
-    const offerResponse = await axios({
-      method: "GET",
-      url: `https://test.api.amadeus.com/v3/shopping/hotel-offers/${offerId}`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    // Create booking in database
+    const hotelBooking = await HotelBooking.create({
+      userId,
+      hotelDetails,
+      offerId, // This is now optional in the schema
+      checkInDate,
+      checkOutDate,
+      guests,
+      numberOfGuests,
+      numberOfRooms,
+      totalPrice,
+      status: "confirmed",
     });
-
-    console.log("Offer verification successful");
-
-    // Prepare booking data
-    const bookingData = {
-      data: {
-        offerId: offerResponse.data.data.offers[0].id,
-        guests: guests.map((guest) => ({
-          name: {
-            title: guest.name.title || "Mr",
-            firstName: guest.name.firstName,
-            lastName: guest.name.lastName,
-          },
-          contact: {
-            phone: guest.contact.phone,
-            email: guest.contact.email,
-          },
-        })),
-        payments: [
-          {
-            method: "creditCard",
-            card: {
-              vendorCode: "VI",
-              cardNumber: "4111111111111111",
-              expiryDate: "2025-01",
-            },
-          },
-        ],
-      },
-    };
-
-    console.log("Attempting to create booking...");
-
-    // Create the booking
-    const bookingResponse = await axios({
-      method: "POST",
-      url: "https://test.api.amadeus.com/v1/booking/hotel-bookings",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      data: bookingData,
-    });
-
-    console.log("Booking successful");
 
     res.json({
+      success: true,
       data: {
-        id: bookingResponse.data.data.id,
-        providerConfirmationId:
-          bookingResponse.data.data.providerConfirmationId,
-        guests: bookingResponse.data.data.guests,
-        hotel: bookingResponse.data.data.hotel,
+        id: hotelBooking._id,
+        booking: hotelBooking,
       },
     });
   } catch (error) {
-    console.error("Booking error:", error.response?.data || error);
-
-    if (error.response?.status === 401) {
-      accessToken = null;
-      tokenExpiration = null;
-    }
-
-    res.status(error.response?.status || 500).json({
+    console.error("Booking error:", error);
+    res.status(500).json({
+      success: false,
       error: [
         {
-          detail:
-            error.response?.data?.errors?.[0]?.detail ||
-            "Unable to complete booking. Please try again.",
+          detail: "Unable to complete booking. Please try again.",
         },
       ],
     });
@@ -245,6 +209,54 @@ router.get("/test-auth", async (req, res) => {
     res.status(500).json({
       error: "Authentication failed",
       details: error.message,
+    });
+  }
+});
+// In hotel.route.js
+router.get("/bookings/:userId", async (req, res) => {
+  try {
+    console.log("Fetching hotel bookings for user:", req.params.userId);
+    const bookings = await HotelBooking.find({
+      userId: req.params.userId,
+    }).sort({ createdAt: -1 }); // Sort by newest first
+
+    console.log(`Found ${bookings.length} hotel bookings`);
+    res.json({
+      success: true,
+      data: bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching hotel bookings:", error);
+    res.status(500).json({
+      success: false,
+      error: "Error fetching hotel bookings",
+    });
+  }
+});
+router.patch("/bookings/:bookingId/cancel", async (req, res) => {
+  try {
+    const booking = await HotelBooking.findByIdAndUpdate(
+      req.params.bookingId,
+      { status: "cancelled" },
+      { new: true }
+    );
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: "Booking not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: booking,
+    });
+  } catch (error) {
+    console.error("Error cancelling hotel booking:", error);
+    res.status(500).json({
+      success: false,
+      error: "Error cancelling booking",
     });
   }
 });

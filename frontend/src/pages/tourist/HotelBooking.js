@@ -20,9 +20,11 @@ import {
 import axios from "axios";
 import HotelCard from "./HotelCard";
 import HotelBookingModal from "./HotelBookingModal";
+import { useNavigate } from "react-router-dom";
 
 const HotelBooking = () => {
-  // Search states
+  const navigate = useNavigate();
+
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -34,11 +36,9 @@ const HotelBooking = () => {
     rooms: 1,
   });
 
-  // Booking states
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedHotel, setSelectedHotel] = useState(null);
 
-  // Format price helper
   const formatPrice = useCallback((price) => {
     if (!price || !price.total) return "Price not available";
     return new Intl.NumberFormat("en-US", {
@@ -47,10 +47,8 @@ const HotelBooking = () => {
     }).format(price.total);
   }, []);
 
-  // Handle city input
   const handleCityChange = (e) => {
     let cityCode = e.target.value.toUpperCase();
-    // Limit to 3 characters for IATA city codes
     cityCode = cityCode.replace(/[^A-Z]/g, "").slice(0, 3);
     setSearchParams((prev) => ({
       ...prev,
@@ -58,7 +56,6 @@ const HotelBooking = () => {
     }));
   };
 
-  // Handle search
   const handleSearch = useCallback(
     async (e) => {
       e.preventDefault();
@@ -106,6 +103,17 @@ const HotelBooking = () => {
 
   return (
     <Container className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Book a Hotel</h2>
+        <Button
+          variant="outline-primary"
+          onClick={() => navigate("/tourist/hotel-bookings")}
+        >
+          <FaHotel className="me-2" />
+          View My Hotel Bookings
+        </Button>
+      </div>
+
       {/* Search Form */}
       <Card className="mb-4 shadow-sm">
         <Card.Header className="bg-primary text-white">
@@ -147,7 +155,7 @@ const HotelBooking = () => {
                 </Form.Group>
               </Col>
 
-              {/* Other form fields remain the same */}
+              {/* Check-in Date */}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>
@@ -169,6 +177,7 @@ const HotelBooking = () => {
                 </Form.Group>
               </Col>
 
+              {/* Check-out Date */}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>
@@ -193,6 +202,7 @@ const HotelBooking = () => {
                 </Form.Group>
               </Col>
 
+              {/* Number of Guests */}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>
@@ -215,6 +225,7 @@ const HotelBooking = () => {
                 </Form.Group>
               </Col>
 
+              {/* Number of Rooms */}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>

@@ -9,7 +9,10 @@ import {
   Card,
   Spinner,
 } from "react-bootstrap";
+import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import { FaCalendarAlt, FaUsers, FaBed, FaDollarSign } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const countryOptions = [
   { code: "US", name: "United States" },
@@ -26,40 +29,58 @@ const countryOptions = [
 
 const HotelBookingModal = memo(
   ({ show, onHide, hotel, formatPrice, searchParams }) => {
+    const navigate = useNavigate(); // Add useNavigate hook
+
     const [bookingData, setBookingData] = useState({
-      guests: [
-        {
-          id: "1",
+      guests: Array(searchParams.adults)
+        .fill()
+        .map((_, index) => ({
+          id: index + 1,
           name: {
             title: "Mr",
             firstName: "",
             lastName: "",
           },
-          contact: {
-            phone: "",
-            email: "",
-          },
-          address: {
-            lines: [""],
-            postalCode: "",
-            cityName: "",
-            countryCode: "",
-          },
-        },
-      ],
+          contact:
+            index === 0
+              ? {
+                  phone: "",
+                  email: "",
+                }
+              : null,
+          address:
+            index === 0
+              ? {
+                  lines: [""],
+                  postalCode: "",
+                  cityName: "",
+                  countryCode: "",
+                }
+              : null,
+        })),
     });
 
     const [bookingError, setBookingError] = useState(null);
     const [bookingLoading, setBookingLoading] = useState(false);
 
-    // Calculate number of nights
+    const getUserId = () => {
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+      try {
+        const decoded = jwtDecode(token);
+        return decoded.user?._id || decoded.userId || decoded.id || decoded._id;
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        return null;
+      }
+    };
+
     const getNights = () => {
       const checkIn = new Date(searchParams.checkInDate);
       const checkOut = new Date(searchParams.checkOutDate);
       return Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
     };
 
-    // Calculate total price
     const getTotalPrice = () => {
       if (!hotel?.offers?.[0]?.price?.total) return null;
       const pricePerNight = parseFloat(hotel.offers[0].price.total);
@@ -70,67 +91,107 @@ const HotelBookingModal = memo(
       };
     };
 
+    const updateGuestInfo = (index, field, value) => {
+      setBookingData((prev) => {
+        const newGuests = [...prev.guests];
+        const fields = field.split(".");
+        let current = newGuests[index];
+
+        for (let i = 0; i < fields.length - 1; i++) {
+          if (!current[fields[i]]) {
+            current[fields[i]] = {};
+          }
+          current = current[fields[i]];
+        }
+        current[fields[fields.length - 1]] = value;
+
+        return { ...prev, guests: newGuests };
+      });
+    };
+
     const handleSubmit = async (e) => {
       e.preventDefault();
       setBookingLoading(true);
       setBookingError(null);
 
       try {
-        // Get the offer ID
-        const offerId = hotel.offers[0].id;
+        const userId = getUserId();
+        if (!userId) {
+          throw new Error("User ID not found. Please log in again.");
+        }
 
-        // Format guests data
-        const formattedGuests = [
-          {
-            name: {
-              title: bookingData.guests[0].name.title,
-              firstName: bookingData.guests[0].name.firstName,
-              lastName: bookingData.guests[0].name.lastName,
-            },
-            contact: {
-              phone: bookingData.guests[0].contact.phone,
-              email: bookingData.guests[0].contact.email,
-            },
+        const formattedGuests = bookingData.guests.map((guest) => ({
+          name: {
+            title: guest.name.title,
+            firstName: guest.name.firstName,
+            lastName: guest.name.lastName,
           },
-        ];
+          contact: guest.contact || bookingData.guests[0].contact,
+        }));
 
-        // Make booking request
-        const bookingResponse = await axios.post(
+        const totalPrice = getTotalPrice();
+
+        const response = await axios.post(
           "http://localhost:5000/api/hotels/book",
           {
-            offerId,
             guests: formattedGuests,
+            userId,
+            hotelDetails: {
+              hotelId: hotel.hotel.hotelId,
+              name: hotel.hotel.name,
+              cityCode: searchParams.cityCode,
+              rating: hotel.hotel.rating,
+            },
+            offerId: hotel.offers[0].id,
+            checkInDate: searchParams.checkInDate,
+            checkOutDate: searchParams.checkOutDate,
+            numberOfGuests: searchParams.adults,
+            numberOfRooms: searchParams.rooms,
+            totalPrice: {
+              amount: parseFloat(totalPrice.total),
+              currency: totalPrice.currency,
+            },
           }
         );
 
-        alert(
-          `Booking successful!\nReference: ${bookingResponse.data.data.id}`
-        );
-        onHide();
+        if (response.data.success) {
+          alert("Booking successful!");
+          onHide();
+          // Change this line to redirect to hotel bookings instead
+          navigate("/tourist/hotel-bookings");
+        } else {
+          throw new Error(response.data.error?.[0]?.detail || "Booking failed");
+        }
       } catch (err) {
-        console.error("Booking error:", err.response?.data);
+        console.error("Booking error:", err);
         setBookingError(
-          err.response?.data?.error?.[0]?.detail ||
-            "Unable to complete booking. Please try again."
+          err.message || "Unable to complete booking. Please try again."
         );
       } finally {
         setBookingLoading(false);
       }
     };
-    // Update guest information
-    const updateGuestInfo = (index, field, value) => {
-      setBookingData((prev) => {
-        const newGuests = [...prev.guests];
-        const fields = field.split(".");
-        let current = newGuests[index];
-        for (let i = 0; i < fields.length - 1; i++) {
-          current = current[fields[i]];
-        }
-        current[fields[fields.length - 1]] = value;
-        return { ...prev, guests: newGuests };
-      });
-    };
 
+    const validateForm = () => {
+      for (const guest of bookingData.guests) {
+        if (!guest.name.firstName || !guest.name.lastName) {
+          return false;
+        }
+        if (guest.contact && (!guest.contact.phone || !guest.contact.email)) {
+          return false;
+        }
+        if (
+          guest.address &&
+          (!guest.address.lines[0] ||
+            !guest.address.cityName ||
+            !guest.address.postalCode ||
+            !guest.address.countryCode)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    };
     return (
       <Modal show={show} onHide={onHide} size="lg">
         <Modal.Header closeButton>
@@ -155,20 +216,25 @@ const HotelBookingModal = memo(
                     <strong>Hotel:</strong> {hotel.hotel.name}
                   </p>
                   <p className="mb-1">
+                    <FaCalendarAlt className="me-2" />
                     <strong>Check-in:</strong> {searchParams.checkInDate}
                   </p>
                   <p className="mb-1">
+                    <FaCalendarAlt className="me-2" />
                     <strong>Check-out:</strong> {searchParams.checkOutDate}
                   </p>
                   <p className="mb-1">
+                    <FaUsers className="me-2" />
                     <strong>Guests:</strong> {searchParams.adults}
                   </p>
                   <p className="mb-0">
+                    <FaBed className="me-2" />
                     <strong>Rooms:</strong> {searchParams.rooms}
                   </p>
                 </Col>
                 <Col md={6} className="text-md-end">
                   <p className="mb-1">
+                    <FaDollarSign className="me-2" />
                     <strong>Price per night:</strong>
                     <br />
                     {formatPrice(hotel.offers[0].price)}
@@ -190,216 +256,199 @@ const HotelBookingModal = memo(
 
           {/* Booking Form */}
           <Form onSubmit={handleSubmit}>
-            {Array.from({ length: parseInt(searchParams.adults) }).map(
-              (_, index) => (
-                <Card key={index} className="mb-3">
-                  <Card.Header>
-                    <h5 className="mb-0">Guest {index + 1} Information</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <Row className="g-3">
-                      {/* Title */}
-                      <Col md={2}>
-                        <Form.Group>
-                          <Form.Label>Title</Form.Label>
-                          <Form.Select
-                            required
-                            value={bookingData.guests[index]?.name.title}
-                            onChange={(e) =>
-                              updateGuestInfo(
-                                index,
-                                "name.title",
-                                e.target.value
-                              )
-                            }
-                          >
-                            <option value="Mr">Mr</option>
-                            <option value="Mrs">Mrs</option>
-                            <option value="Ms">Ms</option>
-                            <option value="Dr">Dr</option>
-                          </Form.Select>
-                        </Form.Group>
-                      </Col>
+            {bookingData.guests.map((guest, index) => (
+              <Card key={index} className="mb-3">
+                <Card.Header>
+                  <h5 className="mb-0">Guest {index + 1} Information</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    {/* Title */}
+                    <Col md={2}>
+                      <Form.Group>
+                        <Form.Label>Title</Form.Label>
+                        <Form.Select
+                          required
+                          value={guest.name.title}
+                          onChange={(e) =>
+                            updateGuestInfo(index, "name.title", e.target.value)
+                          }
+                        >
+                          <option value="Mr">Mr</option>
+                          <option value="Mrs">Mrs</option>
+                          <option value="Ms">Ms</option>
+                          <option value="Dr">Dr</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
 
-                      {/* First Name */}
-                      <Col md={5}>
-                        <Form.Group>
-                          <Form.Label>First Name</Form.Label>
-                          <Form.Control
-                            required
-                            type="text"
-                            value={bookingData.guests[index]?.name.firstName}
-                            onChange={(e) =>
-                              updateGuestInfo(
-                                index,
-                                "name.firstName",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </Form.Group>
-                      </Col>
+                    {/* First Name */}
+                    <Col md={5}>
+                      <Form.Group>
+                        <Form.Label>First Name</Form.Label>
+                        <Form.Control
+                          required
+                          type="text"
+                          value={guest.name.firstName}
+                          onChange={(e) =>
+                            updateGuestInfo(
+                              index,
+                              "name.firstName",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
 
-                      {/* Last Name */}
-                      <Col md={5}>
-                        <Form.Group>
-                          <Form.Label>Last Name</Form.Label>
-                          <Form.Control
-                            required
-                            type="text"
-                            value={bookingData.guests[index]?.name.lastName}
-                            onChange={(e) =>
-                              updateGuestInfo(
-                                index,
-                                "name.lastName",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </Form.Group>
-                      </Col>
+                    {/* Last Name */}
+                    <Col md={5}>
+                      <Form.Group>
+                        <Form.Label>Last Name</Form.Label>
+                        <Form.Control
+                          required
+                          type="text"
+                          value={guest.name.lastName}
+                          onChange={(e) =>
+                            updateGuestInfo(
+                              index,
+                              "name.lastName",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
 
-                      {/* Contact Information - Only for first guest */}
-                      {index === 0 && (
-                        <>
-                          <Col md={6}>
-                            <Form.Group>
-                              <Form.Label>Email</Form.Label>
-                              <Form.Control
-                                required
-                                type="email"
-                                value={bookingData.guests[index]?.contact.email}
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "contact.email",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </Form.Group>
-                          </Col>
+                    {/* Contact Information - Only for first guest */}
+                    {index === 0 && (
+                      <>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label>Email</Form.Label>
+                            <Form.Control
+                              required
+                              type="email"
+                              value={guest.contact?.email || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "contact.email",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Form.Group>
+                        </Col>
 
-                          <Col md={6}>
-                            <Form.Group>
-                              <Form.Label>Phone</Form.Label>
-                              <Form.Control
-                                required
-                                type="tel"
-                                value={bookingData.guests[index]?.contact.phone}
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "contact.phone",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </Form.Group>
-                          </Col>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label>Phone</Form.Label>
+                            <Form.Control
+                              required
+                              type="tel"
+                              value={guest.contact?.phone || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "contact.phone",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Form.Group>
+                        </Col>
 
-                          {/* Address */}
-                          <Col md={12}>
-                            <Form.Group>
-                              <Form.Label>Address</Form.Label>
-                              <Form.Control
-                                required
-                                type="text"
-                                value={
-                                  bookingData.guests[index]?.address.lines[0]
-                                }
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "address.lines.0",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </Form.Group>
-                          </Col>
+                        {/* Address */}
+                        <Col md={12}>
+                          <Form.Group>
+                            <Form.Label>Address</Form.Label>
+                            <Form.Control
+                              required
+                              type="text"
+                              value={guest.address?.lines[0] || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "address.lines.0",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Form.Group>
+                        </Col>
 
-                          <Col md={4}>
-                            <Form.Group>
-                              <Form.Label>City</Form.Label>
-                              <Form.Control
-                                required
-                                type="text"
-                                value={
-                                  bookingData.guests[index]?.address.cityName
-                                }
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "address.cityName",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </Form.Group>
-                          </Col>
+                        <Col md={4}>
+                          <Form.Group>
+                            <Form.Label>City</Form.Label>
+                            <Form.Control
+                              required
+                              type="text"
+                              value={guest.address?.cityName || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "address.cityName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Form.Group>
+                        </Col>
 
-                          <Col md={4}>
-                            <Form.Group>
-                              <Form.Label>Postal Code</Form.Label>
-                              <Form.Control
-                                required
-                                type="text"
-                                value={
-                                  bookingData.guests[index]?.address.postalCode
-                                }
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "address.postalCode",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </Form.Group>
-                          </Col>
+                        <Col md={4}>
+                          <Form.Group>
+                            <Form.Label>Postal Code</Form.Label>
+                            <Form.Control
+                              required
+                              type="text"
+                              value={guest.address?.postalCode || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "address.postalCode",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Form.Group>
+                        </Col>
 
-                          <Col md={4}>
-                            <Form.Group>
-                              <Form.Label>Country</Form.Label>
-                              <Form.Select
-                                required
-                                value={
-                                  bookingData.guests[index]?.address.countryCode
-                                }
-                                onChange={(e) =>
-                                  updateGuestInfo(
-                                    index,
-                                    "address.countryCode",
-                                    e.target.value
-                                  )
-                                }
-                              >
-                                <option value="">Select Country</option>
-                                {countryOptions.map((country) => (
-                                  <option
-                                    key={country.code}
-                                    value={country.code}
-                                  >
-                                    {country.name}
-                                  </option>
-                                ))}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                        </>
-                      )}
-                    </Row>
-                  </Card.Body>
-                </Card>
-              )
-            )}
+                        <Col md={4}>
+                          <Form.Group>
+                            <Form.Label>Country</Form.Label>
+                            <Form.Select
+                              required
+                              value={guest.address?.countryCode || ""}
+                              onChange={(e) =>
+                                updateGuestInfo(
+                                  index,
+                                  "address.countryCode",
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <option value="">Select Country</option>
+                              {countryOptions.map((country) => (
+                                <option key={country.code} value={country.code}>
+                                  {country.name}
+                                </option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+                      </>
+                    )}
+                  </Row>
+                </Card.Body>
+              </Card>
+            ))}
 
             <div className="d-grid">
               <Button
                 type="submit"
                 variant="primary"
-                disabled={bookingLoading}
+                disabled={bookingLoading || !validateForm()}
                 size="lg"
               >
                 {bookingLoading ? (
