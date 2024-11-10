@@ -1,8 +1,8 @@
-import TourGuide from "../models/tourGuide.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
+import TourGuide from "../models/tourGuide.model.js";
 
 dotenv.config();
 
@@ -31,7 +31,23 @@ export const registerTourGuide = async (req, res) => {
     previousWork,
   } = req.body;
 
+  // Extract filenames from req.files
+  const idFile =
+    req.files && req.files["id"] ? req.files["id"][0].filename : null;
+  const certificateFile =
+    req.files && req.files["certificate"]
+      ? req.files["certificate"][0].filename
+      : null;
+
+  // Ensure both required files are provided
+  if (!idFile || !certificateFile) {
+    return res.status(400).json({
+      message: "Both ID and certificate files are required.",
+    });
+  }
+
   try {
+    // Check if the tour guide already exists in the database
     const existingTourGuide = await TourGuide.findOne({
       $or: [{ email }, { username }],
     });
@@ -44,6 +60,7 @@ export const registerTourGuide = async (req, res) => {
       });
     }
 
+    // Create a new tour guide instance
     const newTourGuide = new TourGuide({
       username,
       email,
@@ -51,10 +68,13 @@ export const registerTourGuide = async (req, res) => {
       mobileNumber,
       yearsOfExperience,
       previousWork,
+      id: idFile, // File path for ID
+      certificate: certificateFile, // File path for certificate
     });
 
-    await newTourGuide.save();
+    await newTourGuide.save(); // Save the new tour guide to the database
 
+    // Generate a token for the new tour guide
     const token = generateToken(newTourGuide);
 
     return res.status(201).json({
@@ -66,6 +86,8 @@ export const registerTourGuide = async (req, res) => {
         mobileNumber: newTourGuide.mobileNumber,
         yearsOfExperience: newTourGuide.yearsOfExperience,
         previousWork: newTourGuide.previousWork,
+        id: newTourGuide.id, // File path for ID
+        certificate: newTourGuide.certificate, // File path for certificate
       },
       token,
     });
@@ -105,6 +127,8 @@ export const loginTourGuide = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        id: tourGuide.id,
+        certificate: tourGuide.certificate,
       },
       token,
     });

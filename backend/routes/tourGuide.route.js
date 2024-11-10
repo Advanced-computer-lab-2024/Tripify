@@ -18,10 +18,20 @@ import { upload } from "../utils/upload.js"; // Only keep this 'upload' import
 const router = express.Router();
 
 // Public routes (no authentication required)
-router.post("/register", registerTourGuide);
+router.post(
+  "/register",
+  upload.fields([
+    {
+      name: "id",
+      maxCount: 1,
+    },
+    { name: "certificate", maxCount: 1 },
+  ]),
+  registerTourGuide
+);
 router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
-router.post("/upload", upload.single("file")); // File upload route
+
 router.post("/reset-password", resetPassword); // Public route for resetting password
 
 // Protected routes (requires authentication)

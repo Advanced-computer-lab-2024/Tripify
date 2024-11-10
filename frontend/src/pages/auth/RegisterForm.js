@@ -1,18 +1,20 @@
-// RegisterForm.js
-
 import React, { useState } from "react";
 import { Form, Button, Spinner, Alert } from "react-bootstrap";
 import axios from "axios";
 import RoleSpecificFields from "./RoleSpecificFields";
 
-const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }) => {
+const RegisterForm = ({
+  selectedRole,
+  setLoading,
+  setError,
+  setIsAuthenticated,
+}) => {
   const [registerData, setRegisterData] = useState({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState("");
 
@@ -23,8 +25,17 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
     });
   };
 
+  const handlePhoto = (e) => {
+    const { name, files } = e.target;
+    setRegisterData((prevData) => ({
+      ...prevData,
+      [name]: files[0],
+    }));
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
+
     if (registerData.password !== registerData.confirmPassword) {
       setLocalError("Passwords do not match");
       return;
@@ -35,13 +46,38 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
     setLocalError("");
 
     try {
+      // Create FormData object
+      const formData = new FormData();
+
+      // Append all regular fields
+      Object.keys(registerData).forEach((key) => {
+        // Skip null or undefined values
+        if (registerData[key] != null) {
+          // Check if the value is a File object
+          if (registerData[key] instanceof File) {
+            formData.append(key, registerData[key]);
+          } else {
+            formData.append(key, registerData[key].toString());
+          }
+        }
+      });
+
       const response = await axios.post(
         `http://localhost:5000/api/${selectedRole}/register`,
-        registerData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
+
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data[selectedRole]));
+        localStorage.setItem(
+          "user",
+          JSON.stringify(response.data[selectedRole])
+        );
         localStorage.setItem("userRole", selectedRole);
         setIsAuthenticated(true);
       }
@@ -49,14 +85,19 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
       const errorMsg = err.response?.data?.message || "Registration failed.";
       setError(errorMsg);
       setLocalError(errorMsg);
+      console.error("Registration error:", err);
     } finally {
       setLocalLoading(false);
     }
   };
 
   return (
-    <Form onSubmit={handleRegister}>
+    <Form
+      onSubmit={handleRegister}
+      encType="multipart/form-data"
+    >
       {localError && <Alert variant="danger">{localError}</Alert>}
+
       <Form.Group className="mb-3">
         <Form.Label>Username</Form.Label>
         <Form.Control
@@ -101,15 +142,27 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
         />
       </Form.Group>
 
-      {/* Role-specific fields */}
       <RoleSpecificFields
         registerData={registerData}
         handleRegisterChange={handleRegisterChange}
         selectedRole={selectedRole}
+        handlePhoto={handlePhoto}
       />
 
-      <Button variant="primary" type="submit" className="w-100" disabled={localLoading}>
-        {localLoading ? <Spinner animation="border" size="sm" /> : "Register"}
+      <Button
+        variant="primary"
+        type="submit"
+        className="w-100"
+        disabled={localLoading}
+      >
+        {localLoading ? (
+          <Spinner
+            animation="border"
+            size="sm"
+          />
+        ) : (
+          "Register"
+        )}
       </Button>
     </Form>
   );

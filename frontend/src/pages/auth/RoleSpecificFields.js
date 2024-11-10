@@ -3,7 +3,12 @@
 import React from "react";
 import { Form } from "react-bootstrap";
 
-const RoleSpecificFields = ({ registerData, handleRegisterChange, selectedRole }) => {
+const RoleSpecificFields = ({
+  registerData,
+  handleRegisterChange,
+  selectedRole,
+  handlePhoto,
+}) => {
   if (selectedRole === "tourist") {
     return (
       <>
@@ -116,6 +121,24 @@ const RoleSpecificFields = ({ registerData, handleRegisterChange, selectedRole }
             name="previousWork"
             value={registerData.previousWork || ""}
             onChange={handleRegisterChange}
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label> ID</Form.Label>
+          <Form.Control
+            type="file"
+            accept=".png, .jpg, .jpeg"
+            name="id"
+            onChange={handlePhoto}
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Certificate</Form.Label>
+          <Form.Control
+            type="file"
+            accept=".png, .jpg, .jpeg"
+            name="certificate"
+            onChange={handlePhoto}
           />
         </Form.Group>
       </>
