@@ -1,99 +1,80 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
-const previousWorkSchema = new mongoose.Schema(
-  {
+// Define a schema for previous work experience
+const previousWorkSchema = new mongoose.Schema({
     jobTitle: {
-      type: String,
-      trim: true,
-      required: true,
+        type: String,
+        trim: true,
+        required: true // Ensure jobTitle is required
     },
     company: {
-      type: String,
-      trim: true,
-      required: true,
+        type: String,
+        trim: true,
+        required: true // Ensure company is required
     },
     description: {
-      type: String,
-      trim: true,
-      required: false,
+        type: String,
+        trim: true,
+        required: false // Make this optional
     },
     startDate: {
-      type: Date,
-      required: false,
+        type: Date,
+        required: false // Make this optional
     },
     endDate: {
-      type: Date,
-      required: false,
-    },
-  },
-  { _id: false }
-);
+        type: Date,
+        required: false // Make this optional
+    }
+}, { _id: false }); // Prevent creation of separate _id for each subdocument
 
-const tourGuideSchema = new mongoose.Schema(
-  {
+// Define the main TourGuide schema
+const tourGuideSchema = new mongoose.Schema({
     username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
+        type: String,
+        required: true,
+        unique: true,
+        trim: true
     },
     email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     password: {
-      type: String,
-      required: true,
+        type: String,
+        required: true
     },
     mobileNumber: {
-      type: String,
-      trim: true,
-      match: [/^\+?[1-20]\d{1,14}$/, "Please enter a valid mobile number"],
+        type: String,
+        trim: true,
+        match: [/^\+?[1-20]\d{1,14}$/, 'Please enter a valid mobile number'] // Validates international phone number format
     },
     yearsOfExperience: {
-      type: Number,
-      min: [0, "Years of experience cannot be negative"],
-      max: [50, "Unrealistic value for years of experience"],
+        type: Number,
+        min: [0, 'Years of experience cannot be negative'],
+        max: [50, 'Unrealistic value for years of experience'] // Validation based on common sense
     },
-    previousWork: [previousWorkSchema],
-    ratings: {
-      average: { type: Number, default: 0 },
-      count: { type: Number, default: 0 },
-    },
-  },
-  { timestamps: true }
-);
+    previousWork: [previousWorkSchema], // Store previous work as an array of objects
+}, { timestamps: true });
 
-// Method to update ratings
-tourGuideSchema.methods.updateRatings = async function () {
-  const Booking = mongoose.model("Booking");
-  const ratings = await Booking.getGuideRatings(this._id);
-
-  this.ratings = {
-    average: ratings.averageRating,
-    count: ratings.totalRatings,
-  };
-
-  await this.save();
-  return this.ratings;
-};
-
-// Pre-save hook for password
-tourGuideSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
-  next();
+// Pre-save hook to hash the password
+tourGuideSchema.pre('save', async function (next) {
+    const user = this;
+    if (user.isModified('password')) {
+        user.password = await bcrypt.hash(user.password, 10);
+    }
+    next();
 });
 
+// Method to compare password
 tourGuideSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+    return bcrypt.compare(candidatePassword, this.password);
 };
 
-const TourGuide = mongoose.model("TourGuide", tourGuideSchema);
+// Create the TourGuide model
+const TourGuide = mongoose.model('TourGuide', tourGuideSchema);
 
 export default TourGuide;
