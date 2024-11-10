@@ -24,6 +24,8 @@ const bookingSchema = new mongoose.Schema(
     rating: {
       type: Number,
       default: 0,
+      min: 0,
+      max: 5,
     },
     review: {
       type: String,
@@ -34,20 +36,160 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "confirmed", "cancelled", "attended"],
       default: "pending",
     },
+    guideId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TourGuide",
+    },
   },
   { timestamps: true }
 );
 
-bookingSchema.index({ userId: 1, bookingDate: 1 });
-bookingSchema.index({ bookingType: 1, itemId: 1, bookingDate: 1 });
+// Static method to get ratings for any bookable item
+bookingSchema.statics.getItemRatings = async function (itemId, bookingType) {
+  try {
+    const ratings = await this.aggregate([
+      {
+        $match: {
+          bookingType: bookingType,
+          itemId: new mongoose.Types.ObjectId(itemId),
+          status: "attended",
+          rating: { $gt: 0 },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$rating" },
+          totalRatings: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          averageRating: { $round: ["$averageRating", 1] },
+          totalRatings: 1,
+        },
+      },
+    ]);
 
-// Modified pre-save hook to allow past dates when explicitly set
-bookingSchema.pre("save", function (next) {
-  // Only check for future dates if it's a new booking and not specifically marked for testing
-  if (this.isNew && !this._allowPastDate && this.bookingDate < new Date()) {
-    next(new Error("Cannot book for a past date"));
+    return ratings[0] || { averageRating: 0, totalRatings: 0 };
+  } catch (error) {
+    console.error("Error calculating item ratings:", error);
+    throw error;
   }
-  next();
+};
+
+// Static method to get paginated ratings for a specific item
+bookingSchema.statics.getItemRatingsPaginated = async function (
+  itemId,
+  bookingType,
+  page = 1,
+  limit = 10
+) {
+  const skip = (page - 1) * limit;
+
+  try {
+    const [ratings, totalCount] = await Promise.all([
+      this.find({
+        itemId,
+        bookingType,
+        status: "attended",
+        rating: { $gt: 0 },
+      })
+        .populate("userId", "username")
+        .sort("-createdAt")
+        .skip(skip)
+        .limit(limit)
+        .select("rating review createdAt userId"),
+
+      this.countDocuments({
+        itemId,
+        bookingType,
+        status: "attended",
+        rating: { $gt: 0 },
+      }),
+    ]);
+
+    const stats = await this.getItemRatings(itemId, bookingType);
+
+    return {
+      ratings,
+      totalCount,
+      averageRating: stats.averageRating,
+      totalRatings: stats.totalRatings,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+    };
+  } catch (error) {
+    console.error("Error getting paginated ratings:", error);
+    throw error;
+  }
+};
+
+// Static method to get guide ratings
+bookingSchema.statics.getGuideRatings = async function (guideId) {
+  try {
+    const ratings = await this.aggregate([
+      {
+        $match: {
+          bookingType: "Itinerary",
+          status: "attended",
+          rating: { $gt: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: "itineraries",
+          localField: "itemId",
+          foreignField: "_id",
+          as: "itinerary",
+        },
+      },
+      {
+        $unwind: "$itinerary",
+      },
+      {
+        $match: {
+          "itinerary.createdBy": new mongoose.Types.ObjectId(guideId),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$rating" },
+          totalRatings: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          averageRating: { $round: ["$averageRating", 1] },
+          totalRatings: 1,
+        },
+      },
+    ]);
+
+    return ratings[0] || { averageRating: 0, totalRatings: 0 };
+  } catch (error) {
+    console.error("Error calculating guide ratings:", error);
+    throw error;
+  }
+};
+
+// Pre-save middleware to set guideId from Itinerary
+bookingSchema.pre("save", async function (next) {
+  try {
+    if (this.bookingType === "Itinerary" && !this.guideId) {
+      const Itinerary = mongoose.model("Itinerary");
+      const itinerary = await Itinerary.findById(this.itemId);
+      if (itinerary) {
+        this.guideId = itinerary.createdBy;
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 const Booking = mongoose.model("Booking", bookingSchema);

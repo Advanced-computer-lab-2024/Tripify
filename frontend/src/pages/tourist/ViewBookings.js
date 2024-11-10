@@ -141,8 +141,9 @@ const ViewBookings = () => {
             isEventPassed(booking.bookingDate)
           ) {
             try {
+              // Update to use the correct endpoint
               const updateResponse = await axios.patch(
-                `http://localhost:5000/api/bookings/${booking._id}/status`,
+                `http://localhost:5000/api/bookings/status/${booking._id}`,
                 { status: "attended" },
                 {
                   headers: {
@@ -153,7 +154,8 @@ const ViewBookings = () => {
               return updateResponse.data.data;
             } catch (error) {
               console.error("Error updating booking status:", error);
-              return { ...booking, status: "attended" };
+              // If the update fails, return the original booking
+              return booking;
             }
           }
           return booking;
@@ -168,7 +170,6 @@ const ViewBookings = () => {
       setLoading(false);
     }
   };
-
   // Cancel booking
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) {
@@ -270,9 +271,24 @@ const ViewBookings = () => {
 
   // Handle rating booking
   const handleRateBooking = (booking) => {
+    if (!canBeRated(booking)) {
+      let message = "This booking cannot be rated. ";
+      if (booking.status !== "attended") {
+        message += "The booking must be marked as attended. ";
+      } else if (booking.rating) {
+        message += "You have already rated this booking. ";
+      } else if (
+        !["Itinerary", "HistoricalPlace"].includes(booking.bookingType)
+      ) {
+        message += "Only itineraries and historical places can be rated. ";
+      }
+      alert(message);
+      return;
+    }
+
     setSelectedBooking(booking);
-    setRating(booking.rating || 0);
-    setReview(booking.review || "");
+    setRating(0); // Reset rating
+    setReview(""); // Reset review
     setShowRatingModal(true);
   };
 
@@ -280,11 +296,30 @@ const ViewBookings = () => {
   const submitRating = async () => {
     if (!selectedBooking) return;
 
+    // Validation checks
+    if (!rating || rating < 1 || rating > 5) {
+      alert("Please select a rating between 1 and 5");
+      return;
+    }
+
+    if (selectedBooking.status !== "attended") {
+      alert("Can only rate attended bookings");
+      return;
+    }
+
+    if (selectedBooking.rating > 0) {
+      alert("This booking has already been rated");
+      return;
+    }
+
     setSubmittingRating(true);
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/bookings/${selectedBooking._id}/rate`,
-        { rating, review },
+        `http://localhost:5000/api/bookings/${selectedBooking._id}/rating`,
+        {
+          rating,
+          review,
+        },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -295,14 +330,34 @@ const ViewBookings = () => {
       if (response.data.success) {
         alert("Rating submitted successfully");
         setShowRatingModal(false);
-        fetchBookings();
+        fetchBookings(); // Refresh the bookings list
+
+        // Log the ratings stats if they're returned
+        if (response.data.data.stats) {
+          console.log(
+            `${selectedBooking.bookingType} Rating Stats:`,
+            response.data.data.stats
+          );
+        }
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
-      alert("Failed to submit rating");
+      alert(
+        error.response?.data?.message ||
+          "Failed to submit rating. Please ensure this booking can be rated."
+      );
     } finally {
       setSubmittingRating(false);
     }
+  };
+
+  const canBeRated = (booking) => {
+    return (
+      booking.status === "attended" &&
+      (booking.bookingType === "Itinerary" ||
+        booking.bookingType === "HistoricalPlace") &&
+      !booking.rating
+    );
   };
 
   // Star rating component
@@ -381,23 +436,39 @@ const ViewBookings = () => {
                   <Card.Text>
                     <strong>Booked On:</strong> {formatDate(booking.createdAt)}
                   </Card.Text>
-                  {booking.rating && (
-                    <Card.Text>
-                      <strong>Your Rating:</strong>{" "}
-                      {[...Array(booking.rating)].map((_, i) => (
-                        <FaStar key={i} color="#ffc107" className="me-1" />
-                      ))}
-                    </Card.Text>
-                  )}
+
                   <div className="d-grid gap-2">
-                    {booking.status === "attended" && !booking.rating && (
+                    {/* Rating Button - Show only for attended bookings that can be rated */}
+                    {canBeRated(booking) && (
                       <Button
                         variant="primary"
                         onClick={() => handleRateBooking(booking)}
+                        className="mt-2"
                       >
-                        Rate Your Experience
+                        <FaStar className="me-2" />
+                        Rate{" "}
+                        {booking.bookingType === "Itinerary"
+                          ? "Tour Guide"
+                          : "Historical Place"}
                       </Button>
                     )}
+
+                    {/* Show existing rating if it exists */}
+                    {booking.rating > 0 && (
+                      <div className="mt-2">
+                        <strong>Your Rating: </strong>
+                        {[...Array(booking.rating)].map((_, i) => (
+                          <FaStar key={i} className="text-warning" />
+                        ))}
+                        {booking.review && (
+                          <p className="mt-1 text-muted small">
+                            {booking.review}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cancellation Button - Show only for future, non-cancelled bookings */}
                     {!isEventPassed(booking.bookingDate) &&
                       booking.status !== "cancelled" && (
                         <>

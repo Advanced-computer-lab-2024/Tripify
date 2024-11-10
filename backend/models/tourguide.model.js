@@ -1,80 +1,99 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
-// Define a schema for previous work experience
-const previousWorkSchema = new mongoose.Schema({
+const previousWorkSchema = new mongoose.Schema(
+  {
     jobTitle: {
-        type: String,
-        trim: true,
-        required: true // Ensure jobTitle is required
+      type: String,
+      trim: true,
+      required: true,
     },
     company: {
-        type: String,
-        trim: true,
-        required: true // Ensure company is required
+      type: String,
+      trim: true,
+      required: true,
     },
     description: {
-        type: String,
-        trim: true,
-        required: false // Make this optional
+      type: String,
+      trim: true,
+      required: false,
     },
     startDate: {
-        type: Date,
-        required: false // Make this optional
+      type: Date,
+      required: false,
     },
     endDate: {
-        type: Date,
-        required: false // Make this optional
-    }
-}, { _id: false }); // Prevent creation of separate _id for each subdocument
+      type: Date,
+      required: false,
+    },
+  },
+  { _id: false }
+);
 
-// Define the main TourGuide schema
-const tourGuideSchema = new mongoose.Schema({
+const tourGuideSchema = new mongoose.Schema(
+  {
     username: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
     email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
     password: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     mobileNumber: {
-        type: String,
-        trim: true,
-        match: [/^\+?[1-20]\d{1,14}$/, 'Please enter a valid mobile number'] // Validates international phone number format
+      type: String,
+      trim: true,
+      match: [/^\+?[1-20]\d{1,14}$/, "Please enter a valid mobile number"],
     },
     yearsOfExperience: {
-        type: Number,
-        min: [0, 'Years of experience cannot be negative'],
-        max: [50, 'Unrealistic value for years of experience'] // Validation based on common sense
+      type: Number,
+      min: [0, "Years of experience cannot be negative"],
+      max: [50, "Unrealistic value for years of experience"],
     },
-    previousWork: [previousWorkSchema], // Store previous work as an array of objects
-}, { timestamps: true });
+    previousWork: [previousWorkSchema],
+    ratings: {
+      average: { type: Number, default: 0 },
+      count: { type: Number, default: 0 },
+    },
+  },
+  { timestamps: true }
+);
 
-// Pre-save hook to hash the password
-tourGuideSchema.pre('save', async function (next) {
-    const user = this;
-    if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, 10);
-    }
-    next();
-});
+// Method to update ratings
+tourGuideSchema.methods.updateRatings = async function () {
+  const Booking = mongoose.model("Booking");
+  const ratings = await Booking.getGuideRatings(this._id);
 
-// Method to compare password
-tourGuideSchema.methods.comparePassword = async function (candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.password);
+  this.ratings = {
+    average: ratings.averageRating,
+    count: ratings.totalRatings,
+  };
+
+  await this.save();
+  return this.ratings;
 };
 
-// Create the TourGuide model
-const TourGuide = mongoose.model('TourGuide', tourGuideSchema);
+// Pre-save hook for password
+tourGuideSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
+
+tourGuideSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+const TourGuide = mongoose.model("TourGuide", tourGuideSchema);
 
 export default TourGuide;
