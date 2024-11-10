@@ -452,13 +452,13 @@ const [touristLevel, setTouristLevel] = useState(1);
   };
 
   const handleShare = (item) => {
-    const url = `http://localhost:3000/${item.type}/${item._id}`;
+    const url = `http://localhost:3000/tourist/view-events`;
     navigator.clipboard.writeText(url);
     alert("Link copied to clipboard!");
   };
 
   const handleEmailShare = (item) => {
-    const url = `http://localhost:3000/${item.type}/${item._id}`;
+    const url = `http://localhost:3000/tourist/view-events`;
     window.location.href = `mailto:?subject=Check out this ${item.type}&body=Here is the link: ${url}`;
   };
 
