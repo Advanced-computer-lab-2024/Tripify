@@ -108,3 +108,4 @@ tourGuideSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Export the model with a check for existing compilation
 export default mongoose.models.TourGuide || mongoose.model('TourGuide', tourGuideSchema);
+//
