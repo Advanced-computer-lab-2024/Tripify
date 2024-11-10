@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Button, Form, Alert } from 'react-bootstrap';
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
+import AccountDeletionRequest from '../../components/AccountDeletionRequest';
 
 const AdvertiserProfile = () => {
   const [userDetails, setUserDetails] = useState(null);
@@ -9,11 +10,7 @@ const AdvertiserProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const getUserFromToken = () => {
+  const getUserFromToken = useCallback(() => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -26,9 +23,9 @@ const AdvertiserProfile = () => {
       console.error('Token decode error:', error);
       throw new Error('Invalid authentication token');
     }
-  };
+  }, []);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const user = getUserFromToken();
       const token = localStorage.getItem('token');
@@ -56,7 +53,11 @@ const AdvertiserProfile = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getUserFromToken]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleEditToggle = () => {
     setIsEditing((prev) => !prev);
@@ -192,6 +193,16 @@ const AdvertiserProfile = () => {
               )}
             </div>
           </Form>
+
+          {/* Account deletion request component */}
+          <div className="mt-4">
+            <h5>Request Account Deletion</h5>
+            <AccountDeletionRequest 
+              role="advertiser" 
+              userId={userDetails._id} 
+              token={localStorage.getItem('token')} 
+            />
+          </div>
         </div>
       )}
     </div>

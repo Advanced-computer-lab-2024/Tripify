@@ -11,15 +11,17 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
     email: "",
     password: "",
     confirmPassword: "",
+    acceptedTerms: false, // New field for terms acceptance
   });
 
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState("");
 
   const handleRegisterChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setRegisterData({
       ...registerData,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? checked : value, // Handle checkbox for terms
     });
   };
 
@@ -27,6 +29,10 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
       setLocalError("Passwords do not match");
+      return;
+    }
+    if (!registerData.acceptedTerms) {
+      setLocalError("You must accept the terms and conditions to proceed.");
       return;
     }
 
@@ -107,6 +113,18 @@ const RegisterForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }
         handleRegisterChange={handleRegisterChange}
         selectedRole={selectedRole}
       />
+
+      {/* Terms Acceptance */}
+      <Form.Group className="mb-3">
+        <Form.Check
+          type="checkbox"
+          name="acceptedTerms"
+          checked={registerData.acceptedTerms}
+          onChange={handleRegisterChange}
+          label="I agree to the terms and conditions"
+          required
+        />
+      </Form.Group>
 
       <Button variant="primary" type="submit" className="w-100" disabled={localLoading}>
         {localLoading ? <Spinner animation="border" size="sm" /> : "Register"}

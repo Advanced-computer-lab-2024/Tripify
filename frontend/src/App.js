@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import AuthPage from "./pages/auth/AuthPage"; // Combined login/register page
+import AuthPage from "./pages/auth/AuthPage";
 import TouristRegister from "./pages/tourist/TouristRegister";
 import TouristHomePage from "./pages/tourist/TouristHomepage";
 import ViewEvents from "./pages/tourist/ViewEvents";
@@ -42,6 +42,7 @@ import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints";
 import HotelBooking from "./pages/tourist/HotelBooking";
+import AccountDeletionRequest from "./components/AccountDeletionRequest";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -51,111 +52,115 @@ function App() {
     <div className="App">
       <Router>
         <Routes>
+          {/* Auth Routes */}
           <Route path="/" element={<AuthPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
+
           {/* Tourist Routes */}
           <Route path="/tourist" element={<TouristHomePage />} />
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
-          <Route
-            path="/tourist/my-complaints"
-            element={<TouristComplaints />}
-          />
-          <Route
-            path="/tourist/itinerary-filter"
-            element={<ItineraryFilter />}
-          />
-          <Route
-            path="/tourist/filtered-activities"
-            element={<FilteredActivities />}
-          />
+          <Route path="/tourist/my-complaints" element={<TouristComplaints />} />
+          <Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
+          <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
           <Route path="/tourist/complaints" element={<CreateComplaint />} />
           <Route path="/tourist/book-flight" element={<FlightBooking />} />
           <Route path="/tourist/book-hotel" element={<HotelBooking />} />
           <Route path="/tourist/view-bookings" element={<ViewBookings />} />
-          <Route
-            path="/tourist/book-transportation"
-            element={<BookTransportation />}
+          <Route path="/tourist/book-transportation" element={<BookTransportation />} />
+          <Route 
+            path="/tourist/request-deletion" 
+            element={
+              <AccountDeletionRequest 
+                role="tourist"
+                userId={JSON.parse(localStorage.getItem("user"))?._id}
+                token={localStorage.getItem("token")}
+              />
+            } 
           />
 
           {/* Tour Guide Routes */}
           <Route path="/tourguide" element={<TourguideHomePage />} />
-          <Route
-            path="/tourguide/itinerary-management"
-            element={<ItineraryManagement />}
-          />
-          <Route
-            path="/tourguide/MyItineraries"
-            element={<TourGuideItineraries />}
+          <Route path="/tourguide/itinerary-management" element={<ItineraryManagement />} />
+          <Route path="/tourguide/MyItineraries" element={<TourGuideItineraries />} />
+          <Route 
+            path="/tourguide/request-deletion" 
+            element={
+              <AccountDeletionRequest 
+                role="tourguide"
+                userId={JSON.parse(localStorage.getItem("user"))?._id}
+                token={localStorage.getItem("token")}
+              />
+            } 
           />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
-          <Route
-            path="/admin/activity-categories"
-            element={<ActivityCategoryManagement />}
-          />
-          <Route
-            path="/admin/preference-tags"
-            element={<PreferenceTagManagement />}
-          />
+          <Route path="/admin/activity-categories" element={<ActivityCategoryManagement />} />
+          <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
           <Route path="/admin/complaints" element={<Complaints />} />
-          <Route
-            path="/admin/content-moderation"
-            element={<ContentModeration />}
-          />
+          <Route path="/admin/content-moderation" element={<ContentModeration />} />
 
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
-          <Route
-            path="/advertiser/create-activity"
-            element={<CreateActivity />}
-          />
-          <Route
-            path="/advertiser/view-activities"
-            element={<ActivityList />}
-          />
+          <Route path="/advertiser/create-activity" element={<CreateActivity />} />
+          <Route path="/advertiser/view-activities" element={<ActivityList />} />
           <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
-          <Route
-            path="/advertiser/activities"
-            element={<AdvertiserActivities />}
-          />
-          <Route
-            path="/advertiser/create-transportation"
-            element={<CreateTransportationListing />}
-          />
-          <Route
-            path="/advertiser/transportation"
-            element={<ManageTransportations />}
+          <Route path="/advertiser/activities" element={<AdvertiserActivities />} />
+          <Route path="/advertiser/create-transportation" element={<CreateTransportationListing />} />
+          <Route path="/advertiser/transportation" element={<ManageTransportations />} />
+          <Route 
+            path="/advertiser/request-deletion" 
+            element={
+              <AccountDeletionRequest 
+                role="advertiser"
+                userId={JSON.parse(localStorage.getItem("user"))?._id}
+                token={localStorage.getItem("token")}
+              />
+            } 
           />
 
           {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
           <Route path="/governor/view-places" element={<ViewHistorical />} />
-          <Route
-            path="/governor/my-places"
-            element={<GovernorCreatedPlaces />}
-          />
+          <Route path="/governor/my-places" element={<GovernorCreatedPlaces />} />
           <Route path="/governor/tag-management" element={<TagManagement />} />
+          <Route 
+            path="/governor/request-deletion" 
+            element={
+              <AccountDeletionRequest 
+                role="governor"
+                userId={JSON.parse(localStorage.getItem("user"))?._id}
+                token={localStorage.getItem("token")}
+              />
+            } 
+          />
 
           {/* Seller Routes */}
           <Route path="/seller" element={<SellerHomePage />} />
           <Route path="/seller/products" element={<ProductPage />} />
           <Route path="/seller/profile" element={<UserDisplay />} />
+          <Route 
+            path="/seller/request-deletion" 
+            element={
+              <AccountDeletionRequest 
+                role="seller"
+                userId={JSON.parse(localStorage.getItem("user"))?._id}
+                token={localStorage.getItem("token")}
+              />
+            } 
+          />
 
           {/* Registration Routes */}
           <Route path="/register/admin" element={<AdminRegister />} />
           <Route path="/register/tourist" element={<TouristRegister />} />
           <Route path="/register/tourguide" element={<TourGuideReg />} />
           <Route path="/register/advertiser" element={<AdvertiserReg />} />
-          <Route
-            path="/register/tourism-governor"
-            element={<TourismGovReg />}
-          />
+          <Route path="/register/tourism-governor" element={<TourismGovReg />} />
           <Route path="/register/seller" element={<SellerReg />} />
         </Routes>
       </Router>

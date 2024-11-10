@@ -36,6 +36,46 @@ const ViewEvents = () => {
   const [bookingItemId, setBookingItemId] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
   const [userWallet, setUserWallet] = useState(0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+const [touristLevel, setTouristLevel] = useState(1);
+  const getUserSpecificKey = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return `tourist_${user?.username}`;
+  };
+  const fetchLoyaltyStatus = async () => {
+    try {
+      const userId = getUserId();
+      if (!userId) return;
+  
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        setLoyaltyPoints(response.data.loyaltyStatus.points);
+        setTouristLevel(response.data.loyaltyStatus.level);
+      }
+    } catch (error) {
+      console.error("Error fetching loyalty status:", error);
+    }
+  };
+  // Update storage function
+  const updateWalletStorage = (wallet) => {
+    const userKey = getUserSpecificKey();
+    const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
+    localStorage.setItem(
+      userKey,
+      JSON.stringify({
+        ...touristData,
+        wallet: wallet,
+      })
+    );
+  };
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -57,12 +97,11 @@ const ViewEvents = () => {
 
       if (response.data.tourist) {
         setUserWallet(response.data.tourist.wallet);
-        // Update localStorage with the latest wallet balance
-        const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+        // Use user-specific key
+        const userKey = getUserSpecificKey();
         localStorage.setItem(
-          "tourist",
+          userKey,
           JSON.stringify({
-            ...touristData,
             wallet: response.data.tourist.wallet,
           })
         );
@@ -71,24 +110,71 @@ const ViewEvents = () => {
       console.error("Error fetching user profile:", error);
     }
   };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get user's wallet balance from stored tourist data
-        const touristData = JSON.parse(localStorage.getItem("tourist"));
-        if (touristData && touristData.wallet !== undefined) {
-          setUserWallet(touristData.wallet);
+        // Get token and user information
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!token || !user) {
+          console.error("No token or user found");
+          setLoading(false);
+          return;
         }
 
+        // Fetch user's profile and wallet balance
+        try {
+          const profileResponse = await axios.get(
+            `http://localhost:5000/api/tourist/profile/${user.username}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (profileResponse.data.tourist) {
+            setUserWallet(profileResponse.data.tourist.wallet);
+            // Store in user-specific localStorage
+            const userKey = `tourist_${user.username}`;
+            localStorage.setItem(
+              userKey,
+              JSON.stringify({
+                ...JSON.parse(localStorage.getItem(userKey) || "{}"),
+                wallet: profileResponse.data.tourist.wallet,
+              })
+            );
+          }
+        } catch (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          // Don't return here, continue fetching other data
+        }
+        const storedPoints = JSON.parse(localStorage.getItem("loyaltyPoints"));
+        const storedLevel = JSON.parse(localStorage.getItem("touristLevel"));
+        if (storedPoints && storedLevel) {
+          setLoyaltyPoints(storedPoints);
+          setTouristLevel(storedLevel);
+        }
+        // Fetch all other required data in parallel
         const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
           await Promise.all([
-            axios.get("http://localhost:5000/api/historicalplace"),
-            axios.get("http://localhost:5000/api/activities"),
-            axios.get("http://localhost:5000/api/itineraries"),
-            axios.get("http://localhost:5000/api/activities/category"),
+            axios.get("http://localhost:5000/api/historicalplace", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/activities", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/itineraries", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get("http://localhost:5000/api/activities/category", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetchLoyaltyStatus(),
           ]);
 
+        // Get user role and filter flagged items
         const userRole = localStorage.getItem("userRole");
         const isAdmin = userRole === "admin";
 
@@ -96,20 +182,61 @@ const ViewEvents = () => {
           return isAdmin ? items : items.filter((item) => !item.flagged);
         };
 
+        // Set state with fetched data
         setHistoricalPlaces(filterFlagged(historicalRes.data));
         setActivities(filterFlagged(activitiesRes.data));
         setItineraries(filterFlagged(itinerariesRes.data));
         setCategories(categoriesRes.data);
-
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
+        if (error.response?.status === 401) {
+          // Handle unauthorized access
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          // You might want to redirect to login page here
+        }
+      } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
+    // Cleanup function
+    const cleanup = () => {
+      setHistoricalPlaces([]);
+      setActivities([]);
+      setItineraries([]);
+      setCategories([]);
+      setUserWallet(0);
+      setLoading(true);
+    };
+
+    // Function to handle storage events (for multi-tab synchronization)
+    const handleStorageChange = (e) => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user && e.key === `tourist_${user.username}`) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          if (newData && typeof newData.wallet !== "undefined") {
+            setUserWallet(newData.wallet);
+          }
+        } catch (error) {
+          console.error("Error parsing storage data:", error);
+        }
+      }
+    };
+
+    // Add storage event listener
+    window.addEventListener("storage", handleStorageChange);
+
+    // Initial data fetch
+    fetchData();
+
+    // Cleanup on unmount
+    return () => {
+      cleanup();
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []); // Empty dependency array since we want this to run only once on mount
   const getUserId = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
@@ -191,7 +318,7 @@ const ViewEvents = () => {
           },
         }
       );
-
+      
       if (bookingResponse.data.success) {
         try {
           // Then deduct from wallet
@@ -215,8 +342,12 @@ const ViewEvents = () => {
 
           if (deductResponse.data.success) {
             // Update wallet balance in state and localStorage
-            setUserWallet(deductResponse.data.currentBalance);
-
+            setUserWallet(deductResponse.data.currentBalance);    
+            setLoyaltyPoints(deductResponse.data.totalPoints);
+            setTouristLevel(deductResponse.data.newLevel);
+            localStorage.setItem("loyaltyPoints", JSON.stringify(deductResponse.data.totalPoints));
+            localStorage.setItem("touristLevel", JSON.stringify(deductResponse.data.newLevel));
+            
             // Update stored tourist data
             const touristData =
               JSON.parse(localStorage.getItem("tourist")) || {};
@@ -232,6 +363,7 @@ const ViewEvents = () => {
               "Booking successful! Amount has been deducted from your wallet."
             );
             await fetchUserProfile(); // Refresh user profile
+            await fetchLoyaltyStatus();
           }
         } catch (paymentError) {
           console.error("Payment error:", paymentError);
@@ -632,7 +764,23 @@ const ViewEvents = () => {
       </Container>
     );
   }
-
+  const LoyaltyInfo = () => (
+    <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
+      <div className="me-4">
+        <FaWallet className="me-2 text-warning" size={24} />
+        <div>
+          <h4 className="mb-0">Level {touristLevel}</h4>
+          <small className="text-muted">Tourist Status</small>
+        </div>
+      </div>
+      <div>
+        <h4 className="mb-0">{loyaltyPoints} Points</h4>
+        <small className="text-muted">
+          Earn {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"} points on purchases
+        </small>
+      </div>
+    </div>
+  );
   return (
     <Container className="mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -645,7 +793,9 @@ const ViewEvents = () => {
           </div>
         </div>
       </div>
-
+      <div className="d-flex gap-3">
+        <LoyaltyInfo />
+      </div>
       <div className="mb-4 p-3 bg-white rounded shadow-sm">
         <Form.Control
           type="text"

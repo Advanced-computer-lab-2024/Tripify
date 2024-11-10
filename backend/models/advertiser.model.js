@@ -22,51 +22,45 @@ const advertiserSchema = new mongoose.Schema({
     companyName: {
         type: String,
         trim: true
-      },
-    
-      // Description of the company
-      companyDescription: {
+    },
+    companyDescription: {
         type: String,
-       
         trim: true
-      },
-    
-      // URL for the company's website
-      website: {
+    },
+    website: {
         type: String,
-       
-        match: [/^(https?:\/\/)?([\w.-]+)+(:\d+)?(\/([\w\/._-]*(\?\S+)?)?)?$/, 'Please enter a valid website URL'] // Basic URL validation
-      },
-    
-      // Hotline for customer service
-      hotline: {
+        match: [/^(https?:\/\/)?([\w.-]+)+(:\d+)?(\/([\w\/._-]*(\?\S+)?)?)?$/, 'Please enter a valid website URL']
+    },
+    hotline: {
         type: String,
-       
         trim: true,
-        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid hotline number'] // Ensures valid international phone number format
-      },
-    
-      // Company logo URL
-      companyLogo: {
-        type: String,
-        
-      },
-    
-      // Array of active advertisements linked to the advertiser
-      activeAds: [{
+        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid hotline number']
+    },
+    companyLogo: {
+        type: String
+    },
+    activeAds: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Advertisement'
-      }],
-    
-      createdAt: {
+    }],
+    termsAccepted: {
+        type: Boolean,
+        default: false,
+    },
+    createdAt: {
         type: Date,
-        default: Date.now
-      }
+        default: Date.now,
+    },
+    isDeletionRequested: {
+        type: Boolean,
+        default: false,
+    },
+    
 }, { timestamps: true });
+
 advertiserSchema.pre('save', async function (next) {
-    const user = this;
-    if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, 10);
+    if (this.isModified('password')) {
+        this.password = await bcrypt.hash(this.password, 10);
     }
     next();
 });

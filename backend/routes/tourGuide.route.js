@@ -9,12 +9,16 @@ import {
   getProfileByToken,
   getTourGuideItineraries,
   changePassword,
+  acceptTerms,
   resetPassword,
-} from "../controllers/tourGuide.controller.js"; // Removed 'upload' from here
+  requestDeletion
+} from "../controllers/tourGuide.controller.js"; 
 
 import authMiddleware from "../middleware/auth.middleware.js";
-import { upload } from "../utils/upload.js"; // Only keep this 'upload' import
+import { upload } from "../utils/upload.js"; 
+import checkTermsMiddleware from "../middleware/checkTerms.middleware.js";
 
+// Initialize the router
 const router = express.Router();
 
 // Public routes (no authentication required)
@@ -23,6 +27,18 @@ router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
 router.post("/upload", upload.single("file")); // File upload route
 router.post("/reset-password", resetPassword); // Public route for resetting password
+
+// Route for accepting terms (protected)
+router.put("/accept-terms", authMiddleware, acceptTerms);
+
+//route for request deletion
+router.put('/request-deletion', authMiddleware, requestDeletion);
+
+
+// Protected route requiring accepted terms
+router.get("/protected-route", authMiddleware, checkTermsMiddleware, (req, res) => {
+  res.json({ message: "Access granted to protected route." });
+});
 
 // Protected routes (requires authentication)
 // Get own profile using token

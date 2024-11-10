@@ -1,6 +1,9 @@
 // touristController.js
 
 import Tourist from "../models/tourist.model.js";
+import Booking from "../models/booking.model.js";
+import Activity from "../models/activity.model.js";
+import Itinerary from "../models/itinerary.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -163,6 +166,48 @@ export const getTouristProfile = async (req, res) => {
   }
 };
 
+export const requestDeletion = async (req, res) => {
+    try {
+        const { _id } = req.user;
+
+        const tourist = await Tourist.findById(_id);
+        
+        if (!tourist) {
+            return res.status(404).json({ message: "Tourist not found" });
+        }
+
+        if (tourist.isDeletionRequested) {
+            return res.status(400).json({ message: "Deletion already requested" });
+        }
+
+        // Check for upcoming bookings that are confirmed and paid
+        const hasUpcomingConfirmedPaidBookings = await Booking.exists({
+            user: _id,
+            date: { $gte: new Date() }, // Only future bookings
+            status: "paid", // Ensure booking status is 'paid'
+            confirmed: true // Check that booking is confirmed
+        });
+
+        if (hasUpcomingConfirmedPaidBookings) {
+            return res.status(400).json({
+                message: "Cannot request deletion with upcoming confirmed and paid bookings."
+            });
+        }
+
+        // Update tourist to request deletion
+        tourist.isDeletionRequested = true;
+        await tourist.save();
+
+        res.status(200).json({
+            message: "Deletion request submitted successfully",
+            tourist: { id: tourist._id, isDeletionRequested: tourist.isDeletionRequested }
+        });
+    } catch (error) {
+        console.error("Error requesting account deletion:", error);
+        res.status(500).json({ message: "Error requesting deletion", error: error.message });
+    }
+};
+
 // Update Tourist Profile
 export const updateTouristProfile = async (req, res) => {
   try {
@@ -249,8 +294,6 @@ export const getAllTourists = async (req, res) => {
   }
 };
 
-// Add money to wallet
-
 export const deductFromWallet = async (req, res) => {
   try {
     const { id } = req.params;
@@ -267,6 +310,11 @@ export const deductFromWallet = async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
+    // Check if amount is a number
+    if (isNaN(amount) || typeof amount !== "number") {
+      return res.status(400).json({ message: "Amount must be a number" });
+    }
+
     const tourist = await Tourist.findById(id);
     if (!tourist) {
       console.log("Tourist not found:", id);
@@ -281,12 +329,20 @@ export const deductFromWallet = async (req, res) => {
         balance: tourist.wallet,
         required: amount,
       });
+
+
       return res.status(400).json({
         message: "Insufficient funds",
         currentBalance: tourist.wallet,
         requiredAmount: amount,
       });
     }
+    // Calculate and add loyalty points based on level
+    const earnedPoints = calculateLoyaltyPoints(tourist.level, amount);
+    tourist.loyaltypoints += earnedPoints;
+    
+    // Update tourist level based on total points
+    tourist.level = determineTouristLevel(tourist.loyaltypoints);
 
     tourist.wallet = tourist.wallet - amount;
     await tourist.save();
@@ -297,8 +353,11 @@ export const deductFromWallet = async (req, res) => {
       success: true,
       message: "Amount deducted from wallet successfully",
       currentBalance: tourist.wallet,
-      deductedAmount: amount,
+      earnedPoints,
+      totalPoints: tourist.loyaltypoints,
+      newLevel: tourist.level
     });
+
   } catch (error) {
     console.error("Deduct from wallet error:", error);
     res.status(500).json({
@@ -323,6 +382,11 @@ export const addToWallet = async (req, res) => {
     if (!amount || amount <= 0) {
       console.log("Invalid amount:", amount);
       return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    // Check if amount is a number
+    if (isNaN(amount) || typeof amount !== "number") {
+      return res.status(400).json({ message: "Amount must be a number" });
     }
 
     const tourist = await Tourist.findById(id);
@@ -368,6 +432,11 @@ export const refundToWallet = async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
+    // Check if amount is a number
+    if (isNaN(amount) || typeof amount !== "number") {
+      return res.status(400).json({ message: "Amount must be a number" });
+    }
+
     const tourist = await Tourist.findById(id);
     if (!tourist) {
       console.log("Tourist not found:", id);
@@ -394,3 +463,155 @@ export const refundToWallet = async (req, res) => {
     });
   }
 };
+
+const calculateLoyaltyPoints = (level, amount) => {
+  const multipliers = {
+    1: 0.5,
+    2: 1.0,
+    3: 1.5
+  };
+  return Math.floor(amount * (multipliers[level] || 0.5)); // Default to level 1 multiplier if level is invalid
+};
+
+// Helper function to determine level based on loyalty points
+const determineTouristLevel = (points) => {
+  if (points >= 500000) return 3;
+  if (points >= 100000) return 2;
+  return 1;
+};
+
+// Get tourist loyalty status
+export const getLoyaltyStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      loyaltyStatus: {
+        points: tourist.loyaltypoints,
+        level: tourist.level,
+        nextLevelPoints: tourist.level === 3 ? null : (tourist.level === 2 ? 500000 : 100000),
+        pointsToNextLevel: tourist.level === 3 ? 0 : (tourist.level === 2 ? 500000 - tourist.loyaltypoints : 100000 - tourist.loyaltypoints)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+    }
+    };
+    // Delete Tourist (Protected Route)
+    export const deleteTourist = async (req, res) => {
+    const { id } = req.params;
+    try {
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+    
+    if (req.user._id.toString() !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+    
+    if (!tourist.isDeletionRequested) {
+      return res.status(400).json({ message: "Deletion not requested by user" });  
+    }
+    
+    // Check for upcoming events, activities, or itineraries with paid bookings
+    const hasUpcomingBookings = await Booking.exists({
+      user: id,
+      date: { $gte: new Date() },
+      status: "paid"
+    });
+    
+    const hasUpcomingActivities = await Activity.exists({
+      participants: id,
+      date: { $gte: new Date() },
+      "bookings.status": "paid"
+    });
+    
+    const hasUpcomingItineraries = await Itinerary.exists({
+      createdBy: id,
+      date: { $gte: new Date() },
+      "bookings.status": "paid"
+    });
+    
+    if (hasUpcomingBookings || hasUpcomingActivities || hasUpcomingItineraries) {
+      return res.status(400).json({
+        message: "Cannot delete account with upcoming paid events, activities, or itineraries."
+      });
+    }
+    
+    // Optionally mark associated events, activities, or itineraries as inactive
+    await Activity.updateMany({ participants: id }, { $pull: { participants: id } });
+    await Itinerary.updateMany({ createdBy: id }, { visible: false });
+    
+    // Delete tourist account
+    await Tourist.findByIdAndDelete(id);
+    
+    res.status(200).json({ message: "Tourist deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting tourist:", error);
+    res.status(500).json({ message: "Error deleting tourist", error: error.message });
+    }
+    };
+    export const redeemLoyaltyPoints = async (req, res) => {
+    try {
+    const { id } = req.params;
+    const { pointsToRedeem } = req.body;
+    if (!pointsToRedeem || pointsToRedeem < 10000 || pointsToRedeem % 10000 !== 0) {
+      return res.status(400).json({ 
+        message: "Points must be at least 10,000 and in multiples of 10,000" 
+      });
+    }
+    
+    // Check if pointsToRedeem is a number
+    if (isNaN(pointsToRedeem) || typeof pointsToRedeem !== "number") {
+      return res.status(400).json({ message: "Points must be a number" });
+    }
+    
+    const tourist = await Tourist.findById(id);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+    
+    if (tourist.loyaltypoints < pointsToRedeem) {
+      return res.status(400).json({ 
+        message: "Insufficient loyalty points",
+        currentPoints: tourist.loyaltypoints
+      });
+    }
+    
+    // Calculate EGP (10000 points = 100 EGP)
+    const egpToAdd = (pointsToRedeem / 10000) * 100;
+    
+    // Update tourist's points and wallet
+    tourist.loyaltypoints -= pointsToRedeem;
+    tourist.wallet += egpToAdd;
+    
+    // Update level based on new points total
+    tourist.level = determineTouristLevel(tourist.loyaltypoints);
+    
+    await tourist.save();
+    
+    res.status(200).json({
+      success: true,
+      message: "Points redeemed successfully",
+      redeemedPoints: pointsToRedeem,
+      addedAmount: egpToAdd,
+      currentBalance: tourist.wallet,
+      remainingPoints: tourist.loyaltypoints,
+      newLevel: tourist.level
+    });
+  } catch (error) {
+    console.error("Redeem points error:", error);
+    res.status(500).json({
+    message: "Server error",
+    error: error.message
+    });
+    }
+    };

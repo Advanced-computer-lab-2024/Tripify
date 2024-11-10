@@ -9,6 +9,7 @@ import {
   FaShoppingBag,
   FaExclamationCircle,
   FaUser,
+  FaTrashAlt,
 } from "react-icons/fa";
 
 const TouristHomePage = () => {
@@ -81,6 +82,12 @@ const TouristHomePage = () => {
       label: "My Complaints",
       icon: <FaExclamationCircle />,
       variant: "primary",
+    },
+    {
+      to: "/tourist/request-deletion",
+      label: "Request Account Deletion",
+      icon: <FaTrashAlt />,
+      variant: "danger",
     },
   ];
 

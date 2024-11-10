@@ -21,6 +21,45 @@ const generateToken = (advertiser) => {
   );
 };
 
+export const requestDeletion = async (req, res) => {
+  try {
+      const { _id } = req.user; // Assume user is authenticated and _id is in req.user
+
+      // Check for upcoming activities with confirmed and paid bookings
+      const hasUpcomingConfirmedPaidActivities = await Activity.exists({
+          createdBy: _id,
+          date: { $gte: new Date() }, // Check if the activity is upcoming
+          "bookings.status": "paid", // Confirm booking is paid
+          "bookings.confirmed": true  // Check that the booking is confirmed
+      });
+
+      if (hasUpcomingConfirmedPaidActivities) {
+          return res.status(400).json({
+              message: "Cannot delete account with upcoming confirmed and paid activities or bookings."
+          });
+      }
+
+      // If no upcoming confirmed and paid activities, proceed with marking account for deletion
+      const advertiser = await Advertiser.findByIdAndUpdate(
+          _id,
+          { isDeletionRequested: true },
+          { new: true }
+      );
+
+      if (!advertiser) {
+          return res.status(404).json({ message: "Advertiser not found" });
+      }
+
+      res.status(200).json({
+          message: "Deletion request submitted successfully",
+          advertiser: { id: advertiser._id, isDeletionRequested: advertiser.isDeletionRequested }
+      });
+  } catch (error) {
+      console.error("Error requesting account deletion:", error);
+      res.status(500).json({ message: "Error requesting deletion", error: error.message });
+  }
+};
+
 // Register an Advertiser
 export const registerAdvertiser = async (req, res) => {
   const {
@@ -82,6 +121,7 @@ export const registerAdvertiser = async (req, res) => {
 };
 
 // Login Advertiser
+// Login Advertiser
 export const loginAdvertiser = async (req, res) => {
   const { username, password } = req.body;
 
@@ -99,6 +139,11 @@ export const loginAdvertiser = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    // Check if terms are accepted
+    if (!advertiser.termsAccepted) {
+      return res.status(403).json({ message: "You must accept the terms and conditions to proceed." });
+    }
+
     const token = generateToken(advertiser);
 
     res.status(200).json({
@@ -113,7 +158,7 @@ export const loginAdvertiser = async (req, res) => {
         hotline: advertiser.hotline,
         companyLogo: advertiser.companyLogo,
       },
-      token
+      token,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -239,22 +284,59 @@ export const updateAdvertiserByUsername = async (req, res) => {
   }
 };
 
+//accept terms and conditions
+// Accept Terms for Advertiser
+export const acceptTerms = async (req, res) => {
+  try {
+    const advertiser = await Advertiser.findById(req.user._id);
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    advertiser.termsAccepted = true;
+    await advertiser.save();
+
+    res.status(200).json({ message: "Terms accepted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error accepting terms", error: error.message });
+  }
+};
+
 // Delete Advertiser (Protected Route)
 export const deleteAdvertiser = async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Check if the requesting user is the advertiser or an admin
     if (req.user._id !== id && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
+    // Check for upcoming activities with paid bookings
+    const hasUpcomingActivities = await Activity.exists({
+      createdBy: id,
+      date: { $gte: new Date() },
+      "bookings.status": "paid", // Assumes a 'bookings' array with 'status' field
+    });
+
+    if (hasUpcomingActivities) {
+      return res.status(400).json({
+        message: "Cannot delete account with upcoming paid activities or bookings."
+      });
+    }
+
+    // Delete all activities associated with the advertiser
+    await Activity.deleteMany({ createdBy: id });
+
+    // Delete the advertiser profile
     const deletedAdvertiser = await Advertiser.findByIdAndDelete(id);
     if (!deletedAdvertiser) {
       return res.status(404).json({ message: "Advertiser not found" });
     }
 
-    res.status(200).json({ message: "Advertiser deleted successfully" });
+    res.status(200).json({ message: "Advertiser and associated activities deleted successfully" });
   } catch (error) {
+    console.error("Error deleting advertiser:", error);
     res.status(500).json({ message: error.message });
   }
 };

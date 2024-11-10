@@ -4,35 +4,43 @@ import {
     loginSeller, 
     getSellerProfile,
     updateSellerAccount,
-    changePassword,  // Import changePassword function
-    resetPassword,    // Import resetPassword function
+    changePassword,  
+    resetPassword,    
     getAllSellers,
-    deleteSellerAccount 
+    acceptTerms,
+    deleteSellerAccount,
+    requestDeletion
 } from '../controllers/seller.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
+import checkTermsMiddleware from "../middleware/checkTerms.middleware.js";
 
+// Initialize the router first
 const router = express.Router();
+
+// Route to check if terms are accepted (protected route)
+router.get("/protected-route", authMiddleware, checkTermsMiddleware, (req, res) => {
+  res.json({ message: "Access granted to protected route." });
+});
+
+// Route to accept terms (protected route)
+router.put("/accept-terms", authMiddleware, acceptTerms);
 
 // Public routes (no authentication required)
 router.post('/register', registerSeller);
 router.post('/login', loginSeller);
-router.post('/reset-password', resetPassword); // Public route for resetting password
+router.post('/reset-password', resetPassword); 
+
+//request deletion
+router.put('/request-deletion', authMiddleware, requestDeletion);
+
 
 // Protected routes (requires authentication)
-// Get seller's own profile
 router.get('/profile/:username', authMiddleware, getSellerProfile);
-
-// Update seller's own account
 router.put('/profile/:id', authMiddleware, updateSellerAccount);
-
-// Change password route
 router.put('/profile/:id/change-password', authMiddleware, changePassword);
-
-// Delete seller's own account
 router.delete('/profile/:id', authMiddleware, deleteSellerAccount);
 
 // Optional routes - might need admin authentication
-router.get('/all', getAllSellers); // Get all sellers (could be admin-only)
-// router.get('/:id', authMiddleware, getSellerById); // Get specific seller by ID
+router.get('/all', getAllSellers); 
 
 export default router;

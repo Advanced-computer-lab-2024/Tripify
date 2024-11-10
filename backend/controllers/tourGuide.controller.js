@@ -20,6 +20,24 @@ const generateToken = (tourGuide) => {
   );
 };
 
+// Accept Terms for Tour Guide
+export const acceptTerms = async (req, res) => {
+  try {
+    const tourGuide = await TourGuide.findById(req.user._id);
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour guide not found" });
+    }
+
+    tourGuide.termsAccepted = true;
+    await tourGuide.save();
+
+    res.status(200).json({ message: "Terms accepted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error accepting terms", error: error.message });
+  }
+};
+
+
 // Register a Tour Guide
 export const registerTourGuide = async (req, res) => {
   const {
@@ -77,6 +95,48 @@ export const registerTourGuide = async (req, res) => {
   }
 };
 
+
+
+export const requestDeletion = async (req, res) => {
+    try {
+        const { _id } = req.user;
+
+        // Check for upcoming itineraries with confirmed and paid bookings
+        const hasUpcomingConfirmedPaidItineraries = await Itinerary.exists({
+            createdBy: _id,
+            date: { $gte: new Date() }, // Check for upcoming dates
+            "bookings.status": "paid", // Ensure booking status is 'paid'
+            "bookings.confirmed": true // Check that the booking is confirmed
+        });
+
+        if (hasUpcomingConfirmedPaidItineraries) {
+            return res.status(400).json({
+                message: "Cannot delete account with upcoming confirmed and paid itineraries or bookings."
+            });
+        }
+
+        // Update tour guide to request deletion
+        const tourGuide = await TourGuide.findByIdAndUpdate(
+            _id,
+            { isDeletionRequested: true },
+            { new: true }
+        );
+
+        if (!tourGuide) {
+            return res.status(404).json({ message: "Tour Guide not found" });
+        }
+
+        res.status(200).json({
+            message: "Deletion request submitted successfully",
+            tourGuide: { id: tourGuide._id, isDeletionRequested: tourGuide.isDeletionRequested }
+        });
+    } catch (error) {
+        console.error("Error requesting account deletion:", error);
+        res.status(500).json({ message: "Error requesting deletion", error: error.message });
+    }
+};
+
+
 // Login a Tour Guide
 export const loginTourGuide = async (req, res) => {
   const { username, password } = req.body;
@@ -92,6 +152,11 @@ export const loginTourGuide = async (req, res) => {
     const isMatch = await bcrypt.compare(password, tourGuide.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // Check if terms are accepted
+    if (!tourGuide.termsAccepted) {
+      return res.status(403).json({ message: "Please accept the terms and conditions to proceed." });
     }
 
     const token = generateToken(tourGuide);
@@ -110,11 +175,10 @@ export const loginTourGuide = async (req, res) => {
     });
   } catch (error) {
     console.error("Error logging in:", error);
-    return res
-      .status(500)
-      .json({ message: "Error logging in", error: error.message });
+    return res.status(500).json({ message: "Error logging in", error: error.message });
   }
 };
+
 
 // Reset Password for Tour Guide
 export const resetPassword = async (req, res) => {
@@ -265,22 +329,33 @@ export const deleteTourGuide = async (req, res) => {
   const { id } = req.params;
 
   try {
-    if (req.user._id !== id) {
+    if (req.user._id !== id && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const tourGuide = await TourGuide.findById(id);
+    // Check for any upcoming itineraries with paid bookings
+    const hasUpcomingItineraries = await Itinerary.exists({
+      createdBy: id,
+      date: { $gte: new Date() },
+      "bookings.status": "paid"
+    });
+
+    if (hasUpcomingItineraries) {
+      return res.status(400).json({
+        message: "Cannot delete account with upcoming paid itineraries or bookings."
+      });
+    }
+
+    // Find and delete tour guide account
+    const tourGuide = await TourGuide.findByIdAndDelete(id);
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    await tourGuide.deleteOne();
-    return res.status(200).json({ message: "Tour guide deleted successfully" });
+    res.status(200).json({ message: "Tour guide deleted successfully" });
   } catch (error) {
     console.error("Error deleting tour guide:", error);
-    return res
-      .status(500)
-      .json({ message: "Error deleting tour guide", error: error.message });
+    res.status(500).json({ message: "Error deleting tour guide", error: error.message });
   }
 };
 

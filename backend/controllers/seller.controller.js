@@ -63,6 +63,11 @@ export const loginSeller = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    // Check if terms are accepted
+    if (!seller.termsAccepted) {
+      return res.status(403).json({ message: "You must accept the terms and conditions to proceed." });
+    }
+
     const token = generateToken(seller);
 
     return res.status(200).json({
@@ -74,12 +79,53 @@ export const loginSeller = async (req, res) => {
         name: seller.name,
         description: seller.description,
       },
-      token
+      token,
     });
   } catch (error) {
     return res.status(500).json({ message: "Error logging in", error: error.message });
   }
 };
+
+
+export const requestDeletion = async (req, res) => {
+    try {
+        const { _id } = req.user; // Assume user is authenticated and _id is in req.user
+
+        // Check for upcoming activities with confirmed and paid bookings
+        const hasUpcomingConfirmedPaidActivities = await Activity.exists({
+            createdBy: _id,
+            date: { $gte: new Date() }, // Check for upcoming dates
+            "bookings.status": "paid", // Ensure booking status is 'paid'
+            "bookings.confirmed": true // Check that the booking is confirmed
+        });
+
+        if (hasUpcomingConfirmedPaidActivities) {
+            return res.status(400).json({
+                message: "Cannot delete account with upcoming confirmed and paid activities or bookings."
+            });
+        }
+
+        // Update seller to request deletion
+        const seller = await Seller.findByIdAndUpdate(
+            _id,
+            { isDeletionRequested: true },
+            { new: true }
+        );
+
+        if (!seller) {
+            return res.status(404).json({ message: "Seller not found" });
+        }
+
+        res.status(200).json({
+            message: "Deletion request submitted successfully",
+            seller: { id: seller._id, isDeletionRequested: seller.isDeletionRequested }
+        });
+    } catch (error) {
+        console.error("Error requesting account deletion:", error);
+        res.status(500).json({ message: "Error requesting deletion", error: error.message });
+    }
+};
+
 
 // Reset Password for Seller
 export const resetPassword = async (req, res) => {
@@ -99,6 +145,24 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Error resetting password", error: error.message });
   }
 };
+
+// Accept Terms for Seller
+export const acceptTerms = async (req, res) => {
+  try {
+    const seller = await Seller.findById(req.user._id);
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    seller.termsAccepted = true;
+    await seller.save();
+
+    res.status(200).json({ message: "Terms accepted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error accepting terms", error: error.message });
+  }
+};
+
 
 // Change Password (Protected Route)
 export const changePassword = async (req, res) => {
@@ -198,16 +262,29 @@ export const deleteSellerAccount = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (req.user._id !== id) {
+    if (req.user._id !== id && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const seller = await Seller.findById(id);
+    // Check for any upcoming activities with paid bookings
+    const hasUpcomingActivities = await Activity.exists({
+      createdBy: id,
+      date: { $gte: new Date() },
+      "bookings.status": "paid"
+    });
+
+    if (hasUpcomingActivities) {
+      return res.status(400).json({
+        message: "Cannot delete account with upcoming paid activities or bookings."
+      });
+    }
+
+    // Find and delete seller account
+    const seller = await Seller.findByIdAndDelete(id);
     if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
-    await seller.deleteOne();
     res.status(200).json({ message: "Seller account deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting seller account", error: error.message });

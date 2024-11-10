@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
 const sellerSchema = new mongoose.Schema({
-    
     username: {
         type: String,
         required: true,
@@ -28,15 +27,23 @@ const sellerSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    termsAccepted: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
-        default: Date.now
-    }
+        default: Date.now,
+    },
+    isDeletionRequested: {
+        type: Boolean,
+        default: false,
+    },    
 }, { timestamps: true });
+
 sellerSchema.pre('save', async function (next) {
-    const user = this;
-    if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, 10);
+    if (this.isModified('password')) {
+        this.password = await bcrypt.hash(this.password, 10);
     }
     next();
 });
