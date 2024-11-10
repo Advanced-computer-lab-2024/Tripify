@@ -1,5 +1,3 @@
-// routes/tourist.routes.js
-
 import express from "express";
 import {
   registerTourist,
@@ -11,9 +9,9 @@ import {
   addToWallet,
   deductFromWallet,
   refundToWallet,
-  getLoyaltyStatus ,
-  redeemLoyaltyPoints, 
-
+  getLoyaltyStatus,
+  redeemLoyaltyPoints,
+  rateTourGuide // Import rateTourGuide function
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -27,11 +25,7 @@ router.get("/", getAllTourists);
 // Protected routes (requires authentication)
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
-router.put(
-  "/profile/:username/change-password",
-  authMiddleware,
-  changePassword
-);
+router.put("/profile/:username/change-password", authMiddleware, changePassword);
 router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
 
 // Wallet routes
@@ -40,6 +34,7 @@ router.post("/wallet/deduct/:id", authMiddleware, deductFromWallet);
 router.post("/wallet/refund/:id", authMiddleware, refundToWallet);
 router.post("/loyalty/redeem/:id", authMiddleware, redeemLoyaltyPoints);
 
-
+// Rate tour guide route
+router.post("/rate-guide/:tourGuideId", authMiddleware, rateTourGuide);
 
 export default router;

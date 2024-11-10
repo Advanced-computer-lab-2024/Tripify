@@ -39,6 +39,7 @@ const bookingSchema = new mongoose.Schema(
     guideId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TourGuide",
+      // isrequired: true,
     },
   },
   { timestamps: true }

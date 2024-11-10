@@ -1,6 +1,7 @@
 // touristController.js
-
+import mongoose from "mongoose";
 import Tourist from "../models/tourist.model.js";
+import TourGuide from "../models/tourGuide.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -494,6 +495,75 @@ export const redeemLoyaltyPoints = async (req, res) => {
     console.error("Redeem points error:", error);
     res.status(500).json({ 
       message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+export const rateTourGuide = async (req, res) => {
+  try {
+    const { tourGuideId } = req.params;
+    const { rating, comment } = req.body;
+    const touristId = req.user._id; // Get tourist ID from the authenticated user
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    }
+
+    // Validate tourGuideId
+    if (!mongoose.Types.ObjectId.isValid(tourGuideId)) {
+      return res.status(400).json({ message: "Invalid tour guide ID" });
+    }
+
+    // Find the tour guide
+    const tourGuide = await TourGuide.findById(tourGuideId);
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour Guide not found" });
+    }
+
+    // Check if tourist has already reviewed this tour guide
+    const existingReviewIndex = tourGuide.reviews.findIndex(
+      (review) => review.reviewer.toString() === touristId.toString()
+    );
+
+    if (existingReviewIndex !== -1) {
+      // Update existing review
+      tourGuide.reviews[existingReviewIndex] = {
+        rating,
+        comment,
+        reviewer: touristId,
+        createdAt: new Date()
+      };
+    } else {
+      // Add new review
+      tourGuide.reviews.push({
+        rating,
+        comment,
+        reviewer: touristId
+      });
+    }
+
+    // Save the updated tour guide
+    await tourGuide.save();
+
+    // Calculate new average rating
+    const averageRating = tourGuide.averageRating;
+
+    res.status(200).json({
+      success: true,
+      message: existingReviewIndex !== -1 ? "Review updated successfully" : "Review added successfully",
+      data: {
+        averageRating,
+        totalReviews: tourGuide.reviews.length
+      }
+    });
+
+  } catch (error) {
+    console.error("Rate tour guide error:", error);
+    console.log(error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error rating tour guide", 
       error: error.message 
     });
   }

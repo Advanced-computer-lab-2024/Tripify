@@ -20,6 +20,7 @@ import {
   FaStar,
   FaWallet,
 } from "react-icons/fa";
+
 const getItemPrice = (booking) => {
   const item = booking.itemId;
   if (!item) return 0;
@@ -46,6 +47,12 @@ const ViewBookings = () => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
+
+  // New states for guide rating
+  const [showGuideRatingModal, setShowGuideRatingModal] = useState(false);
+  const [guideRating, setGuideRating] = useState(0);
+  const [guideReview, setGuideReview] = useState("");
+  const [submittingGuideRating, setSubmittingGuideRating] = useState(false);
 
   // Get user ID from JWT token
   const getUserId = () => {
@@ -141,7 +148,6 @@ const ViewBookings = () => {
             isEventPassed(booking.bookingDate)
           ) {
             try {
-              // Update to use the correct endpoint
               const updateResponse = await axios.patch(
                 `http://localhost:5000/api/bookings/status/${booking._id}`,
                 { status: "attended" },
@@ -154,7 +160,6 @@ const ViewBookings = () => {
               return updateResponse.data.data;
             } catch (error) {
               console.error("Error updating booking status:", error);
-              // If the update fails, return the original booking
               return booking;
             }
           }
@@ -170,6 +175,7 @@ const ViewBookings = () => {
       setLoading(false);
     }
   };
+
   // Cancel booking
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) {
@@ -178,7 +184,6 @@ const ViewBookings = () => {
 
     setCancellingId(bookingId);
     try {
-      // Find the booking to get the price for refund
       const booking = bookings.find((b) => b._id === bookingId);
       if (!booking) {
         alert("Booking not found");
@@ -187,7 +192,6 @@ const ViewBookings = () => {
 
       const refundAmount = getItemPrice(booking);
 
-      // Cancel the booking
       const cancelResponse = await axios.patch(
         `http://localhost:5000/api/bookings/cancel/${bookingId}`,
         {},
@@ -199,7 +203,6 @@ const ViewBookings = () => {
       );
 
       if (cancelResponse.data.success) {
-        // Process the refund
         const userId = getUserId();
         const refundResponse = await axios.post(
           `http://localhost:5000/api/tourist/wallet/refund/${userId}`,
@@ -212,7 +215,6 @@ const ViewBookings = () => {
         );
 
         if (refundResponse.data.success) {
-          // Update stored tourist data with new wallet balance
           const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
           localStorage.setItem(
             "tourist",
@@ -225,7 +227,7 @@ const ViewBookings = () => {
           alert(
             `Booking cancelled successfully. $${refundAmount} has been refunded to your wallet.`
           );
-          fetchBookings(); // Refresh the bookings list
+          fetchBookings();
         } else {
           alert("Booking cancelled but refund failed. Please contact support.");
         }
@@ -240,35 +242,6 @@ const ViewBookings = () => {
     }
   };
 
-  const WalletBalance = () => {
-    const [balance, setBalance] = useState(0);
-
-    useEffect(() => {
-      const fetchWalletBalance = async () => {
-        try {
-          const touristData = JSON.parse(localStorage.getItem("tourist"));
-          if (touristData?.wallet !== undefined) {
-            setBalance(touristData.wallet);
-          }
-        } catch (error) {
-          console.error("Error fetching wallet balance:", error);
-        }
-      };
-
-      fetchWalletBalance();
-    }, [bookings]); // Refresh when bookings change
-
-    return (
-      <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
-        <FaWallet className="me-2 text-primary" size={24} />
-        <div>
-          <h4 className="mb-0">Wallet Balance: ${balance}</h4>
-          <small className="text-muted">Available for bookings</small>
-        </div>
-      </div>
-    );
-  };
-
   // Handle rating booking
   const handleRateBooking = (booking) => {
     if (!canBeRated(booking)) {
@@ -277,29 +250,21 @@ const ViewBookings = () => {
         message += "The booking must be marked as attended. ";
       } else if (booking.rating) {
         message += "You have already rated this booking. ";
-      } else if (
-        !["Itinerary", "HistoricalPlace", "Activity"].includes(
-          booking.bookingType
-        )
-      ) {
-        message +=
-          "Only itineraries, historical places, and activities can be rated. ";
       }
       alert(message);
       return;
     }
 
     setSelectedBooking(booking);
-    setRating(0); // Reset rating
-    setReview(""); // Reset review
+    setRating(0);
+    setReview("");
     setShowRatingModal(true);
   };
 
-  // Submit rating
+  // Submit booking rating
   const submitRating = async () => {
     if (!selectedBooking) return;
 
-    // Validation checks
     if (!rating || rating < 1 || rating > 5) {
       alert("Please select a rating between 1 and 5");
       return;
@@ -333,24 +298,58 @@ const ViewBookings = () => {
       if (response.data.success) {
         alert("Rating submitted successfully");
         setShowRatingModal(false);
-        fetchBookings(); // Refresh the bookings list
-
-        // Log the ratings stats if they're returned
-        if (response.data.data.stats) {
-          console.log(
-            `${selectedBooking.bookingType} Rating Stats:`,
-            response.data.data.stats
-          );
-        }
+        fetchBookings();
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
       alert(
         error.response?.data?.message ||
-          "Failed to submit rating. Please ensure this booking can be rated."
+          "Failed to submit rating. Please try again."
       );
     } finally {
       setSubmittingRating(false);
+    }
+  };
+
+  // Submit tour guide rating
+  const submitGuideRating = async () => {
+    if (!selectedBooking?.guideId) {
+      alert("No tour guide found for this booking");
+      return;
+    }
+
+    if (!guideRating || guideRating < 1 || guideRating > 5) {
+      alert("Please select a rating between 1 and 5 for the tour guide");
+      return;
+    }
+
+    setSubmittingGuideRating(true);
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/api/tourist/rate-guide/${selectedBooking.guideId}`,
+        {
+          rating: guideRating,
+          comment: guideReview
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        alert("Tour guide rating submitted successfully");
+        setShowGuideRatingModal(false);
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error("Error submitting guide rating:", error);
+      alert(error.response?.data?.message || "Failed to submit guide rating");
+    } finally {
+      setSubmittingGuideRating(false);
+      setGuideRating(0);
+      setGuideReview("");
     }
   };
 
@@ -381,15 +380,42 @@ const ViewBookings = () => {
     );
   };
 
-  // Set up initial fetch and refresh interval
+  // Wallet Balance Component
+  const WalletBalance = () => {
+    const [balance, setBalance] = useState(0);
+
+    useEffect(() => {
+      const fetchWalletBalance = async () => {
+        try {
+          const touristData = JSON.parse(localStorage.getItem("tourist"));
+          if (touristData?.wallet !== undefined) {
+            setBalance(touristData.wallet);
+          }
+        } catch (error) {
+          console.error("Error fetching wallet balance:", error);
+        }
+      };
+
+      fetchWalletBalance();
+    }, [bookings]);
+
+    return (
+      <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
+        <FaWallet className="me-2 text-primary" size={24} />
+        <div>
+          <h4 className="mb-0">Wallet Balance: ${balance}</h4>
+          <small className="text-muted">Available for bookings</small>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     fetchBookings();
-    // Refresh every minute
     const interval = setInterval(fetchBookings, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Loading state
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -442,7 +468,7 @@ const ViewBookings = () => {
                   </Card.Text>
 
                   <div className="d-grid gap-2">
-                    {/* Rating Button - Show only for attended bookings that can be rated */}
+                    {/* Rating Button for the booking */}
                     {canBeRated(booking) && (
                       <Button
                         variant="primary"
@@ -450,18 +476,14 @@ const ViewBookings = () => {
                         className="mt-2"
                       >
                         <FaStar className="me-2" />
-                        Rate{" "}
-                        {booking.bookingType === "Itinerary"
-                          ? "Tour Guide"
-                          : booking.bookingType === "HistoricalPlace"
-                          ? "Historical Place"
-                          : "Activity"}
+                        Rate {booking.bookingType}
                       </Button>
                     )}
-                    {/* Show existing rating if it exists */}
+
+                    {/* Show booking rating if exists */}
                     {booking.rating > 0 && (
                       <div className="mt-2">
-                        <strong>Your {booking.bookingType} Rating: </strong>
+                        <strong>{booking.bookingType} Rating: </strong>
                         {[...Array(booking.rating)].map((_, i) => (
                           <FaStar key={i} className="text-warning" />
                         ))}
@@ -472,7 +494,40 @@ const ViewBookings = () => {
                         )}
                       </div>
                     )}
-                    {/* Cancellation Button - Show only for future, non-cancelled bookings */}
+
+                    {/* Tour Guide Rating Section - Only for attended Itineraries */}
+                    {booking.bookingType === "Itinerary" && 
+                     booking.status === "attended" && (
+                      <div className="mt-3">
+                        {!booking.guideRating ? (
+                          <Button
+                            variant="outline-primary"
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setShowGuideRatingModal(true);
+                            }}
+                            className="mt-2"
+                          >
+                            <FaStar className="me-2" />
+                            Rate Tour Guide
+                          </Button>
+                        ) : (
+                          <div className="mt-2">
+                            <strong>Tour Guide Rating: </strong>
+                            {[...Array(booking.guideRating)].map((_, i) => (
+                              <FaStar key={i} className="text-warning" />
+                            ))}
+                            {booking.guideReview && (
+                              <p className="mt-1 text-muted small">
+                                <strong>Guide Review:</strong> {booking.guideReview}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cancellation Button */}
                     {!isEventPassed(booking.bookingDate) &&
                       booking.status !== "cancelled" && (
                         <>
@@ -531,6 +586,7 @@ const ViewBookings = () => {
         </Row>
       )}
 
+      {/* Rating Modal */}
       <Modal show={showRatingModal} onHide={() => setShowRatingModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Rate Your Experience</Modal.Title>
@@ -565,6 +621,59 @@ const ViewBookings = () => {
             disabled={!rating || submittingRating}
           >
             {submittingRating ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
+                />
+                Submitting...
+              </>
+            ) : (
+              "Submit Rating"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Tour Guide Rating Modal */}
+      <Modal show={showGuideRatingModal} onHide={() => setShowGuideRatingModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Rate Tour Guide</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Rating</Form.Label>
+              <div>
+                <StarRating value={guideRating} onChange={setGuideRating} />
+              </div>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Review (Optional)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={guideReview}
+                onChange={(e) => setGuideReview(e.target.value)}
+                placeholder="Share your experience with the tour guide..."
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowGuideRatingModal(false)}>
+            Close
+          </Button>
+          <Button
+            variant="primary"
+            onClick={submitGuideRating}
+            disabled={!guideRating || submittingGuideRating}
+          >
+            {submittingGuideRating ? (
               <>
                 <Spinner
                   as="span"
