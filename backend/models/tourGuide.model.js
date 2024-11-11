@@ -60,19 +60,19 @@ const reviewSchema = new mongoose.Schema(
 
 // Define a schema for file uploads
 const fileSchema = new mongoose.Schema({
-    filename: String,
-    path: String,
-    mimetype: String,
-    size: Number,
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    },
-    isVerified: {
-      type: Boolean,
-      default: false
-    }
-  });
+  filename: String,
+  path: String,
+  mimetype: String,
+  size: Number,
+  uploadDate: {
+    type: Date,
+    default: Date.now,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+});
 
 // Define the main TourGuide schema
 const tourGuideSchema = new mongoose.Schema(
@@ -107,36 +107,35 @@ const tourGuideSchema = new mongoose.Schema(
     // New fields for profile picture and documents
     profilePicture: {
       type: fileSchema,
-
     },
     identificationDocument: {
       type: fileSchema,
-      required: [true, "Identification document is required"],
+      // required: [true, "Identification document is required"],
       validate: {
-        validator: function(file) {
-          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        validator: function (file) {
+          const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
           return allowedTypes.includes(file.mimetype);
         },
-        message: 'ID document must be PDF, JPEG, or PNG'
-      }
+        message: "ID document must be PDF, JPEG, or PNG",
+      },
     },
     certificate: {
       type: fileSchema,
-      required: [true, "Certificate is required"],
+      // required: [true, "Certificate is required"],
       validate: {
-        validator: function(file) {
-          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        validator: function (file) {
+          const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
           return allowedTypes.includes(file.mimetype);
         },
-        message: 'Certificate must be PDF, JPEG, or PNG'
-      }
+        message: "Certificate must be PDF, JPEG, or PNG",
+      },
     },
     previousWork: [previousWorkSchema],
     reviews: [reviewSchema],
     isVerified: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -153,8 +152,8 @@ tourGuideSchema.virtual("averageRating").get(function () {
 
 // Pre-save hook to hash the password
 tourGuideSchema.pre("save", async function (next) {
-  if (!this.isModified('password')) return next();
-  
+  if (!this.isModified("password")) return next();
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
