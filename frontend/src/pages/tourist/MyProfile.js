@@ -12,7 +12,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 // Redeemption Points Component
-const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
+const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -33,13 +33,12 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
         return;
       }
 
-      // Get user ID from stored user data
       const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("token");
       const user = JSON.parse(userStr);
 
       const response = await axios.post(
-        `http://localhost:5000/api/tourist/loyalty/redeem/${user.id}`, // Note: using user.id instead of user._id
+        `http://localhost:5000/api/tourist/loyalty/redeem/${user.id}`,
         { pointsToRedeem: points },
         {
           headers: {
@@ -56,11 +55,35 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
           } EGP`
         );
         setPointsToRedeem("");
+
+        // Update parent components
         if (onRedeem) onRedeem();
+
+        // Fetch updated loyalty status
+        await fetchUpdatedStatus(user.id, token);
       }
     } catch (err) {
       console.error("Redemption error:", err);
       setError("Failed to redeem points. Please try again.");
+    }
+  };
+
+  const fetchUpdatedStatus = async (userId, token) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success && onUpdate) {
+        onUpdate(response.data.loyaltyStatus);
+      }
+    } catch (err) {
+      console.error("Error fetching updated status:", err);
     }
   };
 
@@ -100,6 +123,35 @@ const MyProfile = () => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [touristLevel, setTouristLevel] = useState("null");
   const navigate = useNavigate();
+  const fetchLoyaltyStatus = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const token = localStorage.getItem("token");
+
+      if (!user || !token) return;
+
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setLoyaltyPoints(response.data.loyaltyStatus.points);
+        setTouristLevel(response.data.loyaltyStatus.level);
+      }
+    } catch (error) {
+      console.error("Error fetching loyalty status:", error);
+    }
+  };
+  const handleLoyaltyUpdate = (newStatus) => {
+    setLoyaltyPoints(newStatus.points);
+    setTouristLevel(newStatus.level);
+    fetchProfile(); // Refresh the entire profile to get updated wallet balance
+  };
 
   // Get user data from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
@@ -136,29 +188,6 @@ const MyProfile = () => {
       console.error("Error fetching profile:", err);
       setError(err.response?.data?.message || "Failed to load profile");
       setLoading(false);
-    }
-  };
-
-  const fetchLoyaltyStatus = async () => {
-    try {
-      const userId = user._id;
-      if (!userId) return;
-
-      const response = await axios.get(
-        `http://localhost:5000/api/tourist/loyalty/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        setLoyaltyPoints(response.data.loyaltyStatus.points);
-        setTouristLevel(response.data.loyaltyStatus.level);
-      }
-    } catch (error) {
-      console.error("Error fetching loyalty status:", error);
     }
   };
 
@@ -360,10 +389,8 @@ const MyProfile = () => {
                   {/* Loyalty Points Redemption */}
                   <RedeemPoints
                     loyaltyPoints={loyaltyPoints}
-                    onRedeem={() => {
-                      fetchProfile();
-                      fetchLoyaltyStatus();
-                    }}
+                    onRedeem={fetchProfile}
+                    onUpdate={handleLoyaltyUpdate}
                   />
 
                   <Button
