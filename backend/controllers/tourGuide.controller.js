@@ -23,23 +23,46 @@ const generateToken = (tourGuide) => {
 // Register a Tour Guide
 // Registration function modification
 export const registerTourGuide = async (req, res) => {
-  const {
-    username,
-    email,
-    password,
-    mobileNumber,
-    yearsOfExperience,
-    previousWork,
-  } = req.body;
-
   try {
+    const {
+      username,
+      email,
+      password,
+      mobileNumber,
+      yearsOfExperience,
+      previousWork,
+    } = req.body;
+
     // Log the registration attempt
     console.log("Registration attempt for:", username);
+
+    // Validate required files
+    if (!req.files || !req.files.identificationDocument || !req.files.certificate) {
+      return res.status(400).json({
+        message: "Both ID document and certificate are required",
+        details: {
+          identificationDocument: !req.files?.identificationDocument,
+          certificate: !req.files?.certificate
+        }
+      });
+    }
 
     const existingTourGuide = await TourGuide.findOne({
       $or: [{ email }, { username }],
     });
     if (existingTourGuide) {
+      // Delete uploaded files if registration fails
+      if (req.files) {
+        Object.values(req.files).forEach(fileArray => {
+          fileArray.forEach(file => {
+            try {
+              fs.unlinkSync(file.path);
+            } catch (error) {
+              console.error("Error deleting file:", error);
+            }
+          });
+        });
+      }
       return res.status(400).json({
         message:
           existingTourGuide.email === email
@@ -48,6 +71,26 @@ export const registerTourGuide = async (req, res) => {
       });
     }
 
+    // Process file uploads
+    const fileData = {
+      identificationDocument: {
+        filename: req.files.identificationDocument[0].filename,
+        path: req.files.identificationDocument[0].path,
+        mimetype: req.files.identificationDocument[0].mimetype,
+        size: req.files.identificationDocument[0].size,
+        uploadDate: new Date(),
+        isVerified: false
+      },
+      certificate: {
+        filename: req.files.certificate[0].filename,
+        path: req.files.certificate[0].path,
+        mimetype: req.files.certificate[0].mimetype,
+        size: req.files.certificate[0].size,
+        uploadDate: new Date(),
+        isVerified: false
+      }
+    };
+
     // Hash password manually instead of relying on pre-save hook
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log("Password hashed successfully");
@@ -55,10 +98,11 @@ export const registerTourGuide = async (req, res) => {
     const newTourGuide = new TourGuide({
       username,
       email,
-      password: hashedPassword, // Use the manually hashed password
+      password: hashedPassword,
       mobileNumber,
       yearsOfExperience,
       previousWork,
+      ...fileData // Add the file data
     });
 
     await newTourGuide.save();
@@ -70,17 +114,31 @@ export const registerTourGuide = async (req, res) => {
     return res.status(201).json({
       message: "Tour guide registered successfully",
       tourguide: {
-        // Changed from tourGuide to tourguide to match login response
         id: newTourGuide._id,
         username: newTourGuide.username,
         email: newTourGuide.email,
         mobileNumber: newTourGuide.mobileNumber,
         yearsOfExperience: newTourGuide.yearsOfExperience,
         previousWork: newTourGuide.previousWork,
+        identificationDocument: newTourGuide.identificationDocument.path,
+        certificate: newTourGuide.certificate.path
       },
       token,
     });
   } catch (error) {
+    // Clean up uploaded files if registration fails
+    if (req.files) {
+      Object.values(req.files).forEach(fileArray => {
+        fileArray.forEach(file => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            console.error("Error deleting file:", error);
+          }
+        });
+      });
+    }
+    
     console.error("Error registering tour guide:", error);
     return res
       .status(500)
@@ -351,3 +409,53 @@ export const getTourGuideItineraries = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Add these functions to your tourGuide.controller.js
+
+// Handle profile picture upload
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const tourGuide = await TourGuide.findById(req.user._id);
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour guide not found" });
+    }
+
+    // Delete old profile picture if it exists
+    if (tourGuide.profilePicture?.path) {
+      try {
+        fs.unlinkSync(tourGuide.profilePicture.path);
+      } catch (error) {
+        console.error("Error deleting old profile picture:", error);
+      }
+    }
+
+    // Update with new profile picture
+    tourGuide.profilePicture = {
+      filename: req.file.filename,
+      path: req.file.path,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      uploadDate: new Date()
+    };
+
+    await tourGuide.save();
+
+    res.status(200).json({
+      message: "Profile picture uploaded successfully",
+      profilePicture: tourGuide.profilePicture
+    });
+  } catch (error) {
+    console.error("Error uploading profile picture:", error);
+    res.status(500).json({
+      message: "Error uploading profile picture",
+      error: error.message
+    });
+  }
+};
+
+// Handle document uploads
+
