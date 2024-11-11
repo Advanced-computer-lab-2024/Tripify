@@ -21,6 +21,7 @@ const generateToken = (tourGuide) => {
 };
 
 // Register a Tour Guide
+// Registration function modification
 export const registerTourGuide = async (req, res) => {
   const {
     username,
@@ -32,6 +33,9 @@ export const registerTourGuide = async (req, res) => {
   } = req.body;
 
   try {
+    // Log the registration attempt
+    console.log("Registration attempt for:", username);
+
     const existingTourGuide = await TourGuide.findOne({
       $or: [{ email }, { username }],
     });
@@ -44,22 +48,29 @@ export const registerTourGuide = async (req, res) => {
       });
     }
 
+    // Hash password manually instead of relying on pre-save hook
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Password hashed successfully");
+
     const newTourGuide = new TourGuide({
       username,
       email,
-      password: await bcrypt.hash(password, 10),
+      password: hashedPassword, // Use the manually hashed password
       mobileNumber,
       yearsOfExperience,
       previousWork,
     });
 
     await newTourGuide.save();
+    console.log("Tour guide saved successfully");
 
     const token = generateToken(newTourGuide);
+    console.log("Token generated successfully");
 
     return res.status(201).json({
       message: "Tour guide registered successfully",
-      tourGuide: {
+      tourguide: {
+        // Changed from tourGuide to tourguide to match login response
         id: newTourGuide._id,
         username: newTourGuide.username,
         email: newTourGuide.email,
@@ -82,23 +93,37 @@ export const loginTourGuide = async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    console.log("Login attempt for:", username);
+
     const tourGuide = await TourGuide.findOne({
       $or: [{ username }, { email: username }],
     });
+
     if (!tourGuide) {
+      console.log("No tour guide found");
       return res.status(404).json({ message: "Invalid username or password" });
     }
 
+    console.log("Tour guide found:", tourGuide.username);
+
+    // Log password details for debugging (remove in production)
+    console.log("Provided password length:", password.length);
+    console.log("Stored hash length:", tourGuide.password.length);
+
     const isMatch = await bcrypt.compare(password, tourGuide.password);
+    console.log("Password comparison result:", isMatch);
+
     if (!isMatch) {
+      console.log("Password mismatch");
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
     const token = generateToken(tourGuide);
+    console.log("Token generated successfully");
 
     return res.status(200).json({
       message: "Login successful",
-      tourGuide: {
+      tourguide: {
         id: tourGuide._id,
         username: tourGuide.username,
         email: tourGuide.email,
@@ -109,13 +134,13 @@ export const loginTourGuide = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Error logging in:", error);
-    return res
-      .status(500)
-      .json({ message: "Error logging in", error: error.message });
+    console.error("Login error:", error);
+    return res.status(500).json({
+      message: "Error logging in",
+      error: error.message,
+    });
   }
 };
-
 // Reset Password for Tour Guide
 export const resetPassword = async (req, res) => {
   const { identifier, newPassword } = req.body;
