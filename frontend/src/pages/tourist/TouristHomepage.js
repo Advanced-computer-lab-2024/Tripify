@@ -12,6 +12,8 @@ import {
   FaStar,
   FaComments,
   FaLock,
+  FaHistory,
+  FaReceipt,
 } from "react-icons/fa";
 
 const TouristHomePage = () => {
@@ -68,9 +70,15 @@ const TouristHomePage = () => {
       variant: "primary",
     },
     {
+      to: "/tourist/my-purchases",
+      label: "My Purchases",
+      icon: <FaReceipt />,
+      variant: "primary",
+    },
+    {
       to: "/tourist/view-bookings",
       label: "View Bookings",
-      icon: <FaMap />,
+      icon: <FaHistory />,
       variant: "primary",
     },
     {
@@ -95,8 +103,9 @@ const TouristHomePage = () => {
 
   // Group menu items by category
   const menuCategories = {
-    "Main Services": menuItems.slice(0, 10),
-    Support: menuItems.slice(10),
+    "Main Services": menuItems.slice(0, 8), // Adjust slice indices based on your menu structure
+    "My Activities": menuItems.slice(8, 10),
+    "Account & Support": menuItems.slice(10),
   };
 
   return (
@@ -109,21 +118,13 @@ const TouristHomePage = () => {
           </div>
 
           {Object.entries(menuCategories).map(([category, items]) => (
-            <div
-              key={category}
-              className="mb-4"
-            >
+            <div key={category} className="mb-4">
               <h3 className="mb-3 text-primary border-bottom pb-2">
                 {category}
               </h3>
               <Row className="g-4 justify-content-center">
                 {items.map((item, index) => (
-                  <Col
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    key={index}
-                  >
+                  <Col xs={12} sm={6} md={4} key={index}>
                     <Link
                       to={item.to}
                       className={`btn btn-${item.variant} w-100 d-flex align-items-center justify-content-center gap-2 p-3`}

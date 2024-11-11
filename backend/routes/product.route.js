@@ -1,4 +1,4 @@
-// backend/routes/product.route.js
+// product.route.js
 import express from "express";
 import {
   addProduct,
@@ -9,29 +9,27 @@ import {
   addReview,
   toggleArchiveProduct,
   getArchivedProducts,
-} from "../controllers/product.controller.js"; // Ensure correct import path
+  purchaseProduct,
+  getTouristPurchases,
+  reviewPurchase,
+} from "../controllers/product.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 const router = express.Router();
 
-router.get("/archived", authMiddleware, getArchivedProducts); // Move this up!
-
-// GET: Find all products
-router.get("/", getProducts); // e.g., /api/products
-
-// Create a new product
-router.post("/", authMiddleware, addProduct); // Authentication required for adding a product
-
-// GET: Find a product by ID
-router.get("/:id", findProductById); // e.g., /api/products/:id
-
-// PUT: Update a product by ID
-router.put("/:id", authMiddleware, updateProduct); // e.g., /api/products/:id
-
-// DELETE: Delete a product by ID
-router.delete("/:id", authMiddleware, deleteProduct); // e.g., /api/products/:id
-
+// Existing routes
+router.get("/archived", authMiddleware, getArchivedProducts);
+router.get("/", getProducts);
+router.post("/", authMiddleware, addProduct);
+router.get("/:id", findProductById);
+router.put("/:id", authMiddleware, updateProduct);
+router.delete("/:id", authMiddleware, deleteProduct);
 router.post("/:id/review", addReview);
-
 router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
+
+// New routes for purchasing and reviews
+// Purchase routes
+router.post("/purchase", authMiddleware, purchaseProduct);
+router.get("/purchases/:touristId", authMiddleware, getTouristPurchases);
+router.post("/purchases/:purchaseId/review", authMiddleware, reviewPurchase);
 
 export default router;
