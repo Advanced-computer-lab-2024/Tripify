@@ -223,6 +223,112 @@ export const getAdminProfile = async (req, res) => {
   }
 };
 
+// Get unverified sellers
+export const getUnverifiedSellers = async (req, res) => {
+  try {
+    const sellers = await Seller.find({ isVerified: false }).select(
+      "username email createdAt businessLicense identificationDocument isVerified"
+    );
+    res.json(sellers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get unverified advertisers
+export const getUnverifiedAdvertisers = async (req, res) => {
+  try {
+    const advertisers = await Advertiser.find({ isVerified: false }).select(
+      "username email createdAt businessLicense identificationDocument isVerified"
+    );
+    res.json(advertisers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get unverified tour guides
+export const getUnverifiedTourGuides = async (req, res) => {
+  try {
+    const tourGuides = await TourGuide.find({ isVerified: false }).select(
+      "username email createdAt identificationDocument certificate isVerified"
+    );
+    res.json(tourGuides);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Verify seller
+export const verifySeller = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isApproved } = req.body;
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    seller.isVerified = isApproved;
+    await seller.save();
+
+    res.json({
+      message: `Seller ${isApproved ? "approved" : "rejected"} successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Verify advertiser
+export const verifyAdvertiser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isApproved } = req.body;
+
+    const advertiser = await Advertiser.findById(id);
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    advertiser.isVerified = isApproved;
+    await advertiser.save();
+
+    res.json({
+      message: `Advertiser ${
+        isApproved ? "approved" : "rejected"
+      } successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Verify tour guide
+export const verifyTourGuide = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isApproved } = req.body;
+
+    const tourGuide = await TourGuide.findById(id);
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour guide not found" });
+    }
+
+    tourGuide.isVerified = isApproved;
+    await tourGuide.save();
+
+    res.json({
+      message: `Tour guide ${
+        isApproved ? "approved" : "rejected"
+      } successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getPendingApprovals = async (req, res) => {
   try {
     const [tourGuides, advertisers, sellers] = await Promise.all([

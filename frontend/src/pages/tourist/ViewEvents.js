@@ -19,6 +19,10 @@ import {
   FaComment,
   FaWallet,
   FaInfoCircle,
+  FaStar,
+  FaMedal,
+  FaCrown,
+  FaRegSmile,
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
@@ -778,25 +782,41 @@ const ViewEvents = () => {
       </Container>
     );
   }
-  const LoyaltyInfo = () => (
-    <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
-      <div className="me-4">
-        <FaWallet className="me-2 text-warning" size={24} />
-        <div>
-          <h4 className="mb-0">Level {touristLevel}</h4>
-          <small className="text-muted">Tourist Status</small>
-        </div>
-      </div>
+  // Define getBadgeIcon outside of LoyaltyInfo
+  const getBadgeIcon = (touristLevel) => {
+    switch (touristLevel) {
+      case 1:
+        return <FaStar className="me-2 text-info" size={24} />; // Level 1 badge
+      case 2:
+        return <FaMedal className="me-2 text-success" size={24} />; // Level 2 badge
+      case 3:
+        return <FaCrown className="me-2 text-warning" size={24} />; // Level 3 badge
+      case 0:
+      default:
+        return <FaRegSmile className="me-2 text-secondary" size={24} />; // Level 0 badge or default
+    }
+  };
+
+const LoyaltyInfo = () => (
+  <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
+    <div className="me-4">
+      {getBadgeIcon(touristLevel)}
       <div>
-        <h4 className="mb-0">{loyaltyPoints} Points</h4>
-        <small className="text-muted">
-          Earn{" "}
-          {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}{" "}
-          points on purchases
-        </small>
+        <h4 className="mb-0">Level {touristLevel}</h4>
+        <small className="text-muted">Tourist Status</small>
       </div>
     </div>
-  );
+    <div>
+      <h4 className="mb-0">{loyaltyPoints} Points</h4>
+      <small className="text-muted">
+        Earn{" "}
+        {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}{" "}
+        points on purchases
+      </small>
+    </div>
+  </div>
+);
+
   return (
     <Container className="mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">

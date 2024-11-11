@@ -57,6 +57,7 @@ import SellerChangePassword from "./changePassword/SellerChangePassword";
 import TourGuideChangePassword from "./changePassword/TourGuideChangePassword";
 import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
+import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import UserApprovals from "./pages/admin/UserApprovals";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -210,6 +211,10 @@ function App() {
                 <ArchivedProducts />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/admin/view-documents"
+            element={<ViewDocuemnts />}
           />
           <Route
             path="/admin/change-password"

@@ -9,6 +9,12 @@ import {
   getPendingApprovals, // New imports for approvals
   updateApprovalStatus,
   getApprovalStatistics,
+  getUnverifiedAdvertisers,
+  getUnverifiedSellers,
+  getUnverifiedTourGuides,
+  verifyAdvertiser,
+  verifySeller,
+  verifyTourGuide,
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -23,12 +29,6 @@ router.post("/login", loginAdmin);
 router.get("/profile", authMiddleware, adminAuthMiddleware, getAdminProfile);
 router.get("/users", authMiddleware, adminAuthMiddleware, listAllUsers);
 router.delete("/users", authMiddleware, adminAuthMiddleware, deleteUser);
-router.put(
-  "/change-password",
-  authMiddleware,
-  adminAuthMiddleware,
-  changePassword
-);
 router.put(
   "/change-password",
   authMiddleware,

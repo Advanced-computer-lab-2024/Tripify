@@ -110,7 +110,7 @@ const tourGuideSchema = new mongoose.Schema(
     },
     identificationDocument: {
       type: fileSchema,
-      required: [true, "Identification document is required"],
+      // required: [true, "Identification document is required"],
       validate: {
         validator: function (file) {
           const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
@@ -121,7 +121,7 @@ const tourGuideSchema = new mongoose.Schema(
     },
     certificate: {
       type: fileSchema,
-      required: [true, "Certificate is required"],
+      // required: [true, "Certificate is required"],
       validate: {
         validator: function (file) {
           const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
