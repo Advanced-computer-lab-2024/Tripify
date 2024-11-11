@@ -1,5 +1,4 @@
-// backend/routes/product.route.js
-import express from "express";
+import express from 'express';
 import {
   addProduct,
   getProducts,
@@ -7,25 +6,37 @@ import {
   updateProduct,
   deleteProduct,
   addReview,
-} from "../controllers/product.controller.js"; // Ensure correct import path
+  toggleArchiveProduct,
+  getArchivedProducts,
+} from '../controllers/product.controller.js';
+import authMiddleware from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// POST: Create a new product
-router.post("/", addProduct);
+// Routes for Products
 
-// GET: Find all products
-router.get("/", getProducts); // e.g., /api/products
+router.get('/archived', authMiddleware, getArchivedProducts); // Move this up!
 
-// GET: Find a product by ID
-router.get("/:id", findProductById); // e.g., /api/products/:id
+// Get all products
+router.get('/', getProducts);
 
-// PUT: Update a product by ID
-router.put("/:id", updateProduct); // e.g., /api/products/:id
+// Create a new product
+router.post('/', authMiddleware, addProduct); // Authentication required for adding a product
 
-// DELETE: Delete a product by ID
-router.delete("/:id", deleteProduct); // e.g., /api/products/:id
+// Get a product by ID
+router.get('/:id', findProductById);
 
-router.post("/:id", addReview);
+// Update a product by ID
+router.put('/:id', authMiddleware, updateProduct); // Authentication required for updating
+
+// Delete a product by ID
+router.delete('/:id', authMiddleware, deleteProduct); // Authentication required for deleting
+
+// Add a review to a product
+router.post('/:id/review', addReview); // Assuming reviews don't require authentication
+
+// Archive or unarchive a product
+router.put('/:productId/archive', authMiddleware, toggleArchiveProduct);
+
 
 export default router;

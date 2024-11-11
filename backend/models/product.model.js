@@ -25,7 +25,6 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
     totalSales: {
       type: Number,
       required: true,
@@ -40,9 +39,34 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     reviews: [reviewSchema],
+    // Add these new fields
+    isArchived: {
+      type: Boolean,
+      default: false
+    },
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+    archivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    }
   },
   { timestamps: true }
 );
+
+// Add this middleware to handle archive date
+productSchema.pre('save', function(next) {
+  if (this.isModified('isArchived') && this.isArchived) {
+    this.archivedAt = new Date();
+  } else if (this.isModified('isArchived') && !this.isArchived) {
+    this.archivedAt = null;
+    this.archivedBy = null;
+  }
+  next();
+});
 
 const Product = mongoose.model("Product", productSchema);
 

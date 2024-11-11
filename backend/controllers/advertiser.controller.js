@@ -121,7 +121,6 @@ export const registerAdvertiser = async (req, res) => {
 };
 
 // Login Advertiser
-// Login Advertiser
 export const loginAdvertiser = async (req, res) => {
   const { username, password } = req.body;
 
@@ -139,11 +138,6 @@ export const loginAdvertiser = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // Check if terms are accepted
-    if (!advertiser.termsAccepted) {
-      return res.status(403).json({ message: "You must accept the terms and conditions to proceed." });
-    }
-
     const token = generateToken(advertiser);
 
     res.status(200).json({
@@ -157,6 +151,7 @@ export const loginAdvertiser = async (req, res) => {
         website: advertiser.website,
         hotline: advertiser.hotline,
         companyLogo: advertiser.companyLogo,
+        termsAccepted: advertiser.termsAccepted, // Include this so frontend knows the status
       },
       token,
     });
@@ -164,7 +159,6 @@ export const loginAdvertiser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 // Reset Password for Advertiser
 export const resetPassword = async (req, res) => {
   const { identifier, newPassword } = req.body;

@@ -57,6 +57,32 @@ const tourGuideSchema = new mongoose.Schema({
         min: [0, 'Years of experience cannot be negative'],
         max: [50, 'Unrealistic value for years of experience'] // Validation based on common sense
     },
+    // Add to tourGuideSchema
+
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    documents: [{
+      type: {
+        type: String,
+        enum: ['tourGuidelicense', 'identityProof', 'certifications', 'other'],
+        required: true
+      },
+      url: {
+        type: String,
+        required: true
+      },
+      uploadDate: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    rejectionReason: {
+      type: String
+    },
+  
     previousWork: [previousWorkSchema], // Store previous work as an array of objects
 }, { timestamps: true });
 

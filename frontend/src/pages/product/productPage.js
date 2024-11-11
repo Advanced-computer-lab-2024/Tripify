@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import {
   Container,
   Row,
@@ -8,6 +9,7 @@ import {
   Button,
   Form,
   Modal,
+  Badge,
   ListGroup,
 } from "react-bootstrap";
 
@@ -35,7 +37,9 @@ function ProductPage() {
   const fetchProducts = async () => {
     try {
       const response = await axios.get(`${API_URL}/products`);
-      setProducts(response.data.products);
+      // Filter out archived products in the frontend
+      const activeProducts = response.data.products.filter(p => !p.isArchived);
+      setProducts(activeProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -155,9 +159,9 @@ function ProductPage() {
   return (
     <Container>
       <h1 className="my-4">Product Catalog</h1>
-
+  
       <Row className="mb-3">
-        <Col md={3}>
+        <Col md={2}>
           <Form.Control
             type="text"
             placeholder="Search products..."
@@ -198,250 +202,264 @@ function ProductPage() {
             }
           />
         </Col>
-        <Col md={3}>
-          <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
+        <Col md={2}>
+          <Button onClick={() => setShowAddModal(true)} className="w-100">
+            Add New Product
+          </Button>
+        </Col>
+        <Col md={2}>
+          <Link to="/admin/products/archived" className="btn btn-secondary w-100">
+            View Archived
+          </Link>
         </Col>
       </Row>
-
+  
       <Row>
-  {filteredProducts.map((product) => (
-    <Col md={6} lg={4} key={product._id} className="mb-4">
-      <Card>
-        <Card.Img variant="top" src={product.imageUrl} />
-        <Card.Body>
-          <Card.Title>{product.name}</Card.Title>
-          <Card.Text>{product.description}</Card.Text>
-          <Card.Text>Price: ${product.price}</Card.Text>
-          <Card.Text>Quantity: {product.quantity}</Card.Text>
-          <Card.Text>Total Sales: {product.totalSales}</Card.Text>
-          <Card.Text>Seller: {product.seller}</Card.Text>
-          <Card.Text>
-            Average Rating:{" "}
-            {product.reviews.length > 0
-              ? (
-                  product.reviews.reduce(
-                    (sum, review) => sum + review.rating,
-                    0
-                  ) / product.reviews.length
-                ).toFixed(1)
-              : "No ratings yet"}{" "}
-            ({product.reviews.length} reviews)
-          </Card.Text>
-          <Button
-            variant="primary"
-            className="me-2"
-            onClick={() => {
-              setSelectedProduct(product);
-              setShowReviewModal(true);
-            }}
-          >
-            Add Review
-          </Button>
-          <Button
-            variant="warning"
-            className="me-2"
-            onClick={() => {
-              setSelectedProduct(product);
-              setShowEditModal(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => handleDeleteProduct(product._id)}
-          >
-            Delete
-          </Button>
-        </Card.Body>
-        <Card.Footer>
-          <h5>Reviews</h5>
-          {product.reviews.length > 0 ? (
-            <ListGroup variant="flush">
-              {product.reviews.map((review, index) => (
-                <ListGroup.Item key={index}>
-                  <div>
-                    <strong>Rating: {review.rating}/5</strong>
-                  </div>
-                  <div>
-                    <strong>Reviewer:</strong> {review.reviewerName}
-                  </div>
-                  <div>{review.comment}</div>
-                  <small className="text-muted">
-                    {new Date(review.timestamp).toLocaleDateString()}
-                  </small>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          ) : (
-            <p>No reviews yet.</p>
-          )}
-        </Card.Footer>
-      </Card>
-    </Col>
-  ))}
-</Row>
-
-
+        {filteredProducts.map((product) => (
+          <Col md={6} lg={4} key={product._id} className="mb-4">
+            <Card>
+              {product.imageUrl && <Card.Img variant="top" src={product.imageUrl} />}
+              <Card.Body>
+                {product.isArchived && (
+                  <Badge bg="secondary" className="mb-2">
+                    Archived
+                  </Badge>
+                )}
+                <Card.Title>{product.name}</Card.Title>
+                <Card.Text>{product.description}</Card.Text>
+                <Card.Text>Price: ${product.price}</Card.Text>
+                <Card.Text>Quantity: {product.quantity}</Card.Text>
+                <Card.Text>Total Sales: {product.totalSales}</Card.Text>
+                <Card.Text>Seller: {product.seller}</Card.Text>
+                <Card.Text>
+                  Average Rating:{" "}
+                  {product.reviews && product.reviews.length > 0
+                    ? (
+                        product.reviews.reduce(
+                          (sum, review) => sum + review.rating,
+                          0
+                        ) / product.reviews.length
+                      ).toFixed(1)
+                    : "No ratings yet"}{" "}
+                  ({product.reviews ? product.reviews.length : 0} reviews)
+                </Card.Text>
+  
+                <div className="d-flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setShowReviewModal(true);
+                    }}
+                  >
+                    Add Review
+                  </Button>
+                  <Button
+                    variant="warning"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setShowEditModal(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+  variant="secondary"
+  className="me-2"
+  onClick={async () => {
+    if (window.confirm("Are you sure you want to archive this product?")) {
+      try {
+        const token = localStorage.getItem("token");
+        const userRole = localStorage.getItem("userRole");
+        
+        await axios.put(
+          `${API_URL}/products/${product._id}/archive`,
+          { 
+            isArchived: true,
+            sellerId: userRole === 'seller' ? localStorage.getItem('userId') : undefined
+          },
+          { 
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'User-Role': userRole // Add role to headers
+            } 
+          }
+        );
+        fetchProducts();
+      } catch (error) {
+        console.error("Error archiving product:", error);
+        alert(error.response?.data?.message || "Error archiving product");
+      }
+    }
+  }}
+>
+  Archive
+</Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Are you sure you want to delete this product?"
+                        )
+                      ) {
+                        handleDeleteProduct(product._id);
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </Card.Body>
+              <Card.Footer>
+                <h5>Reviews</h5>
+                {product.reviews && product.reviews.length > 0 ? (
+                  <ListGroup variant="flush">
+                    {product.reviews.map((review, index) => (
+                      <ListGroup.Item key={index}>
+                        <div>
+                          <strong>Rating: {review.rating}/5</strong>
+                        </div>
+                        <div>
+                          <strong>Reviewer:</strong> {review.reviewerName}
+                        </div>
+                        <div>{review.comment}</div>
+                        <small className="text-muted">
+                          {new Date(review.timestamp).toLocaleDateString()}
+                        </small>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                ) : (
+                  <p>No reviews yet.</p>
+                )}
+              </Card.Footer>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+  
       {/* Add Product Modal */}
-      <Modal
-  show={showAddModal}
-  onHide={() => setShowAddModal(false)}
->
-  <Modal.Header closeButton>
-    <Modal.Title>Add New Product</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <Form onSubmit={handleAddProduct}>
-      <Form.Group className="mb-3">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
-          type="text"
-          name="name"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Description</Form.Label>
-        <Form.Control
-          as="textarea"
-          name="description"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Price</Form.Label>
-        <Form.Control
-          type="number"
-          name="price"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Quantity</Form.Label>
-        <Form.Control
-          type="number"
-          name="quantity"
-          required
-        />
-
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Total Sales</Form.Label>
-        <Form.Control
-          type="number"
-          name="totalSales"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Image URL</Form.Label>
-        <Form.Control
-          type="text"
-          name="imageUrl"
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Seller</Form.Label>
-        <Form.Select
-          name="seller"
-          required
-        >
-          <option value="VTP">VTP</option>
-          <option value="External seller">External seller</option>
-        </Form.Select>
-      </Form.Group>
-      <Button type="submit">Add Product</Button>
-    </Form>
-  </Modal.Body>
-</Modal>
-
-
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control type="text" name="name" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control as="textarea" name="description" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control type="number" name="price" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control type="number" name="quantity" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Total Sales</Form.Label>
+              <Form.Control type="number" name="totalSales" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Image URL</Form.Label>
+              <Form.Control type="text" name="imageUrl" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select name="seller" required>
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Add Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+  
       {/* Edit Product Modal */}
-      <Modal
-  show={showEditModal}
-  onHide={() => setShowEditModal(false)}
->
-  <Modal.Header closeButton>
-    <Modal.Title>Edit Product</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <Form onSubmit={handleEditProduct}>
-      <Form.Group className="mb-3">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
-          type="text"
-          name="name"
-          defaultValue={selectedProduct?.name}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Description</Form.Label>
-        <Form.Control
-          as="textarea"
-          name="description"
-          defaultValue={selectedProduct?.description}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Price</Form.Label>
-        <Form.Control
-          type="number"
-          name="price"
-          defaultValue={selectedProduct?.price}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Quantity</Form.Label>
-        <Form.Control
-          type="number"
-          name="quantity"
-          defaultValue={selectedProduct?.quantity}
-          required
-        />
-      
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Total Sales</Form.Label>
-        <Form.Control
-          type="number"
-          name="totalSales"
-          defaultValue={selectedProduct?.totalSales}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Image URL</Form.Label>
-        <Form.Control
-          type="text"
-          name="imageUrl"
-          defaultValue={selectedProduct?.imageUrl}
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Seller</Form.Label>
-        <Form.Select
-          name="seller"
-          defaultValue={selectedProduct?.seller}
-          required
-        >
-          <option value="VTP">VTP</option>
-          <option value="External seller">External seller</option>
-        </Form.Select>
-      </Form.Group>
-      <Button type="submit">Update Product</Button>
-    </Form>
-  </Modal.Body>
-</Modal>
-
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleEditProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                defaultValue={selectedProduct?.name}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                defaultValue={selectedProduct?.description}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                name="price"
+                defaultValue={selectedProduct?.price}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                name="quantity"
+                defaultValue={selectedProduct?.quantity}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Total Sales</Form.Label>
+              <Form.Control
+                type="number"
+                name="totalSales"
+                defaultValue={selectedProduct?.totalSales}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Image URL</Form.Label>
+              <Form.Control
+                type="text"
+                name="imageUrl"
+                defaultValue={selectedProduct?.imageUrl}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select
+                name="seller"
+                defaultValue={selectedProduct?.seller}
+                required
+              >
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Update Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+  
       {/* Add Review Modal */}
-      <Modal
-        show={showReviewModal}
-        onHide={() => setShowReviewModal(false)}
-      >
+      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
         </Modal.Header>
@@ -458,10 +476,7 @@ function ProductPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
-              <Form.Select
-                name="rating"
-                required
-              >
+              <Form.Select name="rating" required>
                 <option value="1">1 Star</option>
                 <option value="2">2 Stars</option>
                 <option value="3">3 Stars</option>
@@ -471,11 +486,7 @@ function ProductPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Comment</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="comment"
-                required
-              />
+              <Form.Control as="textarea" name="comment" required />
             </Form.Group>
             <Button type="submit">Submit Review</Button>
           </Form>
@@ -484,5 +495,4 @@ function ProductPage() {
     </Container>
   );
 }
-
 export default ProductPage;

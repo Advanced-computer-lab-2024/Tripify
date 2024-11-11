@@ -1,5 +1,3 @@
-// LoginForm.js
-
 import React, { useState } from "react";
 import { Form, Button, Spinner, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +22,13 @@ const LoginForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }) =
     setError("");
     setLocalError("");
 
+    // Ensure the selectedRole is valid before proceeding
+    if (!["tourist", "admin", "advertiser", "seller", "tourguide", "governor"].includes(selectedRole)) {
+      setLocalError("Invalid role selected.");
+      setLocalLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post(
         `http://localhost:5000/api/${selectedRole}/login`,
@@ -31,14 +36,28 @@ const LoginForm = ({ selectedRole, setLoading, setError, setIsAuthenticated }) =
       );
 
       if (response.data.token) {
+        // Store user data
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data[selectedRole]));
         localStorage.setItem("userRole", selectedRole);
         setIsAuthenticated(true);
+
+        console.log("Login successful, token stored:", response.data.token);
+        
+        // Navigate to home page based on selectedRole
         navigate(`/${selectedRole}`);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Login failed.";
+      // Improved error handling
+      let errorMsg;
+      if (err.response?.status === 401) {
+        errorMsg = "Invalid username or password";
+      } else if (err.response?.status === 500) {
+        errorMsg = "Server error. Please try again later.";
+      } else {
+        errorMsg = err.response?.data?.message || "Login failed.";
+      }
+
       setError(errorMsg); // Pass error to parent if necessary
       setLocalError(errorMsg); // Show error locally
     } finally {

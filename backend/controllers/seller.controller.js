@@ -63,11 +63,6 @@ export const loginSeller = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // Check if terms are accepted
-    if (!seller.termsAccepted) {
-      return res.status(403).json({ message: "You must accept the terms and conditions to proceed." });
-    }
-
     const token = generateToken(seller);
 
     return res.status(200).json({

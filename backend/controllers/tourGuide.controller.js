@@ -137,6 +137,8 @@ export const requestDeletion = async (req, res) => {
 };
 
 
+
+
 // Login a Tour Guide
 export const loginTourGuide = async (req, res) => {
   const { username, password } = req.body;
@@ -152,11 +154,6 @@ export const loginTourGuide = async (req, res) => {
     const isMatch = await bcrypt.compare(password, tourGuide.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid username or password" });
-    }
-
-    // Check if terms are accepted
-    if (!tourGuide.termsAccepted) {
-      return res.status(403).json({ message: "Please accept the terms and conditions to proceed." });
     }
 
     const token = generateToken(tourGuide);
@@ -178,7 +175,6 @@ export const loginTourGuide = async (req, res) => {
     return res.status(500).json({ message: "Error logging in", error: error.message });
   }
 };
-
 
 // Reset Password for Tour Guide
 export const resetPassword = async (req, res) => {

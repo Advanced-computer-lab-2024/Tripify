@@ -7,9 +7,11 @@ import {
   Button,
   Form,
   Alert,
+  Spinner,
 } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import AccountDeletionRequest from '../../components/AccountDeletionRequest';
 
 // Redeem Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
@@ -23,7 +25,7 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
       setError('Points must be at least 10,000 and in multiples of 10,000');
       return;
     }
-
+    
     if (points > loyaltyPoints) {
       setError('Insufficient points');
       return;
@@ -82,6 +84,7 @@ const MyProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [touristLevel, setTouristLevel] = useState("null");
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -153,6 +156,7 @@ const MyProfile = () => {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       const response = await axios.put(
@@ -162,8 +166,7 @@ const MyProfile = () => {
           mobileNumber: profile?.mobileNumber,
           nationality: profile?.nationality,
           jobStatus: profile?.jobStatus,
-          jobTitle:
-            profile?.jobStatus === "job" ? profile?.jobTitle : undefined,
+          jobTitle: profile?.jobStatus === "job" ? profile?.jobTitle : undefined,
           preferences: profile?.preferences,
         },
         {
@@ -176,6 +179,8 @@ const MyProfile = () => {
       setProfile(response.data.tourist);
       setIsEditing(false);
       setError("");
+      setUpdateSuccess(true);
+      setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (err) {
       console.error("Error updating profile:", err);
       setError(err.response?.data?.message || "Failed to update profile");
@@ -227,8 +232,10 @@ const MyProfile = () => {
 
   if (loading) {
     return (
-      <Container className="mt-5">
-        <div className="text-center">Loading...</div>
+      <Container className="mt-5 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
       </Container>
     );
   }
@@ -259,6 +266,11 @@ const MyProfile = () => {
               {error && (
                 <Alert variant="danger" className="mb-4">
                   {error}
+                </Alert>
+              )}
+              {updateSuccess && (
+                <Alert variant="success" className="mb-4">
+                  Profile updated successfully!
                 </Alert>
               )}
 
@@ -344,6 +356,16 @@ const MyProfile = () => {
                     </Col>
                     <Col>{profile?.preferences?.tripTypes?.join(", ")}</Col>
                   </Row>
+
+                  {/* Account Management Section */}
+                  <div className="mt-4 pt-4 border-top">
+                    <h5 className="text-danger mb-3">Account Management</h5>
+                    <AccountDeletionRequest
+                      role="tourist"
+                      userId={profile._id}
+                      token={token}
+                    />
+                  </div>
 
                   {/* Loyalty Points Redemption */}
                   <RedeemPoints 
@@ -455,31 +477,45 @@ const MyProfile = () => {
                               type
                             )}
                             onChange={(e) => handlePreferencesChange(e)}
-                          />
-                        )
-                      )}
+                          />)
+                        )}
+                      </div>
+                    </Form.Group>
+  
+                    <div className="mt-4">
+                      <Button type="submit" variant="primary" className="me-2" disabled={loading}>
+                        {loading ? (
+                          <>
+                            <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              role="status"
+                              aria-hidden="true"
+                              className="me-2"
+                            />
+                            Saving...
+                          </>
+                        ) : (
+                          'Save Changes'
+                        )}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setIsEditing(false)}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  </Form.Group>
-
-                  <div className="mt-4">
-                    <Button type="submit" variant="primary" className="me-2">
-                      Save Changes
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </Form>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  );
-};
-
-export default MyProfile;
+                  </Form>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    );
+  };
+  
+  export default MyProfile;

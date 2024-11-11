@@ -9,6 +9,9 @@ const AdminHomePage = () => {
         <Link to="/admin/manage-users" className="btn btn-primary m-2">
           Manage Users
         </Link>
+        <Link to="/admin/user-approvals" className="btn btn-primary m-2">
+          User Approvals
+        </Link>
         <Link to="/register/tourism-governor" className="btn btn-primary m-2">
           Add a Tourism Governor
         </Link>
@@ -22,13 +25,16 @@ const AdminHomePage = () => {
           Manage Preference Tags
         </Link>
         <Link to="/seller/products" className="btn btn-primary m-2">
-          view products
+          View Products
         </Link>
         <Link to="/admin/content-moderation" className="btn btn-primary m-2">
           Moderate Content
         </Link>
         <Link to="/admin/complaints" className="btn btn-primary m-2">
           View Complaints
+        </Link>
+        <Link to="/admin/archived-products" className="btn btn-primary m-2">
+          View Archived Products
         </Link>
       </div>
     </div>

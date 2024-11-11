@@ -26,12 +26,12 @@ import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces
 import TagManagement from "./components/TagManagement";
 import SellerHomePage from "./pages/seller/SellerHomePage";
 import ProductPage from "./pages/product/productPage";
+import ProductTouristPage from "./pages/product/productTouristPage";
 import UserDisplay from "./components/UserDisplay";
 import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
 import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
 import TourGuideItineraries from "./pages/tourguide/TourGuideItineraries";
 import Complaints from "./pages/admin/Complaints";
-import ProductTouristPage from "./pages/product/productTouristPage";
 import AdvertiserActivities from "./pages/advertiser/AdvertisersActivity";
 import CreateComplaint from "./pages/tourist/CreateComplaint";
 import FlightBooking from "./pages/tourist/FlightBooking";
@@ -43,6 +43,10 @@ import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints";
 import HotelBooking from "./pages/tourist/HotelBooking";
 import AccountDeletionRequest from "./components/AccountDeletionRequest";
+import UserApprovals from "./pages/admin/UserApprovals";
+import ArchivedProducts from "./pages/product/ArchivedProducts";
+import ProtectedRoute from "./components/ProtectedRoute";
+import DeleteAccount from './pages/profile/DeleteAccount';
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -104,6 +108,35 @@ function App() {
           <Route path="/admin/preference-tags" element={<PreferenceTagManagement />} />
           <Route path="/admin/complaints" element={<Complaints />} />
           <Route path="/admin/content-moderation" element={<ContentModeration />} />
+          <Route path="/admin/user-approvals" element={<UserApprovals />} />
+
+          {/* Archived Products Route (Protected for admin and seller roles) */}
+          <Route 
+            path="/admin/products/archived" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ArchivedProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/seller/products/archived" 
+            element={
+              <ProtectedRoute requiredRole="seller">
+                <ArchivedProducts />
+              </ProtectedRoute>
+            }
+          />
+
+<Route 
+  path="/advertiser/profile/delete-account" 
+  element={
+    <ProtectedRoute>
+      <DeleteAccount />
+    </ProtectedRoute>
+  } 
+/>
+
 
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />

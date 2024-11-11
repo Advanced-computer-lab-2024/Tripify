@@ -23,6 +23,8 @@ import flightRoutes from "./routes/flight.route.js";
 import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
+import accountDeletionRoutes from './routes/accountDeletion.route.js';
+
 
 dotenv.config();
 
@@ -62,14 +64,15 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/flights", flightRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/bookings", bookingRoutes);
-
 app.use("/api/transportation", transportationRoutes);
 
-// Tourist preferences routes
-const router = express.Router();
+app.use('/api/account', accountDeletionRoutes);
+
+// Preferences routes for tourists
+const preferencesRouter = express.Router();
 
 // Create or update preferences for a tourist
-router.put("/preferences/:userId", async (req, res) => {
+preferencesRouter.put("/:userId", async (req, res) => {
   const { userId } = req.params;
   const { tripTypes, budgetLimit, preferredDestinations } = req.body;
 
@@ -99,7 +102,7 @@ router.put("/preferences/:userId", async (req, res) => {
 });
 
 // Get preferences for a tourist
-router.get("/preferences/:userId", async (req, res) => {
+preferencesRouter.get("/:userId", async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -114,6 +117,6 @@ router.get("/preferences/:userId", async (req, res) => {
 });
 
 // Attach preferences routes to the application
-app.use("/api/tourist", router);
+app.use("/api/tourist/preferences", preferencesRouter);
 
 export default app;

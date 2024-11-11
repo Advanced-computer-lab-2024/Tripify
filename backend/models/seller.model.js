@@ -38,7 +38,31 @@ const sellerSchema = new mongoose.Schema({
     isDeletionRequested: {
         type: Boolean,
         default: false,
-    },    
+    },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    documents: [{
+      type: {
+        type: String,
+        enum: ['businessLicense', 'identityProof', 'other'],
+        required: true
+      },
+      url: {
+        type: String,
+        required: true
+      },
+      uploadDate: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    rejectionReason: {
+      type: String
+    }
+  
 }, { timestamps: true });
 
 sellerSchema.pre('save', async function (next) {
@@ -47,6 +71,7 @@ sellerSchema.pre('save', async function (next) {
     }
     next();
 });
+
 
 sellerSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
