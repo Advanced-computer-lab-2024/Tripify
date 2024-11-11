@@ -1,7 +1,8 @@
+import mongoose from "mongoose";
 import TourGuide from "../models/tourGuide.model.js";
+import Itinerary from "../models/itinerary.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import Itinerary from "../models/itinerary.model.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -37,13 +38,17 @@ export const registerTourGuide = async (req, res) => {
     console.log("Registration attempt for:", username);
 
     // Validate required files
-    if (!req.files || !req.files.identificationDocument || !req.files.certificate) {
+    if (
+      !req.files ||
+      !req.files.identificationDocument ||
+      !req.files.certificate
+    ) {
       return res.status(400).json({
         message: "Both ID document and certificate are required",
         details: {
           identificationDocument: !req.files?.identificationDocument,
-          certificate: !req.files?.certificate
-        }
+          certificate: !req.files?.certificate,
+        },
       });
     }
 
@@ -53,8 +58,8 @@ export const registerTourGuide = async (req, res) => {
     if (existingTourGuide) {
       // Delete uploaded files if registration fails
       if (req.files) {
-        Object.values(req.files).forEach(fileArray => {
-          fileArray.forEach(file => {
+        Object.values(req.files).forEach((fileArray) => {
+          fileArray.forEach((file) => {
             try {
               fs.unlinkSync(file.path);
             } catch (error) {
@@ -79,7 +84,7 @@ export const registerTourGuide = async (req, res) => {
         mimetype: req.files.identificationDocument[0].mimetype,
         size: req.files.identificationDocument[0].size,
         uploadDate: new Date(),
-        isVerified: false
+        isVerified: false,
       },
       certificate: {
         filename: req.files.certificate[0].filename,
@@ -87,8 +92,8 @@ export const registerTourGuide = async (req, res) => {
         mimetype: req.files.certificate[0].mimetype,
         size: req.files.certificate[0].size,
         uploadDate: new Date(),
-        isVerified: false
-      }
+        isVerified: false,
+      },
     };
 
     // Hash password manually instead of relying on pre-save hook
@@ -102,7 +107,7 @@ export const registerTourGuide = async (req, res) => {
       mobileNumber,
       yearsOfExperience,
       previousWork,
-      ...fileData // Add the file data
+      ...fileData, // Add the file data
     });
 
     await newTourGuide.save();
@@ -121,15 +126,15 @@ export const registerTourGuide = async (req, res) => {
         yearsOfExperience: newTourGuide.yearsOfExperience,
         previousWork: newTourGuide.previousWork,
         identificationDocument: newTourGuide.identificationDocument.path,
-        certificate: newTourGuide.certificate.path
+        certificate: newTourGuide.certificate.path,
       },
       token,
     });
   } catch (error) {
     // Clean up uploaded files if registration fails
     if (req.files) {
-      Object.values(req.files).forEach(fileArray => {
-        fileArray.forEach(file => {
+      Object.values(req.files).forEach((fileArray) => {
+        fileArray.forEach((file) => {
           try {
             fs.unlinkSync(file.path);
           } catch (error) {
@@ -138,7 +143,7 @@ export const registerTourGuide = async (req, res) => {
         });
       });
     }
-    
+
     console.error("Error registering tour guide:", error);
     return res
       .status(500)
@@ -344,28 +349,49 @@ export const getAllTourGuides = async (req, res) => {
 
 // Delete Tour Guide (Protected Route)
 export const deleteTourGuide = async (req, res) => {
-  const { id } = req.params;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
+    const { id } = req.params;
+
+    // Verify the requesting user is the same as the one being deleted
     if (req.user._id !== id) {
+      await session.abortTransaction();
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const tourGuide = await TourGuide.findById(id);
+    const tourGuide = await TourGuide.findById(id).session(session);
     if (!tourGuide) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    await tourGuide.deleteOne();
-    return res.status(200).json({ message: "Tour guide deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting tour guide:", error);
+    // Find and update all associated itineraries to be inactive
+    await Itinerary.updateMany(
+      { createdBy: id },
+      { $set: { isActive: false } },
+      { session }
+    );
+
+    // Delete the tour guide
+    await tourGuide.deleteOne({ session });
+
+    await session.commitTransaction();
     return res
-      .status(500)
-      .json({ message: "Error deleting tour guide", error: error.message });
+      .status(200)
+      .json({ message: "Tour guide account deleted successfully" });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Error deleting tour guide:", error);
+    return res.status(500).json({
+      message: "Error deleting tour guide",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
   }
 };
-
 // Get Tour Guide Profile by Token (Protected Route)
 export const getProfileByToken = async (req, res) => {
   try {
@@ -438,23 +464,22 @@ export const uploadProfilePicture = async (req, res) => {
       path: req.file.path,
       mimetype: req.file.mimetype,
       size: req.file.size,
-      uploadDate: new Date()
+      uploadDate: new Date(),
     };
 
     await tourGuide.save();
 
     res.status(200).json({
       message: "Profile picture uploaded successfully",
-      profilePicture: tourGuide.profilePicture
+      profilePicture: tourGuide.profilePicture,
     });
   } catch (error) {
     console.error("Error uploading profile picture:", error);
     res.status(500).json({
       message: "Error uploading profile picture",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 // Handle document uploads
-

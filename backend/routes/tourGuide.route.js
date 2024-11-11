@@ -39,6 +39,6 @@ router.put("/profile/:username", authMiddleware, updateTourGuideAccount);
 
 router.put("/change-password", authMiddleware, changePassword);
 // Delete account
-router.delete("/profile/:username", authMiddleware, deleteTourGuide);
+router.delete("/delete/:id", authMiddleware, deleteTourGuide);
 
 export default router;
