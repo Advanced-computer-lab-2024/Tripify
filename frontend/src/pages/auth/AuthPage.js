@@ -11,6 +11,7 @@ import {
   Nav,
   Modal,
   Spinner,
+  Image,
 } from "react-bootstrap";
 import axios from "axios";
 
@@ -47,6 +48,17 @@ const AuthPage = () => {
     yearsOfExperience: "",
   });
 
+  // New state for tour guide file uploads
+  const [tourGuideFiles, setTourGuideFiles] = useState({
+    identificationDocument: null,
+    certificate: null,
+  });
+
+  const [filePreviews, setFilePreviews] = useState({
+    identificationDocument: null,
+    certificate: null,
+  });
+
   const roles = [
     { value: "tourist", label: "Tourist", endpoint: "tourist" },
     { value: "admin", label: "Admin", endpoint: "admin" },
@@ -72,6 +84,33 @@ const AuthPage = () => {
       ...registerData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files: fileList } = e.target;
+    
+    if (fileList && fileList[0]) {
+      // Validate file type
+      if (!fileList[0].type.startsWith('image/')) {
+        setError(`Please upload an image file for ${name === 'identificationDocument' ? 'ID' : 'Certificate'}`);
+        return;
+      }
+
+      setTourGuideFiles(prev => ({
+        ...prev,
+        [name]: fileList[0]
+      }));
+
+      // Create preview for image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreviews(prev => ({
+          ...prev,
+          [name]: reader.result
+        }));
+      };
+      reader.readAsDataURL(fileList[0]);
+    }
   };
 
   const handleRoleSelect = (role) => {
@@ -136,20 +175,59 @@ const AuthPage = () => {
         }
       }
 
-      const response = await axios.post(
-        `http://localhost:5000/api/${role.endpoint}/register`,
-        registrationData
-      );
+      // Special handling for tour guide registration with files
+      if (selectedRole === "tourguide") {
+        if (!tourGuideFiles.identificationDocument || !tourGuideFiles.certificate) {
+          throw new Error("Both ID document and certificate images are required");
+        }
 
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data[role.value]));
-        localStorage.setItem("userRole", role.value);
-        navigate(`/${role.value}`);
+        const formDataToSend = new FormData();
+        
+        // Append text data
+        Object.keys(registrationData).forEach(key => {
+          formDataToSend.append(key, registrationData[key]);
+        });
+
+        // Append files
+        Object.keys(tourGuideFiles).forEach(key => {
+          if (tourGuideFiles[key]) {
+            formDataToSend.append(key, tourGuideFiles[key]);
+          }
+        });
+
+        const response = await axios.post(
+          `http://localhost:5000/api/${role.endpoint}/register`,
+          formDataToSend,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem("userRole", role.value);
+          navigate(`/${role.value}`);
+        }
+      } else {
+        // Regular registration for other roles
+        const response = await axios.post(
+          `http://localhost:5000/api/${role.endpoint}/register`,
+          registrationData
+        );
+
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem("userRole", role.value);
+          navigate(`/${role.value}`);
+        }
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "Registration failed. Please try again."
+        err.response?.data?.message || err.message || "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -264,28 +342,78 @@ const AuthPage = () => {
 
       case "tourguide":
         return (
-          <>
-            <Form.Group className="mb-3">
-              <Form.Label>Mobile Number</Form.Label>
-              <Form.Control
-                type="text"
-                name="mobileNumber"
-                value={registerData.mobileNumber}
-                onChange={handleRegisterChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Years of Experience</Form.Label>
-              <Form.Control
-                type="number"
-                name="yearsOfExperience"
-                value={registerData.yearsOfExperience}
-                onChange={handleRegisterChange}
-                required
-              />
-            </Form.Group>
-          </>
+          <Row>
+            <Col md={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>Mobile Number</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="mobileNumber"
+                  value={registerData.mobileNumber}
+                  onChange={handleRegisterChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Years of Experience</Form.Label>
+                <Form.Control
+                  type="number"
+                  name="yearsOfExperience"
+                  value={registerData.yearsOfExperience}
+                  onChange={handleRegisterChange}
+                  min="0"
+                  required
+                />
+              </Form.Group>
+              
+              <Card className="mb-3">
+                <Card.Header className="bg-light">Required Documents</Card.Header>
+                <Card.Body>
+                  <Form.Group className="mb-4">
+                    <Form.Label>ID Document (Image only)</Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="identificationDocument"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      required
+                    />
+                    {filePreviews.identificationDocument && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.identificationDocument}
+                          alt="ID Preview"
+                          thumbnail
+                          style={{ maxWidth: '200px' }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+
+                  <Form.Group className="mb-4">
+                    <Form.Label>Certificate (Image only)</Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="certificate"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      required
+                    />
+                    {filePreviews.certificate && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.certificate}
+                          alt="Certificate Preview"
+                          thumbnail
+                          style={{ maxWidth: '200px' }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
         );
 
       default:
@@ -296,7 +424,7 @@ const AuthPage = () => {
   return (
     <Container className="mt-5">
       <Row className="justify-content-center">
-        <Col md={6}>
+        <Col md={8}>
           <Card className="shadow">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-4">
@@ -384,7 +512,7 @@ const AuthPage = () => {
               ) : (
                 <Form onSubmit={handleRegister}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Username</Form.Label>
+                  <Form.Label>Username</Form.Label>
                     <Form.Control
                       type="text"
                       name="username"

@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import TourGuide from "../models/tourGuide.model.js";
 import Itinerary from "../models/itinerary.model.js";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import fs from 'fs';
 
 dotenv.config();
 
@@ -22,7 +22,6 @@ const generateToken = (tourGuide) => {
 };
 
 // Register a Tour Guide
-// Registration function modification
 export const registerTourGuide = async (req, res) => {
   try {
     const {
@@ -34,7 +33,6 @@ export const registerTourGuide = async (req, res) => {
       previousWork,
     } = req.body;
 
-    // Log the registration attempt
     console.log("Registration attempt for:", username);
 
     // Validate required files
@@ -96,18 +94,14 @@ export const registerTourGuide = async (req, res) => {
       },
     };
 
-    // Hash password manually instead of relying on pre-save hook
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Password hashed successfully");
-
     const newTourGuide = new TourGuide({
       username,
       email,
-      password: hashedPassword,
+      password, // Password will be hashed by pre-save middleware
       mobileNumber,
       yearsOfExperience,
       previousWork,
-      ...fileData, // Add the file data
+      ...fileData,
     });
 
     await newTourGuide.save();
@@ -131,7 +125,6 @@ export const registerTourGuide = async (req, res) => {
       token,
     });
   } catch (error) {
-    // Clean up uploaded files if registration fails
     if (req.files) {
       Object.values(req.files).forEach((fileArray) => {
         fileArray.forEach((file) => {
@@ -153,36 +146,24 @@ export const registerTourGuide = async (req, res) => {
 
 // Login a Tour Guide
 export const loginTourGuide = async (req, res) => {
-  const { username, password } = req.body;
-
   try {
+    const { username, password } = req.body;
     console.log("Login attempt for:", username);
 
     const tourGuide = await TourGuide.findOne({
       $or: [{ username }, { email: username }],
-    });
+    }).select('+password');
 
     if (!tourGuide) {
-      console.log("No tour guide found");
-      return res.status(404).json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    console.log("Tour guide found:", tourGuide.username);
-
-    // Log password details for debugging (remove in production)
-    console.log("Provided password length:", password.length);
-    console.log("Stored hash length:", tourGuide.password.length);
-
-    const isMatch = await bcrypt.compare(password, tourGuide.password);
-    console.log("Password comparison result:", isMatch);
-
+    const isMatch = await tourGuide.comparePassword(password);
     if (!isMatch) {
-      console.log("Password mismatch");
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
     const token = generateToken(tourGuide);
-    console.log("Token generated successfully");
 
     return res.status(200).json({
       message: "Login successful",
@@ -204,6 +185,7 @@ export const loginTourGuide = async (req, res) => {
     });
   }
 };
+
 // Reset Password for Tour Guide
 export const resetPassword = async (req, res) => {
   const { identifier, newPassword } = req.body;
@@ -216,7 +198,7 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    tourGuide.password = await bcrypt.hash(newPassword, 10);
+    tourGuide.password = newPassword; // Will be hashed by pre-save middleware
     await tourGuide.save();
 
     return res.status(200).json({ message: "Password reset successfully" });
@@ -308,29 +290,24 @@ export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const { _id } = req.user;
 
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const tourGuide = await TourGuide.findByIdAndUpdate(_id, {
-      password: hashedPassword,
-    });
-
+    const tourGuide = await TourGuide.findById(_id).select('+password');
     if (!tourGuide) {
-      return res.status(404).send("Admin not found");
+      return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    // Compare the current password with the stored password
     const isMatch = await tourGuide.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+      return res.status(400).json({ message: "Current password is incorrect" });
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    tourGuide.password = newPassword; // Will be hashed by pre-save middleware
+    await tourGuide.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -392,6 +369,7 @@ export const deleteTourGuide = async (req, res) => {
     session.endSession();
   }
 };
+
 // Get Tour Guide Profile by Token (Protected Route)
 export const getProfileByToken = async (req, res) => {
   try {
@@ -434,8 +412,6 @@ export const getTourGuideItineraries = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// Add these functions to your tourGuide.controller.js
 
 // Handle profile picture upload
 export const uploadProfilePicture = async (req, res) => {
@@ -482,4 +458,16 @@ export const uploadProfilePicture = async (req, res) => {
   }
 };
 
-// Handle document uploads
+export default {
+  registerTourGuide,
+  loginTourGuide,
+  resetPassword,
+  getTourGuideByUsername,
+  updateTourGuideAccount,
+  changePassword,
+  getAllTourGuides,
+  deleteTourGuide,
+  getProfileByToken,
+  getTourGuideItineraries,
+  uploadProfilePicture,
+};
