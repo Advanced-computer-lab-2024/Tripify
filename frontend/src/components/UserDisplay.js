@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Button, Form, Alert, Container, Card } from "react-bootstrap";
+import { Button, Form, Alert, Container, Card, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 const UserDisplay = () => {
@@ -8,6 +8,7 @@ const UserDisplay = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
   // Get user data from localStorage
@@ -76,6 +77,29 @@ const UserDisplay = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/seller/profile/${profile.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Clear local storage and redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+      alert("Account deleted successfully");
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      setError(err.response?.data?.message || "Failed to delete account");
+      setShowDeleteModal(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({
@@ -104,9 +128,17 @@ const UserDisplay = () => {
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2 className="mb-0">My Profile</h2>
-            <Button variant="danger" onClick={handleLogout}>
-              Logout
-            </Button>
+            <div>
+              <Button variant="danger" onClick={handleLogout} className="me-2">
+                Logout
+              </Button>
+              <Button
+                variant="outline-danger"
+                onClick={() => setShowDeleteModal(true)}
+              >
+                Delete Account
+              </Button>
+            </div>
           </div>
 
           {error && (
@@ -214,6 +246,31 @@ const UserDisplay = () => {
           )}
         </Card.Body>
       </Card>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Account</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Are you sure you want to delete your account? This action cannot be
+            undone.
+          </p>
+          <p>
+            All your products and data will be permanently removed from the
+            system.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteAccount}>
+            Delete Account
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

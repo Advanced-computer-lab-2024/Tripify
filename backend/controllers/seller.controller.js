@@ -98,33 +98,47 @@ export const loginSeller = async (req, res) => {
   }
 };
 
-export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
+// Reset Password for Seller
+export const resetPassword = async (req, res) => {
+  const { identifier, newPassword } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const seller = await Seller.findByIdAndUpdate(_id, {
-      password: hashedPassword,
+    const seller = await Seller.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
     });
-
     if (!seller) {
-      return res.status(404).send("Admin not found");
+      return res.status(404).json({ message: "Seller not found" });
     }
 
-    // Compare the current password with the stored password
-    const isMatch = await seller.comparePassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+    seller.password = await bcrypt.hash(newPassword, 10);
+    await seller.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error resetting password", error: error.message });
+  }
+};
+
+// Change Password (Protected Route)
+export const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const seller = await Seller.findById(req.user._id);
+    if (!seller || !(await bcrypt.compare(currentPassword, seller.password))) {
+      return res.status(400).json({ message: "Current password is incorrect" });
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    seller.password = newPassword;
+    await seller.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error updating password", error: error.message });
   }
 };
 
