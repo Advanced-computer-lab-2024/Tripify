@@ -53,6 +53,16 @@ const AuthPage = () => {
     identificationDocument: null,
     certificate: null,
   });
+  // Add near other state declarations
+const [sellerFiles, setSellerFiles] = useState({
+  businessLicense: null,
+  identificationDocument: null,
+});
+// Add near other state declarations
+const [advertiserFiles, setAdvertiserFiles] = useState({
+  businessLicense: null,
+  identificationDocument: null,
+});
 
   const [filePreviews, setFilePreviews] = useState({
     identificationDocument: null,
@@ -88,28 +98,61 @@ const AuthPage = () => {
 
   const handleFileChange = (e) => {
     const { name, files: fileList } = e.target;
-    
+     
     if (fileList && fileList[0]) {
-      // Validate file type
-      if (!fileList[0].type.startsWith('image/')) {
-        setError(`Please upload an image file for ${name === 'identificationDocument' ? 'ID' : 'Certificate'}`);
-        return;
+      // Allow both images and PDFs for seller and advertiser files
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+       
+      if (selectedRole === 'seller') {
+        if (!allowedTypes.includes(fileList[0].type)) {
+          setError(`Please upload an image or PDF file for ${name}`);
+          return;
+        }
+        // Update seller files
+        setSellerFiles(prev => ({
+          ...prev,
+          [name]: fileList[0]
+        }));
+      } else if (selectedRole === 'tourguide') {
+        // Tour guide only accepts images
+        if (!fileList[0].type.startsWith('image/')) {
+          setError(`Please upload an image file for ${name === 'identificationDocument' ? 'ID' : 'Certificate'}`);
+          return;
+        }
+        // Update tour guide files
+        setTourGuideFiles(prev => ({
+          ...prev,
+          [name]: fileList[0]
+        }));
+      } else if (selectedRole === 'advertiser') {
+        if (!allowedTypes.includes(fileList[0].type)) {
+          setError(`Please upload an image or PDF file for ${name}`);
+          return;
+        }
+        // Update advertiser files
+        setAdvertiserFiles(prev => ({
+          ...prev,
+          [name]: fileList[0]
+        }));
       }
-
-      setTourGuideFiles(prev => ({
-        ...prev,
-        [name]: fileList[0]
-      }));
-
-      // Create preview for image
-      const reader = new FileReader();
-      reader.onloadend = () => {
+   
+      // Create preview for images only
+      if (fileList[0].type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreviews(prev => ({
+            ...prev,
+            [name]: reader.result
+          }));
+        };
+        reader.readAsDataURL(fileList[0]);
+      } else {
+        // For PDFs, remove the preview
         setFilePreviews(prev => ({
           ...prev,
-          [name]: reader.result
+          [name]: null
         }));
-      };
-      reader.readAsDataURL(fileList[0]);
+      }
     }
   };
 
@@ -156,15 +199,15 @@ const AuthPage = () => {
       setError("Passwords do not match");
       return;
     }
-
+  
     setLoading(true);
     setError("");
-
+  
     try {
       const role = roles.find((r) => r.value === selectedRole);
       const registrationData = { ...registerData };
       delete registrationData.confirmPassword;
-
+  
       // Add validation for tourist registration
       if (selectedRole === "tourist" && registerData.dob) {
         const today = new Date();
@@ -174,27 +217,27 @@ const AuthPage = () => {
           throw new Error("You must be 18 or older to register");
         }
       }
-
-      // Special handling for tour guide registration with files
+  
+      // Handle tour guide registration with files
       if (selectedRole === "tourguide") {
         if (!tourGuideFiles.identificationDocument || !tourGuideFiles.certificate) {
           throw new Error("Both ID document and certificate images are required");
         }
-
+  
         const formDataToSend = new FormData();
         
         // Append text data
         Object.keys(registrationData).forEach(key => {
           formDataToSend.append(key, registrationData[key]);
         });
-
+  
         // Append files
         Object.keys(tourGuideFiles).forEach(key => {
           if (tourGuideFiles[key]) {
             formDataToSend.append(key, tourGuideFiles[key]);
           }
         });
-
+  
         const response = await axios.post(
           `http://localhost:5000/api/${role.endpoint}/register`,
           formDataToSend,
@@ -204,20 +247,99 @@ const AuthPage = () => {
             }
           }
         );
-
+  
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data[role.value]));
           localStorage.setItem("userRole", role.value);
           navigate(`/${role.value}`);
         }
-      } else {
-        // Regular registration for other roles
+      } 
+      // Handle seller registration with files
+      else if (selectedRole === "seller") {
+        if (!sellerFiles.businessLicense || !sellerFiles.identificationDocument) {
+          throw new Error("Both business license and identification document are required");
+        }
+  
+        const formDataToSend = new FormData();
+        
+        // Append text data
+        Object.keys(registrationData).forEach(key => {
+          if (registrationData[key]) {
+            formDataToSend.append(key, registrationData[key]);
+          }
+        });
+  
+        // Append files
+        Object.keys(sellerFiles).forEach(key => {
+          if (sellerFiles[key]) {
+            formDataToSend.append(key, sellerFiles[key]);
+          }
+        });
+  
+        const response = await axios.post(
+          `http://localhost:5000/api/${role.endpoint}/register`,
+          formDataToSend,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+  
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem("userRole", role.value);
+          navigate(`/${role.value}`);
+        }
+      }
+      // Handle advertiser registration with files
+      else if (selectedRole === "advertiser") {
+        if (!advertiserFiles.businessLicense || !advertiserFiles.identificationDocument) {
+          throw new Error("Both business license and identification document are required");
+        }
+  
+        const formDataToSend = new FormData();
+        
+        // Append text data
+        Object.keys(registrationData).forEach(key => {
+          if (registrationData[key]) {
+            formDataToSend.append(key, registrationData[key]);
+          }
+        });
+  
+        // Append files
+        Object.keys(advertiserFiles).forEach(key => {
+          if (advertiserFiles[key]) {
+            formDataToSend.append(key, advertiserFiles[key]);
+          }
+        });
+  
+        const response = await axios.post(
+          `http://localhost:5000/api/${role.endpoint}/register`,
+          formDataToSend,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+  
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem("userRole", role.value);
+          navigate(`/${role.value}`);
+        }
+      }
+      // Regular registration for other roles
+      else {
         const response = await axios.post(
           `http://localhost:5000/api/${role.endpoint}/register`,
           registrationData
         );
-
+  
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data[role.value]));
@@ -236,6 +358,91 @@ const AuthPage = () => {
 
   const renderRoleSpecificFields = () => {
     switch (selectedRole) {
+      case "seller":
+  return (
+    <Row>
+      <Col md={12}>
+        <Form.Group className="mb-3">
+          <Form.Label>Name</Form.Label>
+          <Form.Control
+            type="text"
+            name="name"
+            value={registerData.name}
+            onChange={handleRegisterChange}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Description</Form.Label>
+          <Form.Control
+            as="textarea"
+            name="description"
+            value={registerData.description}
+            onChange={handleRegisterChange}
+            rows={3}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Mobile Number*</Form.Label>
+          <Form.Control
+            type="tel"
+            name="mobileNumber"
+            value={registerData.mobileNumber}
+            onChange={handleRegisterChange}
+            required
+          />
+        </Form.Group>
+        
+        <Card className="mb-3">
+          <Card.Header className="bg-light">Required Documents</Card.Header>
+          <Card.Body>
+            <Form.Group className="mb-4">
+              <Form.Label>Business License (Image or PDF)*</Form.Label>
+              <Form.Control
+                type="file"
+                name="businessLicense"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+              {filePreviews.businessLicense && (
+                <div className="mt-2">
+                  <Image
+                    src={filePreviews.businessLicense}
+                    alt="Business License Preview"
+                    thumbnail
+                    style={{ maxWidth: '200px' }}
+                  />
+                </div>
+              )}
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label>Identification Document (Image or PDF)*</Form.Label>
+              <Form.Control
+                type="file"
+                name="identificationDocument"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+              {filePreviews.identificationDocument && (
+                <div className="mt-2">
+                  <Image
+                    src={filePreviews.identificationDocument}
+                    alt="ID Preview"
+                    thumbnail
+                    style={{ maxWidth: '200px' }}
+                  />
+                </div>
+              )}
+            </Form.Group>
+          </Card.Body>
+        </Card>
+      </Col>
+    </Row>
+  );
       case "tourist":
         return (
           <>
@@ -296,50 +503,104 @@ const AuthPage = () => {
           </>
         );
 
-      case "advertiser":
-        return (
-          <>
-            <Form.Group className="mb-3">
-              <Form.Label>Company Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="companyName"
-                value={registerData.companyName}
-                onChange={handleRegisterChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Company Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="companyDescription"
-                value={registerData.companyDescription}
-                onChange={handleRegisterChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Website</Form.Label>
-              <Form.Control
-                type="url"
-                name="website"
-                value={registerData.website}
-                onChange={handleRegisterChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Hotline</Form.Label>
-              <Form.Control
-                type="text"
-                name="hotline"
-                value={registerData.hotline}
-                onChange={handleRegisterChange}
-              />
-            </Form.Group>
-          </>
-        );
-
+        case "advertiser":
+          return (
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Company Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="companyName"
+                    value={registerData.companyName}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </Form.Group>
+        
+                <Form.Group className="mb-3">
+                  <Form.Label>Company Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    name="companyDescription"
+                    value={registerData.companyDescription}
+                    onChange={handleRegisterChange}
+                    rows={3}
+                    required
+                  />
+                </Form.Group>
+        
+                <Form.Group className="mb-3">
+                  <Form.Label>Website</Form.Label>
+                  <Form.Control
+                    type="url"
+                    name="website"
+                    value={registerData.website}
+                    onChange={handleRegisterChange}
+                    placeholder="https://example.com"
+                  />
+                </Form.Group>
+        
+                <Form.Group className="mb-3">
+                  <Form.Label>Hotline</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    name="hotline"
+                    value={registerData.hotline}
+                    onChange={handleRegisterChange}
+                    placeholder="+1234567890"
+                  />
+                </Form.Group>
+        
+                <Card className="mb-3">
+                  <Card.Header className="bg-light">Required Documents</Card.Header>
+                  <Card.Body>
+                    <Form.Group className="mb-4">
+                      <Form.Label>Business License (Image or PDF)*</Form.Label>
+                      <Form.Control
+                        type="file"
+                        name="businessLicense"
+                        onChange={handleFileChange}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        required
+                      />
+                      {filePreviews.businessLicense && (
+                        <div className="mt-2">
+                          <Image
+                            src={filePreviews.businessLicense}
+                            alt="Business License Preview"
+                            thumbnail
+                            style={{ maxWidth: '200px' }}
+                          />
+                        </div>
+                      )}
+                    </Form.Group>
+        
+                    <Form.Group className="mb-4">
+                      <Form.Label>Identification Document (Image or PDF)*</Form.Label>
+                      <Form.Control
+                        type="file"
+                        name="identificationDocument"
+                        onChange={handleFileChange}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        required
+                      />
+                      {filePreviews.identificationDocument && (
+                        <div className="mt-2">
+                          <Image
+                            src={filePreviews.identificationDocument}
+                            alt="ID Preview"
+                            thumbnail
+                            style={{ maxWidth: '200px' }}
+                          />
+                        </div>
+                      )}
+                    </Form.Group>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          );
       case "tourguide":
         return (
           <Row>

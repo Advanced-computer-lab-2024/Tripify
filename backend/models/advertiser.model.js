@@ -1,6 +1,33 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
+const fileSchema = new mongoose.Schema({
+  filename: {
+    type: String,
+    required: true
+  },
+  path: {
+    type: String,
+    required: true
+  },
+  mimetype: {
+    type: String,
+    required: true
+  },
+  size: {
+    type: Number,
+    required: true
+  },
+  uploadDate: {
+    type: Date,
+    default: Date.now
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  }
+});
+
 const advertiserSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -22,47 +49,36 @@ const advertiserSchema = new mongoose.Schema({
     companyName: {
         type: String,
         trim: true
-      },
-    
-      // Description of the company
-      companyDescription: {
+    },
+    companyDescription: {
         type: String,
-       
         trim: true
-      },
-    
-      // URL for the company's website
-      website: {
+    },
+    website: {
         type: String,
-       
-        match: [/^(https?:\/\/)?([\w.-]+)+(:\d+)?(\/([\w\/._-]*(\?\S+)?)?)?$/, 'Please enter a valid website URL'] // Basic URL validation
-      },
-    
-      // Hotline for customer service
-      hotline: {
+        match: [/^(https?:\/\/)?([\w.-]+)+(:\d+)?(\/([\w\/._-]*(\?\S+)?)?)?$/, 'Please enter a valid website URL']
+    },
+    hotline: {
         type: String,
-       
         trim: true,
-        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid hotline number'] // Ensures valid international phone number format
-      },
-    
-      // Company logo URL
-      companyLogo: {
-        type: String,
-        
-      },
-    
-      // Array of active advertisements linked to the advertiser
-      activeAds: [{
+        match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid hotline number']
+    },
+    businessLicense: fileSchema,
+    identificationDocument: fileSchema,
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    activeAds: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Advertisement'
-      }],
-    
-      createdAt: {
+    }],
+    createdAt: {
         type: Date,
         default: Date.now
-      }
+    }
 }, { timestamps: true });
+
 advertiserSchema.pre('save', async function (next) {
     const user = this;
     if (user.isModified('password')) {
@@ -76,5 +92,4 @@ advertiserSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 const Advertiser = mongoose.model('Advertiser', advertiserSchema);
-
 export default Advertiser;

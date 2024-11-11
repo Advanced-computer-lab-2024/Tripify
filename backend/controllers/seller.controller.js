@@ -21,14 +21,52 @@ const generateToken = (seller) => {
 
 // Register a Seller
 export const registerSeller = async (req, res) => {
-  const { username, email, password, name, description } = req.body;
-
   try {
+    const {
+      username,
+      email,
+      password,
+      name,
+      description,
+      mobileNumber
+    } = req.body;
+
+    console.log("Registration attempt for seller:", username);
+
+    // Validate required files
+    if (
+      !req.files ||
+      !req.files.businessLicense ||
+      !req.files.identificationDocument
+    ) {
+      return res.status(400).json({
+        message: "Both business license and ID document are required",
+        details: {
+          businessLicense: !req.files?.businessLicense,
+          identificationDocument: !req.files?.identificationDocument,
+        },
+      });
+    }
+
+    // Check for existing seller
     const existingSeller = await Seller.findOne({
       $or: [{ email }, { username }],
     });
 
     if (existingSeller) {
+      // Delete uploaded files if registration fails
+      if (req.files) {
+        Object.values(req.files).forEach((fileArray) => {
+          fileArray.forEach((file) => {
+            try {
+              fs.unlinkSync(file.path);
+            } catch (error) {
+              console.error("Error deleting file:", error);
+            }
+          });
+        });
+      }
+
       return res.status(400).json({
         message:
           existingSeller.email === email
@@ -37,16 +75,42 @@ export const registerSeller = async (req, res) => {
       });
     }
 
+    // Process file uploads
+    const fileData = {
+      businessLicense: {
+        filename: req.files.businessLicense[0].filename,
+        path: req.files.businessLicense[0].path,
+        mimetype: req.files.businessLicense[0].mimetype,
+        size: req.files.businessLicense[0].size,
+        uploadDate: new Date(),
+        isVerified: false,
+      },
+      identificationDocument: {
+        filename: req.files.identificationDocument[0].filename,
+        path: req.files.identificationDocument[0].path,
+        mimetype: req.files.identificationDocument[0].mimetype,
+        size: req.files.identificationDocument[0].size,
+        uploadDate: new Date(),
+        isVerified: false,
+      },
+    };
+
+    // Create new seller
     const newSeller = new Seller({
       username,
       email,
       password,
       name,
       description,
+      mobileNumber,
+      ...fileData,
     });
+
     await newSeller.save();
+    console.log("Seller saved successfully");
 
     const token = generateToken(newSeller);
+    console.log("Token generated successfully");
 
     return res.status(201).json({
       message: "Seller registered successfully",
@@ -56,10 +120,28 @@ export const registerSeller = async (req, res) => {
         email: newSeller.email,
         name: newSeller.name,
         description: newSeller.description,
+        mobileNumber: newSeller.mobileNumber,
+        businessLicense: newSeller.businessLicense.path,
+        identificationDocument: newSeller.identificationDocument.path,
       },
       token,
     });
+
   } catch (error) {
+    // Clean up uploaded files in case of error
+    if (req.files) {
+      Object.values(req.files).forEach((fileArray) => {
+        fileArray.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            console.error("Error deleting file:", error);
+          }
+        });
+      });
+    }
+
+    console.error("Error registering seller:", error);
     return res
       .status(500)
       .json({ message: "Error registering seller", error: error.message });

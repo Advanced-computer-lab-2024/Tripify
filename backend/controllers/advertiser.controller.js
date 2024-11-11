@@ -24,23 +24,52 @@ const generateToken = (advertiser) => {
 
 // Register an Advertiser
 export const registerAdvertiser = async (req, res) => {
-  const {
-    username,
-    email,
-    password,
-    companyName,
-    companyDescription,
-    website,
-    hotline,
-    companyLogo,
-  } = req.body;
-
   try {
+    const {
+      username,
+      email,
+      password,
+      companyName,
+      companyDescription,
+      website,
+      hotline,
+    } = req.body;
+
+    console.log("Registration attempt for advertiser:", username);
+
+    // Validate required files
+    if (
+      !req.files ||
+      !req.files.businessLicense ||
+      !req.files.identificationDocument
+    ) {
+      return res.status(400).json({
+        message: "Both business license and ID document are required",
+        details: {
+          businessLicense: !req.files?.businessLicense,
+          identificationDocument: !req.files?.identificationDocument,
+        },
+      });
+    }
+
+    // Check for existing advertiser
     const existingAdvertiser = await Advertiser.findOne({
       $or: [{ email }, { username }],
     });
 
     if (existingAdvertiser) {
+      // Delete uploaded files if registration fails
+      if (req.files) {
+        Object.values(req.files).forEach((fileArray) => {
+          fileArray.forEach((file) => {
+            try {
+              fs.unlinkSync(file.path);
+            } catch (error) {
+              console.error("Error deleting file:", error);
+            }
+          });
+        });
+      }
       return res.status(400).json({
         message:
           existingAdvertiser.email === email
@@ -49,6 +78,27 @@ export const registerAdvertiser = async (req, res) => {
       });
     }
 
+    // Process file uploads
+    const fileData = {
+      businessLicense: {
+        filename: req.files.businessLicense[0].filename,
+        path: req.files.businessLicense[0].path,
+        mimetype: req.files.businessLicense[0].mimetype,
+        size: req.files.businessLicense[0].size,
+        uploadDate: new Date(),
+        isVerified: false,
+      },
+      identificationDocument: {
+        filename: req.files.identificationDocument[0].filename,
+        path: req.files.identificationDocument[0].path,
+        mimetype: req.files.identificationDocument[0].mimetype,
+        size: req.files.identificationDocument[0].size,
+        uploadDate: new Date(),
+        isVerified: false,
+      },
+    };
+
+    // Create new advertiser
     const newAdvertiser = new Advertiser({
       username,
       email,
@@ -57,14 +107,16 @@ export const registerAdvertiser = async (req, res) => {
       companyDescription,
       website,
       hotline,
-      companyLogo,
+      ...fileData,
     });
 
     await newAdvertiser.save();
+    console.log("Advertiser saved successfully");
 
     const token = generateToken(newAdvertiser);
+    console.log("Token generated successfully");
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Advertiser registered successfully",
       advertiser: {
         id: newAdvertiser._id,
@@ -74,12 +126,28 @@ export const registerAdvertiser = async (req, res) => {
         companyDescription: newAdvertiser.companyDescription,
         website: newAdvertiser.website,
         hotline: newAdvertiser.hotline,
-        companyLogo: newAdvertiser.companyLogo,
+        businessLicense: newAdvertiser.businessLicense.path,
+        identificationDocument: newAdvertiser.identificationDocument.path,
       },
       token,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // Clean up uploaded files in case of error
+    if (req.files) {
+      Object.values(req.files).forEach((fileArray) => {
+        fileArray.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            console.error("Error deleting file:", error);
+          }
+        });
+      });
+    }
+    console.error("Error registering advertiser:", error);
+    return res
+      .status(500)
+      .json({ message: "Error registering advertiser", error: error.message });
   }
 };
 
