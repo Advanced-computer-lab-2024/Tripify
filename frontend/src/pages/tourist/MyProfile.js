@@ -13,42 +13,54 @@ import { useNavigate } from "react-router-dom";
 
 // Redeemption Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
-  const [pointsToRedeem, setPointsToRedeem] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [pointsToRedeem, setPointsToRedeem] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleRedeem = async () => {
-    const points = parseInt(pointsToRedeem);
-    if (!points || points < 10000 || points % 10000 !== 0) {
-      setError('Points must be at least 10,000 and in multiples of 10,000');
-      return;
-    }
-
-    if (points > loyaltyPoints) {
-      setError('Insufficient points');
-      return;
-    }
-
     try {
-      const userId = JSON.parse(localStorage.getItem("user"))._id;
+      setError("");
+      setSuccess("");
+
+      const points = parseInt(pointsToRedeem);
+      if (!points || points < 10000 || points % 10000 !== 0) {
+        setError("Points must be at least 10,000 and in multiples of 10,000");
+        return;
+      }
+
+      if (points > loyaltyPoints) {
+        setError("Insufficient points");
+        return;
+      }
+
+      // Get user ID from stored user data
+      const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("token");
-      
+      const user = JSON.parse(userStr);
+
       const response = await axios.post(
-        `http://localhost:5000/api/tourist/loyalty/redeem/${userId}`,
+        `http://localhost:5000/api/tourist/loyalty/redeem/${user.id}`, // Note: using user.id instead of user._id
         { pointsToRedeem: points },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
       if (response.data.success) {
-        setSuccess(`Successfully redeemed ${points} points for ${(points/10000) * 100} EGP`);
-        setPointsToRedeem('');
-        setError('');
+        setSuccess(
+          `Successfully redeemed ${points} points for ${
+            (points / 10000) * 100
+          } EGP`
+        );
+        setPointsToRedeem("");
         if (onRedeem) onRedeem();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to redeem points');
+      console.error("Redemption error:", err);
+      setError("Failed to redeem points. Please try again.");
     }
   };
 
@@ -64,11 +76,16 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
           onChange={(e) => setPointsToRedeem(e.target.value)}
           placeholder="Enter points (minimum 10,000)"
           step="10000"
+          min="10000"
         />
       </Form.Group>
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
-      <Button onClick={handleRedeem} disabled={!pointsToRedeem}>
+      <Button
+        onClick={handleRedeem}
+        disabled={!pointsToRedeem || parseInt(pointsToRedeem) < 10000}
+        className="me-2"
+      >
         Redeem Points
       </Button>
     </div>
@@ -108,7 +125,7 @@ const MyProfile = () => {
         `http://localhost:5000/api/tourist/profile/${user.username}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`, 
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -341,7 +358,7 @@ const MyProfile = () => {
                   </Row>
 
                   {/* Loyalty Points Redemption */}
-                  <RedeemPoints 
+                  <RedeemPoints
                     loyaltyPoints={loyaltyPoints}
                     onRedeem={() => {
                       fetchProfile();
