@@ -6,7 +6,7 @@ import {
   deleteUser,
   getAdminProfile,
   changePassword,
-  getPendingApprovals, // New imports for approvals
+  getPendingApprovals,
   updateApprovalStatus,
   getApprovalStatistics,
   getUnverifiedAdvertisers,
@@ -34,7 +34,8 @@ router.put(
   authMiddleware,
   adminAuthMiddleware,
   changePassword
-); // Route for changing password
+);
+
 // Approval management routes (requires authentication and admin role)
 router.get(
   "/approvals/pending",
@@ -54,5 +55,14 @@ router.get(
   adminAuthMiddleware,
   getApprovalStatistics
 );
+
+// Unverified users and verification routes
+router.get('/unverified-sellers', authMiddleware, getUnverifiedSellers);
+router.get('/unverified-advertisers', authMiddleware, getUnverifiedAdvertisers);
+router.get('/unverified-tourguides', authMiddleware, getUnverifiedTourGuides);
+
+router.put('/verify-seller/:id', authMiddleware, verifySeller);
+router.put('/verify-advertiser/:id', authMiddleware, verifyAdvertiser);
+router.put('/verify-tourguide/:id', authMiddleware, verifyTourGuide);
 
 export default router;
