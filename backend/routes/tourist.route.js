@@ -28,12 +28,14 @@ router.put("/profile/:username", authMiddleware, updateTouristProfile);
 router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
 
 router.put("/change-password", authMiddleware, changePassword);
+// Loyalty routes
+router.get("/loyalty/:id", authMiddleware, getLoyaltyStatus);
+router.post("/loyalty/redeem/:id", authMiddleware, redeemLoyaltyPoints);
 
 // Wallet routes
 router.post("/wallet/add/:id", authMiddleware, addToWallet);
 router.post("/wallet/deduct/:id", authMiddleware, deductFromWallet);
 router.post("/wallet/refund/:id", authMiddleware, refundToWallet);
-router.post("/loyalty/redeem/:id", authMiddleware, redeemLoyaltyPoints);
 
 // Rate tour guide route
 router.post("/rate-guide/:tourGuideId", authMiddleware, rateTourGuide);

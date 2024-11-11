@@ -12,25 +12,29 @@ import {
 } from "../controllers/tourGuide.controller.js"; // Removed 'upload' from here
 
 import authMiddleware from "../middleware/auth.middleware.js";
+import uploadMiddleware from "../utils/upload.js";
 
 const router = express.Router();
 
 // Public routes (no authentication required)
-router.post("/register", registerTourGuide);
+router.post(
+  "/register",
+  uploadMiddleware.fields([
+    { name: "identificationDocument", maxCount: 1 },
+    { name: "certificate", maxCount: 1 },
+  ]),
+  registerTourGuide
+);
+
 router.post("/login", loginTourGuide);
 router.get("/guides", getAllTourGuides); // Public list of tour guides
 
 // Protected routes (requires authentication)
-// Get own profile using token
 router.get("/profile", authMiddleware, getProfileByToken);
-
-// Get own itineraries
 router.get("/my-itineraries", authMiddleware, getTourGuideItineraries);
-
-// Get specific tour guide profile
 router.get("/profile/:username", authMiddleware, getTourGuideByUsername);
 
-// Update own profile
+// Update profile (without file uploads)
 router.put("/profile/:username", authMiddleware, updateTourGuideAccount);
 
 router.put("/change-password", authMiddleware, changePassword);

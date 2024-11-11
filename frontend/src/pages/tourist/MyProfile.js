@@ -12,43 +12,78 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 // Redeemption Points Component
-const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
-  const [pointsToRedeem, setPointsToRedeem] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
+  const [pointsToRedeem, setPointsToRedeem] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleRedeem = async () => {
-    const points = parseInt(pointsToRedeem);
-    if (!points || points < 10000 || points % 10000 !== 0) {
-      setError('Points must be at least 10,000 and in multiples of 10,000');
-      return;
-    }
-
-    if (points > loyaltyPoints) {
-      setError('Insufficient points');
-      return;
-    }
-
     try {
-      const userId = JSON.parse(localStorage.getItem("user"))._id;
+      setError("");
+      setSuccess("");
+
+      const points = parseInt(pointsToRedeem);
+      if (!points || points < 10000 || points % 10000 !== 0) {
+        setError("Points must be at least 10,000 and in multiples of 10,000");
+        return;
+      }
+
+      if (points > loyaltyPoints) {
+        setError("Insufficient points");
+        return;
+      }
+
+      const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("token");
-      
+      const user = JSON.parse(userStr);
+
       const response = await axios.post(
-        `http://localhost:5000/api/tourist/loyalty/redeem/${userId}`,
+        `http://localhost:5000/api/tourist/loyalty/redeem/${user.id}`,
         { pointsToRedeem: points },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
       if (response.data.success) {
-        setSuccess(`Successfully redeemed ${points} points for ${(points/10000) * 100} EGP`);
-        setPointsToRedeem('');
-        setError('');
+        setSuccess(
+          `Successfully redeemed ${points} points for ${
+            (points / 10000) * 100
+          } EGP`
+        );
+        setPointsToRedeem("");
+
+        // Update parent components
         if (onRedeem) onRedeem();
+
+        // Fetch updated loyalty status
+        await fetchUpdatedStatus(user.id, token);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to redeem points');
+      console.error("Redemption error:", err);
+      setError("Failed to redeem points. Please try again.");
+    }
+  };
+
+  const fetchUpdatedStatus = async (userId, token) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success && onUpdate) {
+        onUpdate(response.data.loyaltyStatus);
+      }
+    } catch (err) {
+      console.error("Error fetching updated status:", err);
     }
   };
 
@@ -64,11 +99,16 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem }) => {
           onChange={(e) => setPointsToRedeem(e.target.value)}
           placeholder="Enter points (minimum 10,000)"
           step="10000"
+          min="10000"
         />
       </Form.Group>
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
-      <Button onClick={handleRedeem} disabled={!pointsToRedeem}>
+      <Button
+        onClick={handleRedeem}
+        disabled={!pointsToRedeem || parseInt(pointsToRedeem) < 10000}
+        className="me-2"
+      >
         Redeem Points
       </Button>
     </div>
@@ -83,6 +123,35 @@ const MyProfile = () => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [touristLevel, setTouristLevel] = useState("null");
   const navigate = useNavigate();
+  const fetchLoyaltyStatus = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const token = localStorage.getItem("token");
+
+      if (!user || !token) return;
+
+      const response = await axios.get(
+        `http://localhost:5000/api/tourist/loyalty/${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setLoyaltyPoints(response.data.loyaltyStatus.points);
+        setTouristLevel(response.data.loyaltyStatus.level);
+      }
+    } catch (error) {
+      console.error("Error fetching loyalty status:", error);
+    }
+  };
+  const handleLoyaltyUpdate = (newStatus) => {
+    setLoyaltyPoints(newStatus.points);
+    setTouristLevel(newStatus.level);
+    fetchProfile(); // Refresh the entire profile to get updated wallet balance
+  };
 
   // Get user data from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
@@ -108,7 +177,7 @@ const MyProfile = () => {
         `http://localhost:5000/api/tourist/profile/${user.username}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`, 
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -119,29 +188,6 @@ const MyProfile = () => {
       console.error("Error fetching profile:", err);
       setError(err.response?.data?.message || "Failed to load profile");
       setLoading(false);
-    }
-  };
-
-  const fetchLoyaltyStatus = async () => {
-    try {
-      const userId = user._id;
-      if (!userId) return;
-
-      const response = await axios.get(
-        `http://localhost:5000/api/tourist/loyalty/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        setLoyaltyPoints(response.data.loyaltyStatus.points);
-        setTouristLevel(response.data.loyaltyStatus.level);
-      }
-    } catch (error) {
-      console.error("Error fetching loyalty status:", error);
     }
   };
 
@@ -341,12 +387,10 @@ const MyProfile = () => {
                   </Row>
 
                   {/* Loyalty Points Redemption */}
-                  <RedeemPoints 
+                  <RedeemPoints
                     loyaltyPoints={loyaltyPoints}
-                    onRedeem={() => {
-                      fetchProfile();
-                      fetchLoyaltyStatus();
-                    }}
+                    onRedeem={fetchProfile}
+                    onUpdate={handleLoyaltyUpdate}
                   />
 
                   <Button
