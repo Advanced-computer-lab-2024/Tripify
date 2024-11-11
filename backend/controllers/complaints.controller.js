@@ -106,3 +106,24 @@ export const addReply = async (req, res) => {
   }
 };
 
+// Add this to your complaints.controller.js file
+
+export const getComplaintsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Verify that the authenticated user is requesting their own complaints
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: "Not authorized to view these complaints" });
+    }
+
+    const complaints = await Complaint.find({ createdBy: userId })
+      .sort({ date: -1 }) // Sort by date, newest first
+      .exec();
+
+    res.status(200).json(complaints);
+  } catch (error) {
+    console.error("Error fetching user complaints:", error);
+    res.status(500).json({ message: "Error fetching complaints", error: error.message });
+  }
+};
