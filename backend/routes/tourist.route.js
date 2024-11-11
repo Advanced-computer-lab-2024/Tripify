@@ -5,13 +5,13 @@ import {
   getTouristProfile,
   updateTouristProfile,
   getAllTourists,
-  changePassword,
   addToWallet,
   deductFromWallet,
   refundToWallet,
   getLoyaltyStatus,
   redeemLoyaltyPoints,
-  rateTourGuide // Import rateTourGuide function
+  rateTourGuide,
+  changePassword,
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -25,8 +25,9 @@ router.get("/", getAllTourists);
 // Protected routes (requires authentication)
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
-router.put("/profile/:username/change-password", authMiddleware, changePassword);
 router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
+
+router.put("/change-password", authMiddleware, changePassword);
 
 // Wallet routes
 router.post("/wallet/add/:id", authMiddleware, addToWallet);

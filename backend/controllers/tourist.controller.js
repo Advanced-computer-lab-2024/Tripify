@@ -208,37 +208,6 @@ export const updateTouristProfile = async (req, res) => {
   }
 };
 
-// Change Password
-export const changePassword = async (req, res) => {
-  try {
-    const { username } = req.params;
-    const { currentPassword, newPassword } = req.body;
-
-    // Check authorization using the decoded token from middleware
-    if (req.user.username !== username) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
-
-    const tourist = await Tourist.findOne({ username });
-    if (!tourist) {
-      return res.status(404).json({ message: "Tourist not found" });
-    }
-
-    const isMatch = await tourist.comparePassword(currentPassword);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Current password is incorrect" });
-    }
-
-    tourist.password = newPassword; // Ensure password is hashed within the model or before saving
-    await tourist.save();
-
-    res.status(200).json({ message: "Password changed successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
 // Get all tourists
 export const getAllTourists = async (req, res) => {
   try {
@@ -283,7 +252,6 @@ export const deductFromWallet = async (req, res) => {
         required: amount,
       });
 
-
       return res.status(400).json({
         message: "Insufficient funds",
         currentBalance: tourist.wallet,
@@ -293,7 +261,7 @@ export const deductFromWallet = async (req, res) => {
     // Calculate and add loyalty points based on level
     const earnedPoints = calculateLoyaltyPoints(tourist.level, amount);
     tourist.loyaltypoints += earnedPoints;
-    
+
     // Update tourist level based on total points
     tourist.level = determineTouristLevel(tourist.loyaltypoints);
 
@@ -308,9 +276,8 @@ export const deductFromWallet = async (req, res) => {
       currentBalance: tourist.wallet,
       earnedPoints,
       totalPoints: tourist.loyaltypoints,
-      newLevel: tourist.level
+      newLevel: tourist.level,
     });
-
   } catch (error) {
     console.error("Deduct from wallet error:", error);
     res.status(500).json({
@@ -410,7 +377,7 @@ const calculateLoyaltyPoints = (level, amount) => {
   const multipliers = {
     1: 0.5,
     2: 1.0,
-    3: 1.5
+    3: 1.5,
   };
   return Math.floor(amount * (multipliers[level] || 0.5)); // Default to level 1 multiplier if level is invalid
 };
@@ -426,7 +393,7 @@ const determineTouristLevel = (points) => {
 export const getLoyaltyStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const tourist = await Tourist.findById(id);
     if (!tourist) {
       return res.status(404).json({ message: "Tourist not found" });
@@ -437,23 +404,33 @@ export const getLoyaltyStatus = async (req, res) => {
       loyaltyStatus: {
         points: tourist.loyaltypoints,
         level: tourist.level,
-        nextLevelPoints: tourist.level === 3 ? null : (tourist.level === 2 ? 500000 : 100000),
-        pointsToNextLevel: tourist.level === 3 ? 0 : (tourist.level === 2 ? 500000 - tourist.loyaltypoints : 100000 - tourist.loyaltypoints)
-      }
+        nextLevelPoints:
+          tourist.level === 3 ? null : tourist.level === 2 ? 500000 : 100000,
+        pointsToNextLevel:
+          tourist.level === 3
+            ? 0
+            : tourist.level === 2
+            ? 500000 - tourist.loyaltypoints
+            : 100000 - tourist.loyaltypoints,
+      },
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error });
-  } 
+  }
 };
 export const redeemLoyaltyPoints = async (req, res) => {
   try {
     const { id } = req.params;
     const { pointsToRedeem } = req.body;
 
-    if (!pointsToRedeem || pointsToRedeem < 10000 || pointsToRedeem % 10000 !== 0) {
-      return res.status(400).json({ 
-        message: "Points must be at least 10,000 and in multiples of 10,000" 
+    if (
+      !pointsToRedeem ||
+      pointsToRedeem < 10000 ||
+      pointsToRedeem % 10000 !== 0
+    ) {
+      return res.status(400).json({
+        message: "Points must be at least 10,000 and in multiples of 10,000",
       });
     }
 
@@ -463,9 +440,9 @@ export const redeemLoyaltyPoints = async (req, res) => {
     }
 
     if (tourist.loyaltypoints < pointsToRedeem) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Insufficient loyalty points",
-        currentPoints: tourist.loyaltypoints
+        currentPoints: tourist.loyaltypoints,
       });
     }
 
@@ -475,7 +452,7 @@ export const redeemLoyaltyPoints = async (req, res) => {
     // Update tourist's points and wallet
     tourist.loyaltypoints -= pointsToRedeem;
     tourist.wallet += egpToAdd;
-    
+
     // Update level based on new points total
     tourist.level = determineTouristLevel(tourist.loyaltypoints);
 
@@ -488,14 +465,13 @@ export const redeemLoyaltyPoints = async (req, res) => {
       addedAmount: egpToAdd,
       currentBalance: tourist.wallet,
       remainingPoints: tourist.loyaltypoints,
-      newLevel: tourist.level
+      newLevel: tourist.level,
     });
-
   } catch (error) {
     console.error("Redeem points error:", error);
-    res.status(500).json({ 
-      message: "Server error", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
     });
   }
 };
@@ -507,7 +483,9 @@ export const rateTourGuide = async (req, res) => {
 
     // Validate rating
     if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+      return res
+        .status(400)
+        .json({ message: "Rating must be between 1 and 5" });
     }
 
     // Validate tourGuideId
@@ -532,14 +510,14 @@ export const rateTourGuide = async (req, res) => {
         rating,
         comment,
         reviewer: touristId,
-        createdAt: new Date()
+        createdAt: new Date(),
       };
     } else {
       // Add new review
       tourGuide.reviews.push({
         rating,
         comment,
-        reviewer: touristId
+        reviewer: touristId,
       });
     }
 
@@ -551,20 +529,52 @@ export const rateTourGuide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: existingReviewIndex !== -1 ? "Review updated successfully" : "Review added successfully",
+      message:
+        existingReviewIndex !== -1
+          ? "Review updated successfully"
+          : "Review added successfully",
       data: {
         averageRating,
-        totalReviews: tourGuide.reviews.length
-      }
+        totalReviews: tourGuide.reviews.length,
+      },
     });
-
   } catch (error) {
     console.error("Rate tour guide error:", error);
     console.log(error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error rating tour guide", 
-      error: error.message 
+      message: "Error rating tour guide",
+      error: error.message,
     });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).send("Both current and new passwords are required");
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const tourist = await Tourist.findByIdAndUpdate(_id, {
+      password: hashedPassword,
+    });
+
+    if (!tourist) {
+      return res.status(404).send("Admin not found");
+    }
+
+    // Compare the current password with the stored password
+    const isMatch = await tourist.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).send("Current password is incorrect");
+    }
+
+    res.status(200).send("Password updated successfully");
+  } catch (err) {
+    res.status(500).send("Server error");
   }
 };

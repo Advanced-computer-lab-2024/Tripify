@@ -1,7 +1,7 @@
 import Seller from "../models/seller.model.js";
 import bcrypt from "bcrypt";
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -12,10 +12,10 @@ const generateToken = (seller) => {
       _id: seller._id,
       username: seller.username,
       email: seller.email,
-      name: seller.name
+      name: seller.name,
     },
     process.env.JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: "24h" }
   );
 };
 
@@ -24,15 +24,26 @@ export const registerSeller = async (req, res) => {
   const { username, email, password, name, description } = req.body;
 
   try {
-    const existingSeller = await Seller.findOne({ $or: [{ email }, { username }] });
+    const existingSeller = await Seller.findOne({
+      $or: [{ email }, { username }],
+    });
 
     if (existingSeller) {
-      return res.status(400).json({ 
-        message: existingSeller.email === email ? "Email already exists" : "Username already taken" 
+      return res.status(400).json({
+        message:
+          existingSeller.email === email
+            ? "Email already exists"
+            : "Username already taken",
       });
     }
 
-    const newSeller = new Seller({ username, email, password, name, description });
+    const newSeller = new Seller({
+      username,
+      email,
+      password,
+      name,
+      description,
+    });
     await newSeller.save();
 
     const token = generateToken(newSeller);
@@ -46,10 +57,12 @@ export const registerSeller = async (req, res) => {
         name: newSeller.name,
         description: newSeller.description,
       },
-      token
+      token,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error registering seller", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error registering seller", error: error.message });
   }
 };
 
@@ -58,7 +71,9 @@ export const loginSeller = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const seller = await Seller.findOne({ $or: [{ username }, { email: username }] });
+    const seller = await Seller.findOne({
+      $or: [{ username }, { email: username }],
+    });
     if (!seller || !(await seller.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
@@ -74,48 +89,42 @@ export const loginSeller = async (req, res) => {
         name: seller.name,
         description: seller.description,
       },
-      token
+      token,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error logging in", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error logging in", error: error.message });
   }
 };
 
-// Reset Password for Seller
-export const resetPassword = async (req, res) => {
-  const { identifier, newPassword } = req.body;
-
-  try {
-    const seller = await Seller.findOne({ $or: [{ email: identifier }, { username: identifier }] });
-    if (!seller) {
-      return res.status(404).json({ message: "Seller not found" });
-    }
-
-    seller.password = await bcrypt.hash(newPassword, 10);
-    await seller.save();
-
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error resetting password", error: error.message });
-  }
-};
-
-// Change Password (Protected Route)
 export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).send("Both current and new passwords are required");
+  }
 
   try {
-    const seller = await Seller.findById(req.user._id);
-    if (!seller || !(await bcrypt.compare(currentPassword, seller.password))) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const seller = await Seller.findByIdAndUpdate(_id, {
+      password: hashedPassword,
+    });
+
+    if (!seller) {
+      return res.status(404).send("Admin not found");
     }
 
-    seller.password = newPassword;
-    await seller.save();
+    // Compare the current password with the stored password
+    const isMatch = await seller.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).send("Current password is incorrect");
+    }
 
-    res.status(200).json({ message: "Password updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating password", error: error.message });
+    res.status(200).send("Password updated successfully");
+  } catch (err) {
+    res.status(500).send("Server error");
   }
 };
 
@@ -127,7 +136,7 @@ export const getSellerProfile = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const seller = await Seller.findOne({ username }).select('-password');
+    const seller = await Seller.findOne({ username }).select("-password");
     if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
@@ -139,10 +148,12 @@ export const getSellerProfile = async (req, res) => {
         email: seller.email,
         name: seller.name,
         description: seller.description,
-      }
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching seller profile", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching seller profile", error: error.message });
   }
 };
 
@@ -176,20 +187,24 @@ export const updateSellerAccount = async (req, res) => {
         email: seller.email,
         name: seller.name,
         description: seller.description,
-      }
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error updating seller", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating seller", error: error.message });
   }
 };
 
 // Get All Sellers
 export const getAllSellers = async (req, res) => {
   try {
-    const sellers = await Seller.find().select('-password');
+    const sellers = await Seller.find().select("-password");
     res.status(200).json(sellers);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching sellers", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching sellers", error: error.message });
   }
 };
 
@@ -210,6 +225,8 @@ export const deleteSellerAccount = async (req, res) => {
     await seller.deleteOne();
     res.status(200).json({ message: "Seller account deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting seller account", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting seller account", error: error.message });
   }
 };

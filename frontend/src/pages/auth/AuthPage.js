@@ -312,7 +312,10 @@ const AuthPage = () => {
 
               {error && <Alert variant="danger">{error}</Alert>}
 
-              <Nav variant="tabs" className="mb-3">
+              <Nav
+                variant="tabs"
+                className="mb-3"
+              >
                 <Nav.Item>
                   <Nav.Link
                     onClick={() => setActiveTab("login")}
@@ -456,7 +459,10 @@ const AuthPage = () => {
       </Row>
 
       {/* Role Selection Modal */}
-      <Modal show={showRoleModal} onHide={() => setShowRoleModal(false)}>
+      <Modal
+        show={showRoleModal}
+        onHide={() => setShowRoleModal(false)}
+      >
         <Modal.Header closeButton>
           <Modal.Title>Select Role</Modal.Title>
         </Modal.Header>

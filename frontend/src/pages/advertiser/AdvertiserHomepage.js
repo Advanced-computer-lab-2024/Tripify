@@ -25,14 +25,20 @@ const AdvertiserHomepage = () => {
 
   if (error) {
     return (
-      <Container fluid className="p-5">
+      <Container
+        fluid
+        className="p-5"
+      >
         <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
 
   return (
-    <Container fluid className="p-5">
+    <Container
+      fluid
+      className="p-5"
+    >
       <Row className="mb-4">
         <Col>
           <Card className="mb-3">
@@ -95,6 +101,16 @@ const AdvertiserHomepage = () => {
               </Card.Text>
               <Link to="/advertiser/activities">
                 <Button variant="warning">View</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Change Your Password</Card.Title>
+              <Link to="/advertiser/change-password">
+                <Button variant="warning">Change Your Password</Button>
               </Link>
             </Card.Body>
           </Card>

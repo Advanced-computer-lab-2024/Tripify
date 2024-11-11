@@ -3,9 +3,9 @@ import TourGuide from "../models/tourGuide.model.js";
 import Tourist from "../models/tourist.model.js";
 import Advertiser from "../models/advertiser.model.js";
 import Seller from "../models/seller.model.js";
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -16,10 +16,10 @@ const generateToken = (admin) => {
       _id: admin._id,
       username: admin.username,
       email: admin.email,
-      role: 'admin'
+      role: "admin",
     },
     process.env.JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: "24h" }
   );
 };
 
@@ -27,10 +27,15 @@ const generateToken = (admin) => {
 export const registerAdmin = async (req, res) => {
   const { username, email, password } = req.body;
   try {
-    const existingAdmin = await Admin.findOne({ $or: [{ email }, { username }] });
+    const existingAdmin = await Admin.findOne({
+      $or: [{ email }, { username }],
+    });
     if (existingAdmin) {
       return res.status(400).json({
-        message: existingAdmin.email === email ? "Email already exists" : "Username already taken"
+        message:
+          existingAdmin.email === email
+            ? "Email already exists"
+            : "Username already taken",
       });
     }
 
@@ -40,19 +45,54 @@ export const registerAdmin = async (req, res) => {
 
     return res.status(201).json({
       message: "Admin registered successfully",
-      admin: { id: newAdmin._id, username: newAdmin.username, email: newAdmin.email },
-      token
+      admin: {
+        id: newAdmin._id,
+        username: newAdmin.username,
+        email: newAdmin.email,
+      },
+      token,
     });
   } catch (error) {
     return res.status(500).json({ message: "Error registering admin", error });
   }
 };
 
+export const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).send("Both current and new passwords are required");
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const admin = await Admin.findByIdAndUpdate(_id, {
+      password: hashedPassword,
+    });
+
+    if (!admin) {
+      return res.status(404).send("Admin not found");
+    }
+
+    // Compare the current password with the stored password
+    const isMatch = await admin.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).send("Current password is incorrect");
+    }
+
+    res.status(200).send("Password updated successfully");
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+};
 // Login an Admin
 export const loginAdmin = async (req, res) => {
   const { username, password } = req.body;
   try {
-    const admin = await Admin.findOne({ $or: [{ username }, { email: username }] });
+    const admin = await Admin.findOne({
+      $or: [{ username }, { email: username }],
+    }).select("+password");
     if (!admin) {
       return res.status(404).json({ message: "Invalid username or password" });
     }
@@ -66,80 +106,43 @@ export const loginAdmin = async (req, res) => {
     return res.status(200).json({
       message: "Login successful",
       admin: { id: admin._id, username: admin.username, email: admin.email },
-      token
+      token,
     });
   } catch (error) {
     return res.status(500).json({ message: "Error logging in", error });
   }
 };
 
-// Reset Admin Password
-export const resetPassword = async (req, res) => {
-  const { identifier, newPassword } = req.body;
-
-  try {
-    // Find the admin by email or username
-    const admin = await Admin.findOne({ $or: [{ email: identifier }, { username: identifier }] });
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found" });
-    }
-
-    // Hash the new password and save it
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    admin.password = hashedPassword;
-    await admin.save();
-
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Error resetting password", error });
-  }
-};
-
-// Change Admin Password (Protected Route)
-export const changeAdminPassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-
-  try {
-    const admin = await Admin.findById(req.user._id);
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found" });
-    }
-
-    const isMatch = await bcrypt.compare(currentPassword, admin.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
-    }
-
-    admin.password = await bcrypt.hash(newPassword, 10);
-    await admin.save();
-
-    return res.status(200).json({ message: "Password changed successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Error changing password", error });
-  }
-};
-
 // List all users (Protected Admin Route)
 export const listAllUsers = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Unauthorized: Admin access required" });
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: Admin access required" });
     }
 
-    const [tourGuides, tourists, advertisers, sellers, admins] = await Promise.all([
-      TourGuide.find({}).select('-password'),
-      Tourist.find({}).select('-password'),
-      Advertiser.find({}).select('-password'),
-      Seller.find({}).select('-password'),
-      Admin.find({}).select('-password')
-    ]);
+    const [tourGuides, tourists, advertisers, sellers, admins] =
+      await Promise.all([
+        TourGuide.find({}).select("-password"),
+        Tourist.find({}).select("-password"),
+        Advertiser.find({}).select("-password"),
+        Seller.find({}).select("-password"),
+        Admin.find({}).select("-password"),
+      ]);
 
     const allUsers = [
-      ...tourGuides.map(user => ({ ...user.toObject(), userType: 'Tour Guide' })),
-      ...tourists.map(user => ({ ...user.toObject(), userType: 'Tourist' })),
-      ...advertisers.map(user => ({ ...user.toObject(), userType: 'Advertiser' })),
-      ...sellers.map(user => ({ ...user.toObject(), userType: 'Seller' })),
-      ...admins.map(user => ({ ...user.toObject(), userType: 'Admin' }))
+      ...tourGuides.map((user) => ({
+        ...user.toObject(),
+        userType: "Tour Guide",
+      })),
+      ...tourists.map((user) => ({ ...user.toObject(), userType: "Tourist" })),
+      ...advertisers.map((user) => ({
+        ...user.toObject(),
+        userType: "Advertiser",
+      })),
+      ...sellers.map((user) => ({ ...user.toObject(), userType: "Seller" })),
+      ...admins.map((user) => ({ ...user.toObject(), userType: "Admin" })),
     ];
 
     return res.status(200).json(allUsers);
@@ -151,30 +154,34 @@ export const listAllUsers = async (req, res) => {
 // Delete user (Protected Admin Route)
 export const deleteUser = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Unauthorized: Admin access required" });
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: Admin access required" });
     }
 
     const { userId, userType } = req.body;
     let deletedUser;
 
     switch (userType.toLowerCase()) {
-      case 'tour guide':
+      case "tour guide":
         deletedUser = await TourGuide.findByIdAndDelete(userId);
         break;
-      case 'tourist':
+      case "tourist":
         deletedUser = await Tourist.findByIdAndDelete(userId);
         break;
-      case 'advertiser':
+      case "advertiser":
         deletedUser = await Advertiser.findByIdAndDelete(userId);
         break;
-      case 'seller':
+      case "seller":
         deletedUser = await Seller.findByIdAndDelete(userId);
         break;
-      case 'admin':
+      case "admin":
         const adminCount = await Admin.countDocuments();
         if (adminCount <= 1) {
-          return res.status(400).json({ message: "Cannot delete the last admin account" });
+          return res
+            .status(400)
+            .json({ message: "Cannot delete the last admin account" });
         }
         deletedUser = await Admin.findByIdAndDelete(userId);
         break;
@@ -188,7 +195,12 @@ export const deleteUser = async (req, res) => {
 
     return res.status(200).json({
       message: "User deleted successfully",
-      deletedUser: { id: deletedUser._id, userType, email: deletedUser.email, username: deletedUser.username }
+      deletedUser: {
+        id: deletedUser._id,
+        userType,
+        email: deletedUser.email,
+        username: deletedUser.username,
+      },
     });
   } catch (error) {
     return res.status(500).json({ message: "Error deleting user", error });
@@ -198,13 +210,13 @@ export const deleteUser = async (req, res) => {
 // Get Admin Profile (Protected Route)
 export const getAdminProfile = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.user._id).select('-password');
+    const admin = await Admin.findById(req.user._id).select("-password");
     if (!admin) {
       return res.status(404).json({ message: "Admin not found" });
     }
 
     res.status(200).json({
-      admin: { id: admin._id, username: admin.username, email: admin.email }
+      admin: { id: admin._id, username: admin.username, email: admin.email },
     });
   } catch (error) {
     res.status(500).json({ message: "Error fetching admin profile", error });

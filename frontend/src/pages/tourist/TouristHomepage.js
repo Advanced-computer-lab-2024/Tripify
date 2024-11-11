@@ -10,11 +10,13 @@ import {
   FaExclamationCircle,
   FaUser,
   FaStar,
-  FaComments
+  FaComments,
+  FaLock,
 } from "react-icons/fa";
 
 const TouristHomePage = () => {
-  const username = JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
+  const username =
+    JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
 
   const menuItems = [
     {
@@ -71,30 +73,11 @@ const TouristHomePage = () => {
       icon: <FaMap />,
       variant: "primary",
     },
-    // New Review Management Section
     {
-      to: "/tourist/reviews/tour-guides",
-      label: "Review Tour Guides",
-      icon: <FaStar />,
-      variant: "success",
-    },
-    {
-      to: "/tourist/reviews/events",
-      label: "Review Events",
-      icon: <FaComments />,
-      variant: "success",
-    },
-    {
-      to: "/tourist/reviews/products",
-      label: "Review Products",
-      icon: <FaStar />,
-      variant: "success",
-    },
-    {
-      to: "/tourist/my-reviews",
-      label: "My Reviews",
-      icon: <FaComments />,
-      variant: "info",
+      to: "/tourist/change-password",
+      label: "Change My Password",
+      icon: <FaLock />,
+      variant: "primary",
     },
     {
       to: "/tourist/complaints",
@@ -112,9 +95,8 @@ const TouristHomePage = () => {
 
   // Group menu items by category
   const menuCategories = {
-    "Main Services": menuItems.slice(0, 9),
-    "Reviews & Ratings": menuItems.slice(9, 13),
-    "Support": menuItems.slice(13)
+    "Main Services": menuItems.slice(0, 10),
+    Support: menuItems.slice(10),
   };
 
   return (
@@ -127,25 +109,37 @@ const TouristHomePage = () => {
           </div>
 
           {Object.entries(menuCategories).map(([category, items]) => (
-            <div key={category} className="mb-4">
-              <h3 className="mb-3 text-primary border-bottom pb-2">{category}</h3>
+            <div
+              key={category}
+              className="mb-4"
+            >
+              <h3 className="mb-3 text-primary border-bottom pb-2">
+                {category}
+              </h3>
               <Row className="g-4 justify-content-center">
                 {items.map((item, index) => (
-                  <Col xs={12} sm={6} md={4} key={index}>
+                  <Col
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    key={index}
+                  >
                     <Link
                       to={item.to}
                       className={`btn btn-${item.variant} w-100 d-flex align-items-center justify-content-center gap-2 p-3`}
                       style={{
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        transition: "all 0.3s ease",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow =
+                          "0 4px 8px rgba(0,0,0,0.2)";
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow =
+                          "0 2px 4px rgba(0,0,0,0.1)";
                       }}
                     >
                       {item.icon}
@@ -161,7 +155,5 @@ const TouristHomePage = () => {
     </Container>
   );
 };
-
-
 
 export default TouristHomePage;
