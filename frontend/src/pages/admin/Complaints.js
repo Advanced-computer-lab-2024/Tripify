@@ -20,17 +20,14 @@ const Complaints = () => {
   const [reply, setReply] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
-  
-  // New state variable to track the selected status filter
-  const [statusFilter, setStatusFilter] = useState("all"); 
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("desc"); // New state for sort order
 
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
         const response = await axios.get(API_URL);
-        const sortedComplaints = response.data.sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
+        const sortedComplaints = sortComplaints(response.data, sortOrder);
         setComplaints(sortedComplaints);
         setLoading(false);
       } catch (error) {
@@ -39,12 +36,27 @@ const Complaints = () => {
       }
     };
     fetchComplaints();
-  }, []);
+  }, [sortOrder]);
 
-  // Filter complaints based on the selected status filter
+  // Function to sort complaints
+  const sortComplaints = (complaintsArray, order) => {
+    return [...complaintsArray].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return order === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === "desc" ? "asc" : "desc";
+    setSortOrder(newOrder);
+    setComplaints(sortComplaints(complaints, newOrder));
+  };
+
   const filteredComplaints = complaints.filter((complaint) => {
-    if (statusFilter === "all") return true; // Show all complaints if 'all' is selected
-    return complaint.status === statusFilter; // Show complaints that match the selected status
+    if (statusFilter === "all") return true;
+    return complaint.status === statusFilter;
   });
 
   const handleReplyChange = (e, complaintId) => {
@@ -65,7 +77,6 @@ const Complaints = () => {
 
       setReply({ ...reply, [complaintId]: "" });
 
-      // Update selectedComplaint if the modal is open for the complaint being replied to
       if (selectedComplaint && selectedComplaint._id === complaintId) {
         setSelectedComplaint(response.data);
       }
@@ -88,7 +99,6 @@ const Complaints = () => {
         )
       );
 
-      // Update selectedComplaint if the modal is open for the complaint being updated
       if (selectedComplaint && selectedComplaint._id === complaintId) {
         setSelectedComplaint({
           ...selectedComplaint,
@@ -105,9 +115,8 @@ const Complaints = () => {
     setShowModal(true);
   };
 
-  // New function to handle status filter changes
   const handleFilterChange = (status) => {
-    setStatusFilter(status); // Update the selected status filter
+    setStatusFilter(status);
   };
 
   if (loading) {
@@ -123,8 +132,17 @@ const Complaints = () => {
   return (
     <Container className="mt-5">
       <h2>Complaints</h2>
-      {/* Filter Options */}
       <div className="mb-3">
+        {/* Sort Button */}
+        <Button
+          variant="outline-primary"
+          onClick={toggleSortOrder}
+          className="me-3"
+        >
+          Sort by Date {sortOrder === "desc" ? "↓" : "↑"}
+        </Button>
+
+        {/* Filter Buttons */}
         <span className="me-2">Filter by status:</span>
         <Button
           variant={statusFilter === "all" ? "primary" : "light"}
@@ -182,7 +200,6 @@ const Complaints = () => {
                   {complaint.status === "pending" ? "Resolved" : "Pending"}
                 </Button>
 
-                {/* Display reply form if status is pending */}
                 {complaint.status === "pending" && (
                   <>
                     <Form.Group
@@ -195,6 +212,7 @@ const Complaints = () => {
                         value={reply[complaint._id] || ""}
                         onChange={(e) => handleReplyChange(e, complaint._id)}
                         className="mb-2"
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <Button
                         variant="primary"
@@ -216,7 +234,6 @@ const Complaints = () => {
         ))}
       </Row>
 
-      {/* Complaint Detail Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         {selectedComplaint && (
           <>
@@ -261,7 +278,6 @@ const Complaints = () => {
                 <p>No replies yet.</p>
               )}
 
-              {/* Reply Form in Modal if Status is Pending */}
               {selectedComplaint.status === "pending" && (
                 <Form.Group
                   controlId={`reply-modal-${selectedComplaint._id}`}
