@@ -222,3 +222,113 @@ export const getAdminProfile = async (req, res) => {
     res.status(500).json({ message: "Error fetching admin profile", error });
   }
 };
+
+export const getPendingApprovals = async (req, res) => {
+  try {
+    const [tourGuides, advertisers, sellers] = await Promise.all([
+      TourGuide.find({ approvalStatus: "pending" }).select("-password"),
+      Advertiser.find({ approvalStatus: "pending" }).select("-password"),
+      Seller.find({ approvalStatus: "pending" }).select("-password"),
+    ]);
+    const pendingApprovals = {
+      tourGuides: tourGuides.map((guide) => ({
+        ...guide.toObject(),
+        userType: "Tour Guide",
+      })),
+      advertisers: advertisers.map((advertiser) => ({
+        ...advertiser.toObject(),
+        userType: "Advertiser",
+      })),
+      sellers: sellers.map((seller) => ({
+        ...seller.toObject(),
+        userType: "Seller",
+      })),
+    };
+    return res.status(200).json(pendingApprovals);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error fetching pending approvals", error });
+  }
+};
+// Update user approval status
+export const updateApprovalStatus = async (req, res) => {
+  const { userId, userType, status, rejectionReason } = req.body;
+  if (!["approved", "rejected"].includes(status)) {
+    return res.status(400).json({ message: "Invalid approval status" });
+  }
+  try {
+    let user;
+    let Model;
+    switch (userType.toLowerCase()) {
+      case "tour guide":
+        Model = TourGuide;
+        break;
+      case "advertiser":
+        Model = Advertiser;
+        break;
+      case "seller":
+        Model = Seller;
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid user type" });
+    }
+    const updateData = {
+      approvalStatus: status,
+      ...(status === "rejected" && { rejectionReason }),
+    };
+    user = await Model.findByIdAndUpdate(userId, updateData, {
+      new: true,
+      select: "-password",
+    });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.status(200).json({
+      message: `User ${status} successfully`,
+      user: {
+        ...user.toObject(),
+        userType,
+      },
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: `Error updating user approval status`, error });
+  }
+};
+// Get approval statistics
+export const getApprovalStatistics = async (req, res) => {
+  try {
+    const stats = await Promise.all([
+      TourGuide.aggregate([
+        { $group: { _id: "$approvalStatus", count: { $sum: 1 } } },
+      ]),
+      Advertiser.aggregate([
+        { $group: { _id: "$approvalStatus", count: { $sum: 1 } } },
+      ]),
+      Seller.aggregate([
+        { $group: { _id: "$approvalStatus", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const formatStats = (statArray) => {
+      return statArray.reduce(
+        (acc, stat) => {
+          acc[stat._id || "pending"] = stat.count;
+          return acc;
+        },
+        { pending: 0, approved: 0, rejected: 0 }
+      );
+    };
+    const statistics = {
+      tourGuides: formatStats(stats[0]),
+      advertisers: formatStats(stats[1]),
+      sellers: formatStats(stats[2]),
+    };
+    return res.status(200).json(statistics);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error fetching approval statistics", error });
+  }
+};

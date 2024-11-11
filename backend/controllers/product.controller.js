@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
+
 // Define exchange rates
 const exchangeRates = {
-  EGP: 49.10,
+  EGP: 49.1,
   SAR: 3.75,
   AED: 3.67,
   USD: 1,
@@ -33,11 +38,31 @@ export const addProduct = async (req, res) => {
   }
 };
 
+export const getProductsForTourists = async (req, res) => {
+  try {
+    const products = await Product.find({ isArchived: false }).sort({
+      createdAt: -1,
+    });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// Get All Products (Admin/Seller views showing archived status)
+export const getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Find all products with prices in multiple currencies
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
-    const productsWithPricesInMultipleCurrencies = products.map(product => {
+    const productsWithPricesInMultipleCurrencies = products.map((product) => {
       return {
         ...product.toObject(),
         priceInEGP: (product.price * exchangeRates.EGP).toFixed(2),
@@ -50,6 +75,57 @@ export const getProducts = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to fetch products", error: error.message });
+  }
+};
+
+export const toggleArchiveProduct = async (req, res) => {
+  const { productId } = req.params;
+  const { isArchived } = req.body;
+  const userRole = req.user.role;
+  try {
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    // Check permissions
+    if (userRole === "seller" && product.seller !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You don't have permission to archive this product",
+      });
+    }
+    product.isArchived = isArchived;
+    product.archivedAt = isArchived ? new Date() : null;
+    product.archivedBy = req.user._id;
+    await product.save();
+    res.status(200).json({
+      message: `Product ${isArchived ? "archived" : "unarchived"} successfully`,
+      product,
+    });
+  } catch (error) {
+    console.error("Error in toggleArchiveProduct:", error);
+    res.status(500).json({
+      message: "Error toggling product archive status",
+      error: error.message,
+    });
+  }
+};
+export const getArchivedProducts = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    let query = { isArchived: true };
+    // If seller, only show their archived products
+    if (userRole === "seller") {
+      query.seller = req.user._id;
+    }
+    const archivedProducts = await Product.find(query).sort({ archivedAt: -1 });
+    res.status(200).json(archivedProducts);
+  } catch (error) {
+    console.error("Error in getArchivedProducts:", error);
+    res.status(500).json({
+      message: "Error fetching archived products",
+      error: error.message,
+    });
   }
 };
 
@@ -84,8 +160,6 @@ export const updateProduct = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ message: "Product not found" });
     }
-
-
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
       new: true,

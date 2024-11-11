@@ -13,6 +13,12 @@ const AdminHomePage = () => {
           Manage Users
         </Link>
         <Link
+          to="/admin/user-approvals"
+          className="btn btn-primary m-2"
+        >
+          User Approvals
+        </Link>
+        <Link
           to="/register/tourism-governor"
           className="btn btn-primary m-2"
         >
@@ -23,6 +29,12 @@ const AdminHomePage = () => {
           className="btn btn-primary m-2"
         >
           Add Another Admin
+        </Link>
+        <Link
+          to="/admin/archived-products"
+          className="btn btn-primary m-2"
+        >
+          View Archived Products
         </Link>
         <Link
           to="/admin/activity-categories"

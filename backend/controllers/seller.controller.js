@@ -22,14 +22,8 @@ const generateToken = (seller) => {
 // Register a Seller
 export const registerSeller = async (req, res) => {
   try {
-    const {
-      username,
-      email,
-      password,
-      name,
-      description,
-      mobileNumber
-    } = req.body;
+    const { username, email, password, name, description, mobileNumber } =
+      req.body;
 
     console.log("Registration attempt for seller:", username);
 
@@ -126,7 +120,6 @@ export const registerSeller = async (req, res) => {
       },
       token,
     });
-
   } catch (error) {
     // Clean up uploaded files in case of error
     if (req.files) {
@@ -206,21 +199,46 @@ export const resetPassword = async (req, res) => {
 // Change Password (Protected Route)
 export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  console.log("Received request to change password for user:", _id);
+
+  if (!currentPassword || !newPassword) {
+    console.log("Missing current or new password");
+    return res.status(400).send("Both current and new passwords are required");
+  }
 
   try {
-    const seller = await Seller.findById(req.user._id);
-    if (!seller || !(await bcrypt.compare(currentPassword, seller.password))) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+    // Log the passwords (be cautious with sensitive data in production)
+    console.log("Current password provided:", currentPassword);
+    console.log("New password provided:", newPassword);
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    console.log("New password hashed:", hashedPassword);
+
+    const seller = await Seller.findByIdAndUpdate(_id, {
+      password: hashedPassword,
+    });
+
+    if (!seller) {
+      console.log("Seller not found for ID:", _id);
+      return res.status(404).send("Seller not found");
     }
 
-    seller.password = newPassword;
-    await seller.save();
+    // Compare the current password with the stored password
+    const isMatch = await seller.comparePassword(currentPassword);
+    console.log("Password comparison result:", isMatch);
 
-    res.status(200).json({ message: "Password updated successfully" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating password", error: error.message });
+    if (!isMatch) {
+      console.log("Current password does not match");
+      return res.status(400).send("Current password is incorrect");
+    }
+
+    console.log("Password updated successfully for user:", _id);
+    res.status(200).send("Password updated successfully");
+  } catch (err) {
+    console.error("Error during password change:", err);
+    res.status(500).send("Server error");
   }
 };
 

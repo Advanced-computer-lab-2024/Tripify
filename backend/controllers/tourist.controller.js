@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Booking from "../models/booking.model.js";
 import Review from "../models/review.model.js";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -555,28 +556,43 @@ export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const { _id } = req.user;
 
+  console.log("Received request to change password for user:", _id);
+
   if (!currentPassword || !newPassword) {
+    console.log("Missing current or new password");
     return res.status(400).send("Both current and new passwords are required");
   }
 
   try {
+    // Log the passwords (be cautious with sensitive data in production)
+    console.log("Current password provided:", currentPassword);
+    console.log("New password provided:", newPassword);
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    console.log("New password hashed:", hashedPassword);
+
     const tourist = await Tourist.findByIdAndUpdate(_id, {
       password: hashedPassword,
     });
 
     if (!tourist) {
-      return res.status(404).send("Admin not found");
+      console.log("Tourist not found for ID:", _id);
+      return res.status(404).send("Tourist not found");
     }
 
     // Compare the current password with the stored password
     const isMatch = await tourist.comparePassword(currentPassword);
+    console.log("Password comparison result:", isMatch);
+
     if (!isMatch) {
+      console.log("Current password does not match");
       return res.status(400).send("Current password is incorrect");
     }
 
+    console.log("Password updated successfully for user:", _id);
     res.status(200).send("Password updated successfully");
   } catch (err) {
+    console.error("Error during password change:", err);
     res.status(500).send("Server error");
   }
 };

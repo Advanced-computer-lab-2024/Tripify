@@ -6,6 +6,9 @@ import {
   deleteUser,
   getAdminProfile,
   changePassword,
+  getPendingApprovals, // New imports for approvals
+  updateApprovalStatus,
+  getApprovalStatistics,
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -25,6 +28,31 @@ router.put(
   authMiddleware,
   adminAuthMiddleware,
   changePassword
+);
+router.put(
+  "/change-password",
+  authMiddleware,
+  adminAuthMiddleware,
+  changePassword
+); // Route for changing password
+// Approval management routes (requires authentication and admin role)
+router.get(
+  "/approvals/pending",
+  authMiddleware,
+  adminAuthMiddleware,
+  getPendingApprovals
+);
+router.put(
+  "/approvals/update",
+  authMiddleware,
+  adminAuthMiddleware,
+  updateApprovalStatus
+);
+router.get(
+  "/approvals/statistics",
+  authMiddleware,
+  adminAuthMiddleware,
+  getApprovalStatistics
 );
 
 export default router;

@@ -57,6 +57,9 @@ import SellerChangePassword from "./changePassword/SellerChangePassword";
 import TourGuideChangePassword from "./changePassword/TourGuideChangePassword";
 import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
+import UserApprovals from "./pages/admin/UserApprovals";
+import ArchivedProducts from "./pages/product/ArchivedProduct";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -201,6 +204,14 @@ function App() {
             element={<ContentModeration />}
           />
           <Route
+            path="/admin/products/archived"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ArchivedProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/change-password"
             element={<AdminChangePassword />}
           />
@@ -270,6 +281,14 @@ function App() {
           <Route
             path="/seller/profile"
             element={<UserDisplay />}
+          />
+          <Route
+            path="/seller/products/archived"
+            element={
+              <ProtectedRoute requiredRole="seller">
+                <ArchivedProducts />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/seller/change-password"
