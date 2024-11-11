@@ -60,6 +60,12 @@ const AdminHomePage = () => {
         >
           Change Password
         </Link>
+        <Link
+          to="/admin/view-documents"
+          className="btn btn-primary m-2"
+        >
+          View Documents
+        </Link>
       </div>
     </div>
   );

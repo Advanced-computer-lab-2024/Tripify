@@ -6,6 +6,13 @@ import {
   deleteUser,
   getAdminProfile,
   changePassword,
+  getUnverifiedAdvertisers,
+  getUnverifiedSellers,
+  getUnverifiedTourGuides,
+  verifyAdvertiser,
+  verifySeller,
+  verifyTourGuide
+  
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -27,4 +34,11 @@ router.put(
   changePassword
 );
 
+router.get('/unverified-sellers', authMiddleware, getUnverifiedSellers);
+router.get('/unverified-advertisers', authMiddleware, getUnverifiedAdvertisers);
+router.get('/unverified-tourguides', authMiddleware, getUnverifiedTourGuides);
+
+router.put('/verify-seller/:id', authMiddleware, verifySeller);
+router.put('/verify-advertiser/:id', authMiddleware, verifyAdvertiser);
+router.put('/verify-tourguide/:id', authMiddleware, verifyTourGuide);
 export default router;

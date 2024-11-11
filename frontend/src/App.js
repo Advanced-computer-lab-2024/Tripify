@@ -57,6 +57,7 @@ import SellerChangePassword from "./changePassword/SellerChangePassword";
 import TourGuideChangePassword from "./changePassword/TourGuideChangePassword";
 import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
+import ViewDocuemnts from "./pages/admin/ViewDocuments";
 
 function App() {
   return (
@@ -199,6 +200,10 @@ function App() {
           <Route
             path="/admin/content-moderation"
             element={<ContentModeration />}
+          />
+          <Route
+            path="/admin/view-documents"
+            element={<ViewDocuemnts />}
           />
           <Route
             path="/admin/change-password"
