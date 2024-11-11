@@ -31,11 +31,6 @@ const complaintSchema = new mongoose.Schema({
       replyDate: { type: Date, default: Date.now },
     },
   ],
-  user: {
-    username: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
-    email: { type: String, required: true },
-  },
 });
 
 // Export the Complaint model
