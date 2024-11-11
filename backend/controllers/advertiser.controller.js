@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Advertiser from "../models/advertiser.model.js";
 import Activity from "../models/activity.model.js";
 import bcrypt from "bcrypt";
@@ -229,21 +230,35 @@ export const updateAdvertiserByUsername = async (req, res) => {
 
 // Delete Advertiser (Protected Route)
 export const deleteAdvertiser = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    if (req.user._id !== id && req.user.role !== "admin") {
+    const { id } = req.params;
+
+    // Verify the requesting user is the same as the one being deleted
+    if (req.user._id !== id) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const deletedAdvertiser = await Advertiser.findByIdAndDelete(id);
-    if (!deletedAdvertiser) {
+    // Find the advertiser
+    const advertiser = await Advertiser.findById(id);
+    if (!advertiser) {
       return res.status(404).json({ message: "Advertiser not found" });
     }
 
-    res.status(200).json({ message: "Advertiser deleted successfully" });
+    // Update all associated activities to be inactive
+    await Activity.updateMany({ createdBy: id }, { $set: { isActive: false } });
+
+    // Delete the advertiser
+    await advertiser.deleteOne();
+
+    return res
+      .status(200)
+      .json({ message: "Advertiser account deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error deleting advertiser:", error);
+    return res.status(500).json({
+      message: "Error deleting advertiser",
+      error: error.message,
+    });
   }
 };
 

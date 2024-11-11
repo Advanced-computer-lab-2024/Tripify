@@ -14,14 +14,46 @@ export const createActivity = async (req, res) => {
 // GET all activities
 export const getActivities = async (req, res) => {
   try {
-    const activities = await Activity.find()
-      .populate("createdBy", "username companyName")
-      .populate("category")
-      .populate("tags")
-      .select("+flagged"); // Explicitly include flagged field
+    // Use aggregation to check if the advertiser exists
+    const activities = await Activity.aggregate([
+      {
+        $lookup: {
+          from: "advertisers", // Collection name is lowercase and plural
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "advertiser",
+        },
+      },
+      {
+        $match: {
+          advertiser: { $ne: [] }, // Only get activities where advertiser exists
+          flagged: { $ne: true }, // Exclude flagged activities
+        },
+      },
+      {
+        $lookup: {
+          from: "activitycategories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $lookup: {
+          from: "tags",
+          localField: "tags",
+          foreignField: "_id",
+          as: "tags",
+        },
+      },
+    ]);
 
     res.status(200).json(activities);
   } catch (error) {
+    console.error("Error in getActivities:", error);
     res.status(500).json({ message: error.message });
   }
 };

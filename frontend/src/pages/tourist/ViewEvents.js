@@ -37,7 +37,7 @@ const ViewEvents = () => {
   const [expandedComments, setExpandedComments] = useState({});
   const [userWallet, setUserWallet] = useState(0);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
-const [touristLevel, setTouristLevel] = useState(1);
+  const [touristLevel, setTouristLevel] = useState(1);
   const getUserSpecificKey = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
@@ -46,7 +46,7 @@ const [touristLevel, setTouristLevel] = useState(1);
     try {
       const userId = getUserId();
       if (!userId) return;
-  
+
       const response = await axios.get(
         `http://localhost:5000/api/tourist/loyalty/${userId}`,
         {
@@ -55,7 +55,7 @@ const [touristLevel, setTouristLevel] = useState(1);
           },
         }
       );
-  
+
       if (response.data.success) {
         setLoyaltyPoints(response.data.loyaltyStatus.points);
         setTouristLevel(response.data.loyaltyStatus.level);
@@ -265,20 +265,20 @@ const [touristLevel, setTouristLevel] = useState(1);
 
   const handleBooking = async (item, type, e) => {
     e.preventDefault();
-  
+
     if (bookingLoading) return;
-  
+
     const userId = getUserId();
     if (!userId) {
       alert("Please log in to book");
       return;
     }
-  
+
     if (!bookingDate) {
       alert("Please select a date");
       return;
     }
-  
+
     // Get item price and check balance
     const bookingCost = getItemPrice(item, type);
     console.log("Booking attempt:", {
@@ -288,21 +288,21 @@ const [touristLevel, setTouristLevel] = useState(1);
       cost: bookingCost,
       currentWallet: userWallet,
     });
-  
+
     if (userWallet < bookingCost) {
       alert(
         `Insufficient funds in your wallet. Required: $${bookingCost}, Available: $${userWallet}`
       );
       return;
     }
-  
+
     setBookingItemId(item._id);
     setBookingLoading(true);
-  
+
     try {
       const formattedBookingDate = new Date(bookingDate);
       formattedBookingDate.setHours(12, 0, 0, 0);
-  
+
       // Prepare booking data
       const bookingData = {
         userId,
@@ -310,12 +310,12 @@ const [touristLevel, setTouristLevel] = useState(1);
         itemId: item._id,
         bookingDate: formattedBookingDate.toISOString(),
       };
-  
+
       // If booking type is Itinerary, include the guide ID
       if (type === "Itinerary") {
         bookingData.guideId = item.createdBy; // Add guide ID from the itinerary
       }
-  
+
       // Create the booking
       const bookingResponse = await axios.post(
         "http://localhost:5000/api/bookings/create",
@@ -326,7 +326,7 @@ const [touristLevel, setTouristLevel] = useState(1);
           },
         }
       );
-      
+
       if (bookingResponse.data.success) {
         try {
           // Then deduct from wallet
@@ -334,7 +334,7 @@ const [touristLevel, setTouristLevel] = useState(1);
             userId,
             amount: bookingCost,
           });
-  
+
           const deductResponse = await axios.post(
             `http://localhost:5000/api/tourist/wallet/deduct/${userId}`,
             {
@@ -347,17 +347,24 @@ const [touristLevel, setTouristLevel] = useState(1);
               },
             }
           );
-  
+
           if (deductResponse.data.success) {
             // Update wallet balance in state and localStorage
-            setUserWallet(deductResponse.data.currentBalance);    
+            setUserWallet(deductResponse.data.currentBalance);
             setLoyaltyPoints(deductResponse.data.totalPoints);
             setTouristLevel(deductResponse.data.newLevel);
-            localStorage.setItem("loyaltyPoints", JSON.stringify(deductResponse.data.totalPoints));
-            localStorage.setItem("touristLevel", JSON.stringify(deductResponse.data.newLevel));
-            
+            localStorage.setItem(
+              "loyaltyPoints",
+              JSON.stringify(deductResponse.data.totalPoints)
+            );
+            localStorage.setItem(
+              "touristLevel",
+              JSON.stringify(deductResponse.data.newLevel)
+            );
+
             // Update stored tourist data
-            const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+            const touristData =
+              JSON.parse(localStorage.getItem("tourist")) || {};
             localStorage.setItem(
               "tourist",
               JSON.stringify({
@@ -365,7 +372,7 @@ const [touristLevel, setTouristLevel] = useState(1);
                 wallet: deductResponse.data.currentBalance,
               })
             );
-  
+
             alert(
               "Booking successful! Amount has been deducted from your wallet."
             );
@@ -378,7 +385,7 @@ const [touristLevel, setTouristLevel] = useState(1);
             status: paymentError.response?.status,
             data: paymentError.response?.data,
           });
-  
+
           // If payment fails, cancel the booking
           await cancelBooking(bookingResponse.data.data._id);
           alert(
@@ -783,7 +790,9 @@ const [touristLevel, setTouristLevel] = useState(1);
       <div>
         <h4 className="mb-0">{loyaltyPoints} Points</h4>
         <small className="text-muted">
-          Earn {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"} points on purchases
+          Earn{" "}
+          {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}{" "}
+          points on purchases
         </small>
       </div>
     </div>

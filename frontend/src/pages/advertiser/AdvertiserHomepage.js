@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Card, Alert } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Card,
+  Alert,
+  Modal,
+  Spinner,
+} from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 const AdvertiserHomepage = () => {
   const [advertiserInfo, setAdvertiserInfo] = useState(null);
   const [error, setError] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     try {
@@ -23,22 +36,58 @@ const AdvertiserHomepage = () => {
     }
   }, []);
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const decoded = jwtDecode(token);
+      const userId = decoded._id;
+
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+
+      // Delete the advertiser account
+      await axios.delete(`http://localhost:5000/api/advertiser/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Clear local storage
+      localStorage.clear();
+
+      // Show success message and redirect
+      alert("Your account has been successfully deleted");
+      navigate("/");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to delete account. Please try again."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (error) {
     return (
-      <Container
-        fluid
-        className="p-5"
-      >
+      <Container fluid className="p-5">
         <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
 
   return (
-    <Container
-      fluid
-      className="p-5"
-    >
+    <Container fluid className="p-5">
       <Row className="mb-4">
         <Col>
           <Card className="mb-3">
@@ -115,6 +164,19 @@ const AdvertiserHomepage = () => {
             </Card.Body>
           </Card>
         </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title className="text-danger">Delete Account</Card.Title>
+              <Card.Text>
+                Permanently delete your account and all associated data.
+              </Card.Text>
+              <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
+                Delete Account
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
       {/* <Row>
@@ -130,6 +192,50 @@ const AdvertiserHomepage = () => {
           </Card>
         </Col>
       </Row> */}
+      {/* Delete Account Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Account</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-center mb-4">
+            <h4>⚠️ Warning</h4>
+            <p>
+              Are you sure you want to delete your account? This action cannot
+              be undone. Your profile and all associated activities will no
+              longer be visible to tourists.
+            </p>
+          </div>
+
+          {error && (
+            <Alert variant="danger" className="mb-3">
+              {error}
+            </Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} disabled={isDeleting}>
+            {isDeleting ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
+                />
+                Deleting...
+              </>
+            ) : (
+              "Delete Account"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
