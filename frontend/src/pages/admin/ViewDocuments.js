@@ -58,13 +58,22 @@ const AdminVerificationDashboard = () => {
   // Handle document preview
   const handlePreview = (user, documentType) => {
     setSelectedUser(user);
+    
+    // Construct the document URL using the path from MongoDB
+    const documentPath = user[documentType]?.path; // Retrieve the path from the user object
+  
+    // Assuming your backend serves static files at /uploads
+    const documentUrl = `http://localhost:5000/${documentPath.replace(/\\/g, '/')}`; // Replace backslashes for URL format
+    
     setSelectedDocument({
       type: documentType,
-      url: user[documentType].path,
-      mimeType: user[documentType].mimetype
+      url: documentUrl,  // Use the full URL
+      mimeType: user[documentType]?.mimetype // Use the mime type from the document object
     });
+    
     setShowModal(true);
   };
+  
 
   // Handle document verification
   const handleVerification = async (userId, userType, isApproved) => {
@@ -91,6 +100,7 @@ const AdminVerificationDashboard = () => {
       setVerificationLoading(false);
     }
   };
+  
   // Render document preview modal
   const renderDocumentModal = () => (
     <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
@@ -205,7 +215,7 @@ const AdminVerificationDashboard = () => {
         ))}
       </tbody>
     </Table>
-);
+  );
 
   return (
     <Container fluid className="mt-4">

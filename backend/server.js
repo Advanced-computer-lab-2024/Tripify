@@ -2,8 +2,11 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path"; // Import path module
 import { connectDB } from "./config/db.js";
 import Preference from "./models/preference.model.js"; // Imported for handling preferences
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Other imports for routes
 import activityRoutes from "./routes/activity.route.js";
@@ -23,6 +26,12 @@ import flightRoutes from "./routes/flight.route.js";
 import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
+
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 dotenv.config();
 
@@ -44,6 +53,9 @@ connectDB()
     console.error("Database connection failed. Server not started.", error);
     process.exit(1);
   });
+
+// Serve static files (uploaded documents) from the 'uploads' folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Ensure this line is correct
 
 // Routes configuration
 app.use("/api/activities", activityRoutes);
