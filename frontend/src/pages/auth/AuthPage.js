@@ -43,27 +43,11 @@ const AuthPage = () => {
 
               {error && <Alert variant="danger">{error}</Alert>}
 
-              <Nav
-                variant="tabs"
-                className="mb-3"
-              >
-                <Nav.Item>
-                  <Nav.Link
-                    onClick={() => setActiveTab("login")}
-                    active={activeTab === "login"}
-                  >
-                    Login
-                  </Nav.Link>
-                </Nav.Item>
-                <Nav.Item>
-                  <Nav.Link
-                    onClick={() => setActiveTab("register")}
-                    active={activeTab === "register"}
-                  >
-                    Register
-                  </Nav.Link>
-                </Nav.Item>
-              </Nav>
+              <TabsNavigation
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                isAuthenticated={isAuthenticated}
+              />
 
               {activeTab === "login" && (
                 <LoginForm
@@ -98,31 +82,20 @@ const AuthPage = () => {
         </Col>
       </Row>
 
-      {/* Role Selection Modal */}
-      <Modal
+      <RoleSelectorModal
         show={showRoleModal}
         onHide={() => setShowRoleModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Select Role</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="d-grid gap-2">
-            {roles.map((role) => (
-              <Button
-                key={role.value}
-                variant={
-                  selectedRole === role.value ? "primary" : "outline-primary"
-                }
-                onClick={() => handleRoleSelect(role.value)}
-                className="text-start"
-              >
-                {role.label}
-              </Button>
-            ))}
-          </div>
-        </Modal.Body>
-      </Modal>
+        roles={[
+          { value: "tourist", label: "Tourist" },
+          { value: "admin", label: "Admin" },
+          { value: "advertiser", label: "Advertiser" },
+          { value: "seller", label: "Seller" },
+          { value: "tourguide", label: "Tour Guide" },
+          { value: "governor", label: "Tourism Governor" },
+        ]}
+        selectedRole={selectedRole}
+        handleRoleSelect={handleRoleSelect}
+      />
     </Container>
   );
 };
