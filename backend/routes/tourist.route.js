@@ -12,6 +12,8 @@ import {
   redeemLoyaltyPoints,
   rateTourGuide,
   changePassword,
+  checkDeletionEligibility,
+  deleteTouristAccount,
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -39,5 +41,8 @@ router.post("/wallet/refund/:id", authMiddleware, refundToWallet);
 
 // Rate tour guide route
 router.post("/rate-guide/:tourGuideId", authMiddleware, rateTourGuide);
+
+router.get("/check-deletion/:id", authMiddleware, checkDeletionEligibility);
+router.delete("/delete/:id", authMiddleware, deleteTouristAccount);
 
 export default router;

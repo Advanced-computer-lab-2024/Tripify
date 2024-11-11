@@ -4,6 +4,8 @@ import Tourist from "../models/tourist.model.js";
 import TourGuide from "../models/tourGuide.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import Booking from "../models/booking.model.js";
+import Review from "../models/review.model.js";
 
 dotenv.config();
 
@@ -576,5 +578,122 @@ export const changePassword = async (req, res) => {
     res.status(200).send("Password updated successfully");
   } catch (err) {
     res.status(500).send("Server error");
+  }
+};
+
+// Add these functions to tourist.controller.js
+
+// Check if tourist can delete their account
+export const checkDeletionEligibility = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check for upcoming bookings
+    const upcomingBookings = await Booking.find({
+      userId: id,
+      bookingDate: { $gt: new Date() },
+      status: { $ne: "cancelled" },
+    });
+
+    if (upcomingBookings.length > 0) {
+      return res.status(400).json({
+        success: false,
+        canDelete: false,
+        message:
+          "Cannot delete account: You have upcoming bookings. Please cancel them first.",
+      });
+    }
+
+    // Check for paid bookings that haven't happened yet
+    const paidUpcomingBookings = await Booking.find({
+      userId: id,
+      bookingDate: { $gt: new Date() },
+      status: "confirmed",
+    });
+
+    if (paidUpcomingBookings.length > 0) {
+      return res.status(400).json({
+        success: false,
+        canDelete: false,
+        message:
+          "Cannot delete account: You have paid bookings that haven't occurred yet. Please contact support for assistance.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      canDelete: true,
+      message: "Account is eligible for deletion",
+    });
+  } catch (error) {
+    console.error("Error checking deletion eligibility:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error checking account deletion eligibility",
+      error: error.message,
+    });
+  }
+};
+
+// Delete tourist account
+export const deleteTouristAccount = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+
+    // Final eligibility check
+    const upcomingBookings = await Booking.find({
+      userId: id,
+      bookingDate: { $gt: new Date() },
+      status: { $nin: ["cancelled"] },
+    }).session(session);
+
+    if (upcomingBookings.length > 0) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete account due to existing bookings",
+      });
+    }
+
+    // Mark past bookings as associated with a deleted account
+    await Booking.updateMany(
+      { userId: id },
+      { $set: { status: "account_deleted" } },
+      { session }
+    );
+
+    // Delete reviews
+    await Review.deleteMany({ userId: id }, { session });
+
+    // Delete the tourist account
+    const deletedTourist = await Tourist.findByIdAndDelete(id).session(session);
+
+    if (!deletedTourist) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Tourist account not found",
+      });
+    }
+
+    await session.commitTransaction();
+
+    res.status(200).json({
+      success: true,
+      message: "Account successfully deleted",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Error deleting account:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting account",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
   }
 };

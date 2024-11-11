@@ -7,10 +7,11 @@ import {
   Button,
   Form,
   Alert,
+  Modal,
 } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import { FaTrash, FaExclamationTriangle } from "react-icons/fa";
 // Redeemption Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
@@ -122,7 +123,133 @@ const MyProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [touristLevel, setTouristLevel] = useState("null");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeletionChecking, setIsDeletionChecking] = useState(false);
   const navigate = useNavigate();
+
+  // Account Deletion Modal
+  const DeleteAccountModal = () => {
+    const [confirmText, setConfirmText] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAccount = async () => {
+      if (confirmText !== profile?.username) {
+        setDeleteError(
+          "Please enter your username correctly to confirm deletion"
+        );
+        return;
+      }
+
+      setIsDeleting(true);
+      setDeleteError("");
+
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user?.id) {
+          throw new Error("User ID not found");
+        }
+
+        // First check if deletion is possible
+        const checkResponse = await axios.get(
+          `http://localhost:5000/api/tourist/check-deletion/${user.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!checkResponse.data.canDelete) {
+          setDeleteError(checkResponse.data.message);
+          setIsDeleting(false);
+          return;
+        }
+
+        // If checks pass, proceed with deletion
+        const deleteResponse = await axios.delete(
+          `http://localhost:5000/api/tourist/delete/${user.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (deleteResponse.data.success) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Delete account error:", error);
+        setDeleteError(
+          error.response?.data?.message ||
+            "Unable to delete account at this time. Please try again later."
+        );
+      } finally {
+        setIsDeleting(false);
+      }
+    };
+    return (
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton className="bg-danger text-white">
+          <Modal.Title>
+            <FaExclamationTriangle className="me-2" />
+            Delete Account
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <strong>Warning:</strong> This action cannot be undone. Your account
+            will be permanently deleted.
+          </Alert>
+          <p>Please note that account deletion is only possible if you have:</p>
+          <ul>
+            <li>No upcoming bookings</li>
+            <li>No pending payments</li>
+            <li>No active itineraries</li>
+          </ul>
+          {deleteError && <Alert variant="danger">{deleteError}</Alert>}
+          <Form.Group className="mb-3">
+            <Form.Label>
+              Please type <strong>{profile?.username}</strong> to confirm
+              deletion
+            </Form.Label>
+            <Form.Control
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Enter your username"
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDeleteAccount}
+            disabled={isDeleting || confirmText !== profile?.username}
+          >
+            {isDeleting ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <FaTrash className="me-2" />
+                Delete My Account
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  };
+
   const fetchLoyaltyStatus = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -400,6 +527,21 @@ const MyProfile = () => {
                   >
                     Edit Profile
                   </Button>
+                  {/* Delete Account Section */}
+                  <hr className="my-4" />
+                  <div className="text-center">
+                    <Button
+                      variant="outline-danger"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="mt-3"
+                    >
+                      <FaTrash className="me-2" />
+                      Delete Account
+                    </Button>
+                  </div>
+
+                  {/* Delete Account Modal */}
+                  <DeleteAccountModal />
                 </div>
               ) : (
                 // Edit Mode
