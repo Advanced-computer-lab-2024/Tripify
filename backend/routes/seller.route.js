@@ -8,7 +8,7 @@ import {
   getAllSellers,
   deleteSellerAccount,
   changePassword,
-  uploadLogo,
+
 } from "../controllers/seller.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
@@ -33,12 +33,6 @@ router.delete("/profile/:id", deleteSellerAccount);
 router.get("/all", getAllSellers);
 
 // Logo upload route
-router.post(
-  "/upload-logo/:id",
-  authMiddleware, // Add auth middleware
-  uploadMiddleware.single("logo"), // Changed field name to 'logo'
-  uploadLogo
-);
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
