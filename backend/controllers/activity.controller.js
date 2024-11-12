@@ -11,52 +11,62 @@ export const createActivity = async (req, res) => {
   }
 };
 
-// GET all activities
-export const getActivities = async (req, res) => {
+// Get all activities
+export const getAllActivities = async (req, res) => {
   try {
-    // Use aggregation to check if the advertiser exists
     const activities = await Activity.aggregate([
       {
         $lookup: {
-          from: "advertisers", // Collection name is lowercase and plural
+          from: "advertisers",
           localField: "createdBy",
           foreignField: "_id",
-          as: "advertiser",
-        },
+          as: "advertiser"
+        }
       },
       {
         $match: {
-          advertiser: { $ne: [] }, // Only get activities where advertiser exists
-          flagged: { $ne: true }, // Exclude flagged activities
-        },
+          "advertiser.isActive": true, // Ensure the owner's account is active
+          advertiser: { $ne: [] }, // Ensure there's an associated advertiser
+          flagged: { $ne: true }   // Exclude flagged activities
+        }
       },
       {
         $lookup: {
           from: "activitycategories",
           localField: "category",
           foreignField: "_id",
-          as: "category",
-        },
+          as: "category"
+        }
       },
-      {
-        $unwind: "$category",
-      },
+      { $unwind: "$category" },
       {
         $lookup: {
           from: "tags",
-          localField: "tags",
+          localField: "preferenceTags",
           foreignField: "_id",
-          as: "tags",
-        },
+          as: "preferenceTags"
+        }
       },
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          createdBy: { $arrayElemAt: ["$advertiser.username", 0] }, // Display only the advertiser's username
+          category: "$category.name",
+          preferenceTags: "$preferenceTags.name",
+          flagged: 1
+        }
+      }
     ]);
 
     res.status(200).json(activities);
   } catch (error) {
-    console.error("Error in getActivities:", error);
+    console.error("Error in getAllActivities:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
+
 // GET a single activity by ID
 export const getActivityById = async (req, res) => {
   try {

@@ -42,20 +42,28 @@ export const getItineraryById = async (req, res) => {
 };
 
 // Get all itineraries
-
 export const getAllItineraries = async (req, res) => {
   try {
+    // Fetch itineraries where 'createdBy' (owner) is active
     const itineraries = await Itinerary.find()
-      .populate("createdBy", "username")
+      .populate({
+        path: "createdBy",
+        match: { isActive: true }, // Only populate if the owner's account is active
+        select: "username"
+      })
       .populate("preferenceTags", "name")
       .select("+flagged"); // Explicitly include flagged field
 
-    res.status(200).json(itineraries);
+    // Filter out itineraries without an active owner
+    const filteredItineraries = itineraries.filter(itinerary => itinerary.createdBy);
+
+    res.status(200).json(filteredItineraries);
   } catch (error) {
     console.error("Error in getAllItineraries:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 // Update an itinerary by ID
 export const updateItinerary = async (req, res) => {
   try {

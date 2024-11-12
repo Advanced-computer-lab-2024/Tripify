@@ -216,7 +216,11 @@ function ProductPage() {
         </Col>
         <Col md={2}>
           <Link
-            to="/admin/products/archived"
+            to={
+              localStorage.getItem("userRole") === "admin"
+                ? "/admin/products/archived"
+                : "/seller/products/archived"
+            }
             className="btn btn-secondary w-100"
           >
             View Archived

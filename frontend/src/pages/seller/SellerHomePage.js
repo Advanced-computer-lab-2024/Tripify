@@ -60,4 +60,3 @@ const SellerHomePage = () => {
 };
 
 export default SellerHomePage;
-﻿
