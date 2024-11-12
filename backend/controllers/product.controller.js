@@ -1,5 +1,7 @@
-import mongoose from "mongoose";
 import Product from "../models/product.model.js";
+import Tourist from "../models/tourist.model.js"; // Make sure this path is correct
+import ProductPurchase from "../models/productPurchase.model.js";
+import mongoose from "mongoose";
 
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -220,5 +222,187 @@ export const addReview = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to add review", error: error.message });
+  }
+};
+
+export const purchaseProduct = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { userId, productId, quantity } = req.body;
+
+    // Validate inputs
+    if (!userId || !productId || !quantity) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Check if userId is valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    // Find product first
+    const product = await Product.findById(productId).session(session);
+    if (!product) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (product.quantity < quantity) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient product quantity",
+      });
+    }
+
+    const totalPrice = product.price * quantity;
+
+    // Find tourist with error handling
+    let tourist;
+    try {
+      tourist = await Tourist.findById(userId).session(session);
+      if (!tourist) {
+        throw new Error("Tourist not found");
+      }
+    } catch (error) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Tourist not found",
+      });
+    }
+
+    if (tourist.wallet < totalPrice) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+      });
+    }
+
+    // Create purchase record
+    const purchase = new ProductPurchase({
+      userId,
+      productId,
+      quantity,
+      totalPrice,
+      status: "completed",
+    });
+    await purchase.save({ session });
+
+    // Update product quantity
+    product.quantity -= quantity;
+    product.totalSales = (product.totalSales || 0) + quantity;
+    await product.save({ session });
+
+    // Update tourist wallet
+    tourist.wallet -= totalPrice;
+    await tourist.save({ session });
+
+    await session.commitTransaction();
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "Purchase successful",
+      data: {
+        purchase,
+        newBalance: tourist.wallet,
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Purchase error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error processing purchase",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+export const getTouristPurchases = async (req, res) => {
+  try {
+    const { touristId } = req.params;
+
+    const purchases = await ProductPurchase.find({ userId: touristId })
+      .populate("productId")
+      .sort("-purchaseDate");
+
+    res.status(200).json({
+      success: true,
+      data: purchases,
+    });
+  } catch (error) {
+    console.error("Error fetching purchases:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching purchases",
+    });
+  }
+};
+
+export const reviewPurchase = async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    const { rating, comment } = req.body;
+
+    const purchase = await ProductPurchase.findById(purchaseId);
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase not found",
+      });
+    }
+
+    if (purchase.review?.rating) {
+      return res.status(400).json({
+        success: false,
+        message: "Purchase already reviewed",
+      });
+    }
+
+    purchase.review = {
+      rating,
+      comment,
+      date: new Date(),
+    };
+
+    await purchase.save();
+
+    // Update product's reviews as well
+    const product = await Product.findById(purchase.productId);
+    if (product) {
+      product.reviews.push({
+        reviewerName: purchase.userId,
+        rating,
+        comment,
+        timestamp: new Date(),
+      });
+      await product.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Review submitted successfully",
+      data: purchase,
+    });
+  } catch (error) {
+    console.error("Review error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error submitting review",
+    });
   }
 };
