@@ -75,6 +75,17 @@ const sellerSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    profilePicture: {
+      type: fileSchema,
+      required: false,  // Optional, so it’s not mandatory at creation
+      validate: {
+        validator: function (file) {
+          const allowedTypes = ["image/jpeg", "image/png"];
+          return !file || allowedTypes.includes(file.mimetype);
+        },
+        message: "Profile picture must be in JPEG or PNG format",
+      },
+    },
     documents: [
       {
         type: {

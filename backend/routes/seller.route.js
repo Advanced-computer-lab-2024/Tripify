@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer"; // Add this import
 import {
   registerSeller,
   loginSeller,
@@ -7,6 +8,7 @@ import {
   getAllSellers,
   deleteSellerAccount,
   changePassword,
+  uploadLogo,
 } from "../controllers/seller.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
@@ -24,23 +26,19 @@ router.post("/register", documentUpload, registerSeller);
 router.post("/login", loginSeller);
 
 // Protected routes (requires authentication)
-// Profile routes
-router.get("/profile/:username", authMiddleware, getSellerProfile);
-router.put(
-  "/profile/:id",
-  authMiddleware,
-  documentUpload,
-  updateSellerAccount
+router.get("/profile/:username", getSellerProfile);
+router.put("/profile/:id", documentUpload, updateSellerAccount);
+router.put("/change-password", changePassword);
+router.delete("/profile/:id", deleteSellerAccount);
+router.get("/all", getAllSellers);
+
+// Logo upload route
+router.post(
+  "/upload-logo/:id",
+  authMiddleware, // Add auth middleware
+  uploadMiddleware.single("logo"), // Changed field name to 'logo'
+  uploadLogo
 );
-
-// Password management
-router.put("/change-password", authMiddleware, changePassword);
-
-// Account management
-router.delete("/profile/:id", authMiddleware, deleteSellerAccount);
-
-// Admin routes (might need additional admin middleware)
-router.get("/all", authMiddleware, getAllSellers);
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {

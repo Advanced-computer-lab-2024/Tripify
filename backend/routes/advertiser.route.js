@@ -9,6 +9,7 @@ import {
   deleteAdvertiser,
   getAdvertiserActivities,
   changePassword,
+  uploadLogo,
 } from "../controllers/advertiser.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
@@ -59,5 +60,11 @@ router.use((error, req, res, next) => {
   }
   next();
 });
+router.post(
+  "/upload-logo/:id",
+  
+  uploadMiddleware.single("profilePicture"),
+  uploadLogo
+);
 
 export default router;

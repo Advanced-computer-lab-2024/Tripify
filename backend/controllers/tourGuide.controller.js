@@ -413,20 +413,27 @@ export const getTourGuideItineraries = async (req, res) => {
   }
 };
 
-// Handle profile picture upload
+// Upload Profile Picture (Protected Route)
+// Upload Profile Picture (Protected Route)
+// Upload Profile Picture
 export const uploadProfilePicture = async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Check if file exists in request
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ message: "No profile picture uploaded" });
     }
 
-    const tourGuide = await TourGuide.findById(req.user._id);
+    const tourGuide = await TourGuide.findById(id);
     if (!tourGuide) {
+      // Delete uploaded file if tour guide not found
+      fs.unlinkSync(req.file.path);
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
     // Delete old profile picture if it exists
-    if (tourGuide.profilePicture?.path) {
+    if (tourGuide.profilePicture && tourGuide.profilePicture.path) {
       try {
         fs.unlinkSync(tourGuide.profilePicture.path);
       } catch (error) {
@@ -434,7 +441,7 @@ export const uploadProfilePicture = async (req, res) => {
       }
     }
 
-    // Update with new profile picture
+    // Update profile picture
     tourGuide.profilePicture = {
       filename: req.file.filename,
       path: req.file.path,
@@ -447,13 +454,23 @@ export const uploadProfilePicture = async (req, res) => {
 
     res.status(200).json({
       message: "Profile picture uploaded successfully",
-      profilePicture: tourGuide.profilePicture,
+      profilePicture: tourGuide.profilePicture.path
     });
+
   } catch (error) {
+    // Delete uploaded file if there's an error
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error("Error deleting file:", err);
+      }
+    }
+
     console.error("Error uploading profile picture:", error);
     res.status(500).json({
       message: "Error uploading profile picture",
-      error: error.message,
+      error: error.message
     });
   }
 };

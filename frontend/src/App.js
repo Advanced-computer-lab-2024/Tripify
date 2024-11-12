@@ -61,6 +61,8 @@ import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import UserApprovals from "./pages/admin/UserApprovals";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ProfilePictureUpload from "./pages/tourguide/ProfilePictureUpload";
+import SellerLogo from "./pages/seller/SellerLogo";
 
 function App() {
   return (
@@ -179,6 +181,10 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
+          <Route
+            path="/tourguide/upload-profile-picture"
+            element={<ProfilePictureUpload />}
+          />
           {/* Admin Routes */}
           <Route
             path="/admin"
@@ -282,6 +288,10 @@ function App() {
           <Route
             path="/seller/products"
             element={<ProductPage />}
+          />
+           <Route
+            path="/seller/upload-logo"
+            element={<SellerLogo />}
           />
           <Route
             path="/seller/profile"

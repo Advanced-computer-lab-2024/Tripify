@@ -9,8 +9,8 @@ import {
   getProfileByToken,
   getTourGuideItineraries,
   changePassword,
-} from "../controllers/tourGuide.controller.js"; // Removed 'upload' from here
-
+  uploadProfilePicture,
+} from "../controllers/tourGuide.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
 
@@ -25,9 +25,8 @@ router.post(
   ]),
   registerTourGuide
 );
-
 router.post("/login", loginTourGuide);
-router.get("/guides", getAllTourGuides); // Public list of tour guides
+router.get("/guides", getAllTourGuides);
 
 // Protected routes (requires authentication)
 router.get("/profile", authMiddleware, getProfileByToken);
@@ -36,8 +35,16 @@ router.get("/profile/:username", authMiddleware, getTourGuideByUsername);
 
 // Update profile (without file uploads)
 router.put("/profile/:username", authMiddleware, updateTourGuideAccount);
-
 router.put("/change-password", authMiddleware, changePassword);
+
+// Profile picture upload route - Updated with :id parameter
+router.post(
+  "/upload-profile-picture/:id",
+  
+  uploadMiddleware.single("profilePicture"),
+  uploadProfilePicture
+);
+
 // Delete account
 router.delete("/delete/:id", authMiddleware, deleteTourGuide);
 

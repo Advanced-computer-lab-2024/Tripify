@@ -72,6 +72,9 @@ const TourguideHomePage = () => {
         <Link to="/tourguide/change-password" className="btn btn-primary m-2">
           Change My Password
         </Link>
+        <Link to="/tourguide/upload-profile-picture" className="btn btn-primary m-2">
+         Change Profile Picture
+        </Link>
 
         <Button
           variant="danger"
