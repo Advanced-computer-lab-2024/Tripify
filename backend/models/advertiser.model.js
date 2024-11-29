@@ -73,6 +73,10 @@ const advertiserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Advertisement'
     }],
+    TandC: {
+      type: Boolean,
+      default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now

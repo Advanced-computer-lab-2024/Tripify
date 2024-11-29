@@ -223,19 +223,16 @@ export const loginAdvertiser = async (req, res) => {
 // Get Advertiser Profile (Protected Route)
 export const getAdvertiserByUsername = async (req, res) => {
   const { username } = req.params;
-
   try {
     if (req.user.username !== username && req.user.role !== "admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
-
     const advertiser = await Advertiser.findOne({ username }).select(
       "-password"
     );
     if (!advertiser) {
       return res.status(404).json({ message: "Advertiser not found" });
     }
-
     res.status(200).json({
       id: advertiser._id,
       username: advertiser.username,
@@ -245,37 +242,48 @@ export const getAdvertiserByUsername = async (req, res) => {
       website: advertiser.website,
       hotline: advertiser.hotline,
       companyLogo: advertiser.companyLogo,
+      TandC: advertiser.TandC  // Add this line
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
+// Update Advertiser Profile (Protected Route)
 // Update Advertiser Profile (Protected Route)
 export const updateAdvertiserByUsername = async (req, res) => {
   const { username } = req.params;
   const updates = req.body;
 
   try {
+    // Ensure the user is authorized to update the profile
     if (req.user.username !== username) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
+    // Find the advertiser by username
     const advertiser = await Advertiser.findOne({ username });
     if (!advertiser) {
       return res.status(404).json({ message: "Advertiser not found" });
     }
 
+    // Update fields in the advertiser object
     Object.keys(updates).forEach((update) => {
       if (update !== "password" && update !== "_id") {
         advertiser[update] = updates[update];
       }
     });
 
-    if (updates.password) {
-      advertiser.password = updates.password;
+    // Update T&C field if provided
+    if (typeof updates.TandC !== "undefined") {
+      advertiser.TandC = updates.TandC;
     }
 
+    // Hash and update password if provided
+    if (updates.password) {
+      advertiser.password = await bcrypt.hash(updates.password, 10);
+    }
+
+    // Save the updated advertiser document
     await advertiser.save();
 
     res.status(200).json({
@@ -288,13 +296,16 @@ export const updateAdvertiserByUsername = async (req, res) => {
         companyDescription: advertiser.companyDescription,
         website: advertiser.website,
         hotline: advertiser.hotline,
+        TandC: advertiser.TandC, // Include updated T&C status
         companyLogo: advertiser.companyLogo,
       },
     });
   } catch (error) {
+    console.error("Error updating profile:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete Advertiser (Protected Route)
 export const deleteAdvertiser = async (req, res) => {

@@ -121,6 +121,7 @@ export const registerTourGuide = async (req, res) => {
         previousWork: newTourGuide.previousWork,
         identificationDocument: newTourGuide.identificationDocument.path,
         certificate: newTourGuide.certificate.path,
+        TandC: newTourGuide.TandC,
       },
       token,
     });
@@ -174,6 +175,7 @@ export const loginTourGuide = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
       token,
     });
@@ -233,26 +235,27 @@ export const getTourGuideByUsername = async (req, res) => {
 };
 
 // Update Tour Guide Profile (Protected Route)
+// Update Tour Guide Profile (Protected Route)
 export const updateTourGuideAccount = async (req, res) => {
-  const { id } = req.params;
-  const { username, email, mobileNumber, yearsOfExperience, previousWork } =
-    req.body;
+  const { username } = req.params;
+  const { email, mobileNumber, yearsOfExperience, previousWork, TandC } = req.body;
 
   try {
-    if (req.user._id !== id) {
+    // Check if the requesting user matches the username from token
+    if (req.user.username !== username) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const tourGuide = await TourGuide.findById(id);
+    const tourGuide = await TourGuide.findOne({ username: username });
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    tourGuide.username = username || tourGuide.username;
-    tourGuide.email = email || tourGuide.email;
-    tourGuide.mobileNumber = mobileNumber || tourGuide.mobileNumber;
-    tourGuide.yearsOfExperience =
-      yearsOfExperience || tourGuide.yearsOfExperience;
+    // Only update fields that are provided
+    if (email) tourGuide.email = email;
+    if (mobileNumber) tourGuide.mobileNumber = mobileNumber;
+    if (yearsOfExperience) tourGuide.yearsOfExperience = yearsOfExperience;
+    if (TandC !== undefined) tourGuide.TandC = TandC;
 
     if (Array.isArray(previousWork)) {
       tourGuide.previousWork = previousWork.map((work) => ({
@@ -275,6 +278,7 @@ export const updateTourGuideAccount = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
     });
   } catch (error) {
@@ -389,6 +393,7 @@ export const getProfileByToken = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
     });
   } catch (error) {

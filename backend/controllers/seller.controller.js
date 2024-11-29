@@ -2,6 +2,7 @@ import Seller from "../models/seller.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config();
 
@@ -103,7 +104,9 @@ export const registerSeller = async (req, res) => {
       name,
       description,
       mobileNumber,
+      // TandC,
       ...fileData,
+      
     });
 
     await newSeller.save();
@@ -123,6 +126,8 @@ export const registerSeller = async (req, res) => {
         mobileNumber: newSeller.mobileNumber,
         businessLicense: newSeller.businessLicense.path,
         identificationDocument: newSeller.identificationDocument.path,
+        TandC: newSeller.TandC, 
+
       },
       token,
     });
@@ -257,7 +262,7 @@ export const getSellerProfile = async (req, res) => {
 export const updateSellerAccount = async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, name, description } = req.body;
+    const { username, email, name, description, TandC } = req.body;  // Add TandC here
 
     if (req.user._id !== id) {
       return res.status(403).json({ message: "Unauthorized access" });
@@ -272,6 +277,7 @@ export const updateSellerAccount = async (req, res) => {
     if (email) seller.email = email;
     if (name) seller.name = name;
     if (description) seller.description = description;
+    if (TandC !== undefined) seller.TandC = TandC;  // Add this
 
     await seller.save();
 
@@ -283,6 +289,7 @@ export const updateSellerAccount = async (req, res) => {
         email: seller.email,
         name: seller.name,
         description: seller.description,
+        TandC: seller.TandC,  // Add this
       },
     });
   } catch (error) {

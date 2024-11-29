@@ -65,6 +65,10 @@ const sellerSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  TandC: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now

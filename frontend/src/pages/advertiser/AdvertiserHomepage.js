@@ -18,23 +18,64 @@ const AdvertiserHomepage = () => {
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No authentication token found. Please login.");
+          setIsLoading(false);
+          return;
+        }
+
+        const decoded = jwtDecode(token);
+        
+        // Fetch current user data
+        const response = await axios.get(
+          `http://localhost:5000/api/advertiser/profile/${decoded.username}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setAdvertiserInfo(response.data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error loading user information:", error);
+        setError("Error loading user information. Please login again.");
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const handleAcceptTandC = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("No authentication token found. Please login.");
-        return;
-      }
+      if (!token) throw new Error("No token found");
 
-      const decoded = jwtDecode(token);
-      setAdvertiserInfo(decoded);
+      await axios.put(
+        `http://localhost:5000/api/advertiser/profile/${advertiserInfo.username}`,
+        { TandC: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setAdvertiserInfo(prev => ({ ...prev, TandC: true }));
     } catch (error) {
-      console.error("Error decoding token:", error);
-      setError("Error loading user information. Please login again.");
+      console.error("Error accepting T&C:", error);
+      setError("Failed to accept Terms and Conditions. Please try again.");
     }
-  }, []);
+  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -53,17 +94,13 @@ const AdvertiserHomepage = () => {
         throw new Error("User ID not found");
       }
 
-      // Delete the advertiser account
       await axios.delete(`http://localhost:5000/api/advertiser/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // Clear local storage
       localStorage.clear();
-
-      // Show success message and redirect
       alert("Your account has been successfully deleted");
       navigate("/");
     } catch (error) {
@@ -78,6 +115,16 @@ const AdvertiserHomepage = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </Container>
+    );
+  }
+
   if (error) {
     return (
       <Container fluid className="p-5">
@@ -86,6 +133,73 @@ const AdvertiserHomepage = () => {
     );
   }
 
+  // Show only T&C modal if terms haven't been accepted
+  console.log("advertiserInfo:", advertiserInfo); // Add this log
+  console.log("T&C status:", advertiserInfo?.TandC);
+  if (advertiserInfo && !advertiserInfo.TandC) {
+    return (
+      <Container fluid className="p-5">
+        <Modal show={true} backdrop="static" keyboard={false} centered size="lg">
+          <Modal.Header>
+            <Modal.Title>Terms and Conditions</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="terms-content" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <h5>Please read and accept our Terms and Conditions</h5>
+              <p>1. Account Responsibilities</p>
+              <ul>
+                <li>You are responsible for maintaining accurate and up-to-date information</li>
+                <li>All activities must comply with local laws and regulations</li>
+                <li>You must maintain appropriate licenses and permits</li>
+              </ul>
+              
+              <p>2. Content Guidelines</p>
+              <ul>
+                <li>All posted content must be accurate and truthful</li>
+                <li>No misleading or fraudulent activities</li>
+                <li>Content must not infringe on any third-party rights</li>
+              </ul>
+              
+              <p>3. Service Standards</p>
+              <ul>
+                <li>Maintain professional communication with customers</li>
+                <li>Respond to inquiries in a timely manner</li>
+                <li>Honor all confirmed bookings and arrangements</li>
+              </ul>
+
+              <p>4. User Data and Privacy</p>
+              <ul>
+                <li>Protect user information and maintain confidentiality</li>
+                <li>Only use customer data for intended business purposes</li>
+                <li>Comply with applicable data protection regulations</li>
+              </ul>
+
+              <p>5. Platform Usage</p>
+              <ul>
+                <li>Do not engage in activities that could harm the platform</li>
+                <li>Maintain accurate availability and pricing information</li>
+                <li>Respond to customer inquiries within 24 hours</li>
+              </ul>
+
+              <p>6. Cancellation and Refunds</p>
+              <ul>
+                <li>Clear cancellation policies must be stated for all services</li>
+                <li>Process refunds according to stated policies</li>
+                <li>Maintain fair and transparent pricing</li>
+              </ul>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="primary" onClick={handleAcceptTandC}>
+              I Accept the Terms and Conditions
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </Container>
+    );
+  }
+
+  // Show dashboard content only after T&C acceptance
   return (
     <Container fluid className="p-5">
       <Row className="mb-4">
@@ -179,20 +293,7 @@ const AdvertiserHomepage = () => {
         </Col>
       </Row>
 
-      {/* <Row>
-        <Col>
-          <Card>
-            <Card.Body>
-              <Card.Title>Help & Support</Card.Title>
-              <Card.Text>
-                Need assistance? Check out our support resources or contact us.
-              </Card.Text>
-              <Button variant="info">Get Support</Button>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row> */}
-      {/* Delete Account Confirmation Modal */}
+      {/* Delete Account Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Delete Account</Modal.Title>
