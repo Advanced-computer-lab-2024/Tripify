@@ -78,15 +78,13 @@ function ProductPage() {
   const handleAddProduct = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const productData = Object.fromEntries(formData.entries());
-  
-    // Convert necessary fields to numbers
-    productData.price = parseFloat(productData.price);
-    productData.quantity = parseInt(productData.quantity, 10);
-    productData.totalSales = parseInt(productData.totalSales, 10);
-  
+    
     try {
-      await axios.post(`${API_URL}/products`, productData);
+      const response = await axios.post(`${API_URL}/products`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       fetchProducts();
       setShowAddModal(false);
     } catch (error) {
@@ -97,15 +95,17 @@ function ProductPage() {
   const handleEditProduct = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const productData = Object.fromEntries(formData.entries());
-  
-    // Convert necessary fields to numbers
-    productData.price = parseFloat(productData.price);
-    productData.quantity = parseInt(productData.quantity, 10);
-    productData.totalSales = parseInt(productData.totalSales, 10);
-  
+    
     try {
-      await axios.put(`${API_URL}/products/${selectedProduct._id}`, productData);
+      const response = await axios.put(
+        `${API_URL}/products/${selectedProduct._id}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       fetchProducts();
       setShowEditModal(false);
     } catch (error) {
@@ -171,11 +171,9 @@ function ProductPage() {
             onChange={(e) => setRatingFilter(Number(e.target.value))}
           >
             <option value={0}>All Ratings</option>
-            <option value={1}>1+ Stars</option>
-            <option value={2}>2+ Stars</option>
-            <option value={3}>3+ Stars</option>
-            <option value={4}>4+ Stars</option>
-            <option value={5}>5 Stars</option>
+            {[1, 2, 3, 4, 5].map(num => (
+              <option key={num} value={num}>{num}+ Stars</option>
+            ))}
           </Form.Select>
         </Col>
         <Col md={2}>
@@ -183,9 +181,7 @@ function ProductPage() {
             type="number"
             placeholder="Min Price"
             value={priceFilter.min}
-            onChange={(e) =>
-              setPriceFilter({ ...priceFilter, min: e.target.value })
-            }
+            onChange={(e) => setPriceFilter({ ...priceFilter, min: e.target.value })}
           />
         </Col>
         <Col md={2}>
@@ -193,9 +189,7 @@ function ProductPage() {
             type="number"
             placeholder="Max Price"
             value={priceFilter.max}
-            onChange={(e) =>
-              setPriceFilter({ ...priceFilter, max: e.target.value })
-            }
+            onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
           />
         </Col>
         <Col md={3}>
@@ -204,244 +198,197 @@ function ProductPage() {
       </Row>
 
       <Row>
-  {filteredProducts.map((product) => (
-    <Col md={6} lg={4} key={product._id} className="mb-4">
-      <Card>
-        <Card.Img variant="top" src={product.imageUrl} />
-        <Card.Body>
-          <Card.Title>{product.name}</Card.Title>
-          <Card.Text>{product.description}</Card.Text>
-          <Card.Text>Price: ${product.price}</Card.Text>
-          <Card.Text>Quantity: {product.quantity}</Card.Text>
-          <Card.Text>Total Sales: {product.totalSales}</Card.Text>
-          <Card.Text>Seller: {product.seller}</Card.Text>
-          <Card.Text>
-            Average Rating:{" "}
-            {product.reviews.length > 0
-              ? (
-                  product.reviews.reduce(
-                    (sum, review) => sum + review.rating,
-                    0
-                  ) / product.reviews.length
-                ).toFixed(1)
-              : "No ratings yet"}{" "}
-            ({product.reviews.length} reviews)
-          </Card.Text>
-          <Button
-            variant="primary"
-            className="me-2"
-            onClick={() => {
-              setSelectedProduct(product);
-              setShowReviewModal(true);
-            }}
-          >
-            Add Review
-          </Button>
-          <Button
-            variant="warning"
-            className="me-2"
-            onClick={() => {
-              setSelectedProduct(product);
-              setShowEditModal(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => handleDeleteProduct(product._id)}
-          >
-            Delete
-          </Button>
-        </Card.Body>
-        <Card.Footer>
-          <h5>Reviews</h5>
-          {product.reviews.length > 0 ? (
-            <ListGroup variant="flush">
-              {product.reviews.map((review, index) => (
-                <ListGroup.Item key={index}>
-                  <div>
-                    <strong>Rating: {review.rating}/5</strong>
-                  </div>
-                  <div>
-                    <strong>Reviewer:</strong> {review.reviewerName}
-                  </div>
-                  <div>{review.comment}</div>
-                  <small className="text-muted">
-                    {new Date(review.timestamp).toLocaleDateString()}
-                  </small>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          ) : (
-            <p>No reviews yet.</p>
-          )}
-        </Card.Footer>
-      </Card>
-    </Col>
-  ))}
-</Row>
+        {filteredProducts.map((product) => (
+          <Col md={6} lg={4} key={product._id} className="mb-4">
+            <Card>
+              {product.productImage && product.productImage[0] ? (
+                product.productImage.map((image, index) => (
+                  <Card.Img 
+                    key={index} 
+                    variant="top" 
+                    src={image.path} 
+                    style={{ height: '200px', objectFit: 'cover' }}
+                  />
+                ))
+              ) : (
+                <Card.Img variant="top" src={product.imageUrl} />
+              )}
+              <Card.Body>
+                <Card.Title>{product.name}</Card.Title>
+                <Card.Text>{product.description}</Card.Text>
+                <Card.Text>Price: ${product.price}</Card.Text>
+                <Card.Text>Quantity: {product.quantity}</Card.Text>
+                <Card.Text>Total Sales: {product.totalSales}</Card.Text>
+                <Card.Text>Seller: {product.seller}</Card.Text>
+                <Card.Text>
+                  Average Rating:{' '}
+                  {product.reviews.length > 0
+                    ? (product.reviews.reduce((sum, review) => sum + review.rating, 0) / 
+                       product.reviews.length).toFixed(1)
+                    : "No ratings yet"}{' '}
+                  ({product.reviews.length} reviews)
+                </Card.Text>
+                <Button variant="primary" className="me-2" onClick={() => {
+                  setSelectedProduct(product);
+                  setShowReviewModal(true);
+                }}>Add Review</Button>
+                <Button variant="warning" className="me-2" onClick={() => {
+                  setSelectedProduct(product);
+                  setShowEditModal(true);
+                }}>Edit</Button>
+                <Button variant="danger" onClick={() => handleDeleteProduct(product._id)}>
+                  Delete
+                </Button>
+              </Card.Body>
+              <Card.Footer>
+                <h5>Reviews</h5>
+                {product.reviews.length > 0 ? (
+                  <ListGroup variant="flush">
+                    {product.reviews.map((review, index) => (
+                      <ListGroup.Item key={index}>
+                        <div><strong>Rating: {review.rating}/5</strong></div>
+                        <div><strong>Reviewer:</strong> {review.reviewerName}</div>
+                        <div>{review.comment}</div>
+                        <small className="text-muted">
+                          {new Date(review.timestamp).toLocaleDateString()}
+                        </small>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                ) : (
+                  <p>No reviews yet.</p>
+                )}
+              </Card.Footer>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control type="text" name="name" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control as="textarea" name="description" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control type="number" name="price" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control type="number" name="quantity" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Total Sales</Form.Label>
+              <Form.Control type="number" name="totalSales" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Product Images</Form.Label>
+              <Form.Control
+                type="file"
+                name="productImage"
+                accept="image/*"
+                multiple
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select name="seller" required>
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Add Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
 
-      {/* Add Product Modal */}
-      <Modal
-  show={showAddModal}
-  onHide={() => setShowAddModal(false)}
->
-  <Modal.Header closeButton>
-    <Modal.Title>Add New Product</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <Form onSubmit={handleAddProduct}>
-      <Form.Group className="mb-3">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
-          type="text"
-          name="name"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Description</Form.Label>
-        <Form.Control
-          as="textarea"
-          name="description"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Price</Form.Label>
-        <Form.Control
-          type="number"
-          name="price"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Quantity</Form.Label>
-        <Form.Control
-          type="number"
-          name="quantity"
-          required
-        />
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleEditProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                defaultValue={selectedProduct?.name}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                defaultValue={selectedProduct?.description}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                name="price"
+                defaultValue={selectedProduct?.price}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                name="quantity"
+                defaultValue={selectedProduct?.quantity}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Total Sales</Form.Label>
+              <Form.Control
+                type="number"
+                name="totalSales"
+                defaultValue={selectedProduct?.totalSales}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Product Images</Form.Label>
+              <Form.Control
+                type="file"
+                name="productImage"
+                accept="image/*"
+                multiple
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Seller</Form.Label>
+              <Form.Select
+                name="seller"
+                defaultValue={selectedProduct?.seller}
+                required
+              >
+                <option value="VTP">VTP</option>
+                <option value="External seller">External seller</option>
+              </Form.Select>
+            </Form.Group>
+            <Button type="submit">Update Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
 
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Total Sales</Form.Label>
-        <Form.Control
-          type="number"
-          name="totalSales"
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Image URL</Form.Label>
-        <Form.Control
-          type="text"
-          name="imageUrl"
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Seller</Form.Label>
-        <Form.Select
-          name="seller"
-          required
-        >
-          <option value="VTP">VTP</option>
-          <option value="External seller">External seller</option>
-        </Form.Select>
-      </Form.Group>
-      <Button type="submit">Add Product</Button>
-    </Form>
-  </Modal.Body>
-</Modal>
-
-
-      {/* Edit Product Modal */}
-      <Modal
-  show={showEditModal}
-  onHide={() => setShowEditModal(false)}
->
-  <Modal.Header closeButton>
-    <Modal.Title>Edit Product</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <Form onSubmit={handleEditProduct}>
-      <Form.Group className="mb-3">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
-          type="text"
-          name="name"
-          defaultValue={selectedProduct?.name}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Description</Form.Label>
-        <Form.Control
-          as="textarea"
-          name="description"
-          defaultValue={selectedProduct?.description}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Price</Form.Label>
-        <Form.Control
-          type="number"
-          name="price"
-          defaultValue={selectedProduct?.price}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Quantity</Form.Label>
-        <Form.Control
-          type="number"
-          name="quantity"
-          defaultValue={selectedProduct?.quantity}
-          required
-        />
-      
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Total Sales</Form.Label>
-        <Form.Control
-          type="number"
-          name="totalSales"
-          defaultValue={selectedProduct?.totalSales}
-          required
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Image URL</Form.Label>
-        <Form.Control
-          type="text"
-          name="imageUrl"
-          defaultValue={selectedProduct?.imageUrl}
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Seller</Form.Label>
-        <Form.Select
-          name="seller"
-          defaultValue={selectedProduct?.seller}
-          required
-        >
-          <option value="VTP">VTP</option>
-          <option value="External seller">External seller</option>
-        </Form.Select>
-      </Form.Group>
-      <Button type="submit">Update Product</Button>
-    </Form>
-  </Modal.Body>
-</Modal>
-
-      {/* Add Review Modal */}
-      <Modal
-        show={showReviewModal}
-        onHide={() => setShowReviewModal(false)}
-      >
+      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
         </Modal.Header>
@@ -458,24 +405,15 @@ function ProductPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
-              <Form.Select
-                name="rating"
-                required
-              >
-                <option value="1">1 Star</option>
-                <option value="2">2 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="5">5 Stars</option>
+              <Form.Select name="rating" required>
+                {[1, 2, 3, 4, 5].map(num => (
+                  <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
+                ))}
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Comment</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="comment"
-                required
-              />
+              <Form.Control as="textarea" name="comment" required />
             </Form.Group>
             <Button type="submit">Submit Review</Button>
           </Form>
@@ -485,4 +423,4 @@ function ProductPage() {
   );
 }
 
-export default ProductPage;
+  export default ProductPage;

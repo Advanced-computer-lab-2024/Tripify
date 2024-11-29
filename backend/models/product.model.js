@@ -6,6 +6,32 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
 });
+const fileSchema = new mongoose.Schema({
+  filename: {
+    type: String,
+    required: true
+  },
+  path: {
+    type: String,
+    required: true
+  },
+  mimetype: {
+    type: String,
+    required: true
+  },
+  size: {
+    type: Number,
+    required: true
+  },
+  uploadDate: {
+    type: Date,
+    default: Date.now
+  },
+  // isVerified: {
+  //   type: Boolean,
+  //   default: false
+  // }
+});
 
 const productSchema = new mongoose.Schema(
   {
@@ -40,6 +66,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     reviews: [reviewSchema],
+    productImage: [fileSchema],
   },
   { timestamps: true }
 );
