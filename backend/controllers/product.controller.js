@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import fs from "fs";
 import ProductPurchase from "../models/productPurchase.model.js";
-import Tourist from "../models/tourist.model.js"; // Add this import
+import Tourist from "../models/tourist.model.js";
 
 const exchangeRates = {
   EGP: 49.1,
@@ -24,7 +24,7 @@ export const addProduct = async (req, res) => {
 
     const imageData = req.files.productImage.map((file) => ({
       filename: file.filename,
-      path: `http://localhost:5000/uploads/${file.filename}`, // Add full URL
+      path: `http://localhost:5000/uploads/${file.filename}`,
       mimetype: file.mimetype,
       size: file.size,
       uploadDate: new Date(),
@@ -35,7 +35,7 @@ export const addProduct = async (req, res) => {
       description,
       price,
       quantity,
-      totalSales: 0,
+      totalSales: 0, // Initialize totalSales as 0
       seller,
       productImage: imageData,
     });
@@ -231,6 +231,7 @@ export const addReview = async (req, res) => {
   }
 };
 
+// In product.controller.js, modify the purchaseProduct function:
 export const purchaseProduct = async (req, res) => {
   try {
     const { userId, productId, quantity } = req.body;
@@ -276,8 +277,9 @@ export const purchaseProduct = async (req, res) => {
       totalPrice,
     });
 
-    // Update product quantity
+    // Update product quantity and increment totalSales
     product.quantity -= quantity;
+    product.totalSales = (product.totalSales || 0) + quantity; // Add this line
     await product.save();
 
     // Update user wallet
@@ -295,16 +297,13 @@ export const purchaseProduct = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to complete purchase",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to complete purchase",
+      error: error.message,
+    });
   }
 };
-
 export const getUserPurchases = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -314,13 +313,11 @@ export const getUserPurchases = async (req, res) => {
 
     res.status(200).json({ success: true, data: purchases });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch purchases",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch purchases",
+      error: error.message,
+    });
   }
 };
 
@@ -346,12 +343,10 @@ export const addPurchaseReview = async (req, res) => {
 
     res.status(200).json({ success: true, data: purchase });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to add review",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to add review",
+      error: error.message,
+    });
   }
 };

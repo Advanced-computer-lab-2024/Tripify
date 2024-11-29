@@ -78,11 +78,11 @@ function ProductPage() {
   const handleAddProduct = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    
+
     try {
       const response = await axios.post(`${API_URL}/products`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
       fetchProducts();
@@ -91,18 +91,18 @@ function ProductPage() {
       console.error("Error adding product:", error);
     }
   };
-  
+
   const handleEditProduct = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    
+
     try {
       const response = await axios.put(
         `${API_URL}/products/${selectedProduct._id}`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         }
       );
@@ -112,7 +112,6 @@ function ProductPage() {
       console.error("Error editing product:", error);
     }
   };
-  
 
   const handleDeleteProduct = async (productId) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -171,8 +170,10 @@ function ProductPage() {
             onChange={(e) => setRatingFilter(Number(e.target.value))}
           >
             <option value={0}>All Ratings</option>
-            {[1, 2, 3, 4, 5].map(num => (
-              <option key={num} value={num}>{num}+ Stars</option>
+            {[1, 2, 3, 4, 5].map((num) => (
+              <option key={num} value={num}>
+                {num}+ Stars
+              </option>
             ))}
           </Form.Select>
         </Col>
@@ -181,7 +182,9 @@ function ProductPage() {
             type="number"
             placeholder="Min Price"
             value={priceFilter.min}
-            onChange={(e) => setPriceFilter({ ...priceFilter, min: e.target.value })}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, min: e.target.value })
+            }
           />
         </Col>
         <Col md={2}>
@@ -189,7 +192,9 @@ function ProductPage() {
             type="number"
             placeholder="Max Price"
             value={priceFilter.max}
-            onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, max: e.target.value })
+            }
           />
         </Col>
         <Col md={3}>
@@ -203,11 +208,11 @@ function ProductPage() {
             <Card>
               {product.productImage && product.productImage[0] ? (
                 product.productImage.map((image, index) => (
-                  <Card.Img 
-                    key={index} 
-                    variant="top" 
-                    src={image.path} 
-                    style={{ height: '200px', objectFit: 'cover' }}
+                  <Card.Img
+                    key={index}
+                    variant="top"
+                    src={image.path}
+                    style={{ height: "200px", objectFit: "cover" }}
                   />
                 ))
               ) : (
@@ -221,22 +226,41 @@ function ProductPage() {
                 <Card.Text>Total Sales: {product.totalSales}</Card.Text>
                 <Card.Text>Seller: {product.seller}</Card.Text>
                 <Card.Text>
-                  Average Rating:{' '}
+                  Average Rating:{" "}
                   {product.reviews.length > 0
-                    ? (product.reviews.reduce((sum, review) => sum + review.rating, 0) / 
-                       product.reviews.length).toFixed(1)
-                    : "No ratings yet"}{' '}
+                    ? (
+                        product.reviews.reduce(
+                          (sum, review) => sum + review.rating,
+                          0
+                        ) / product.reviews.length
+                      ).toFixed(1)
+                    : "No ratings yet"}{" "}
                   ({product.reviews.length} reviews)
                 </Card.Text>
-                <Button variant="primary" className="me-2" onClick={() => {
-                  setSelectedProduct(product);
-                  setShowReviewModal(true);
-                }}>Add Review</Button>
-                <Button variant="warning" className="me-2" onClick={() => {
-                  setSelectedProduct(product);
-                  setShowEditModal(true);
-                }}>Edit</Button>
-                <Button variant="danger" onClick={() => handleDeleteProduct(product._id)}>
+                <Button
+                  variant="primary"
+                  className="me-2"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setShowReviewModal(true);
+                  }}
+                >
+                  Add Review
+                </Button>
+                <Button
+                  variant="warning"
+                  className="me-2"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setShowEditModal(true);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => handleDeleteProduct(product._id)}
+                >
                   Delete
                 </Button>
               </Card.Body>
@@ -246,8 +270,12 @@ function ProductPage() {
                   <ListGroup variant="flush">
                     {product.reviews.map((review, index) => (
                       <ListGroup.Item key={index}>
-                        <div><strong>Rating: {review.rating}/5</strong></div>
-                        <div><strong>Reviewer:</strong> {review.reviewerName}</div>
+                        <div>
+                          <strong>Rating: {review.rating}/5</strong>
+                        </div>
+                        <div>
+                          <strong>Reviewer:</strong> {review.reviewerName}
+                        </div>
                         <div>{review.comment}</div>
                         <small className="text-muted">
                           {new Date(review.timestamp).toLocaleDateString()}
@@ -286,10 +314,7 @@ function ProductPage() {
               <Form.Label>Quantity</Form.Label>
               <Form.Control type="number" name="quantity" required />
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Total Sales</Form.Label>
-              <Form.Control type="number" name="totalSales" required />
-            </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>Product Images</Form.Label>
               <Form.Control
@@ -406,8 +431,10 @@ function ProductPage() {
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
               <Form.Select name="rating" required>
-                {[1, 2, 3, 4, 5].map(num => (
-                  <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={num}>
+                    {num} Star{num > 1 ? "s" : ""}
+                  </option>
                 ))}
               </Form.Select>
             </Form.Group>
@@ -423,4 +450,4 @@ function ProductPage() {
   );
 }
 
-  export default ProductPage;
+export default ProductPage;
