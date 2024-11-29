@@ -9,45 +9,57 @@ import {
   Button,
   Form,
   Modal,
-  ListGroup,
+  Badge,
+  Alert,
+  Spinner,
+  InputGroup,
+  Offcanvas,
 } from "react-bootstrap";
+import {
+  FaWallet,
+  FaShoppingCart,
+  FaStar,
+  FaSearch,
+  FaTrash,
+  FaPlus,
+  FaMinus,
+} from "react-icons/fa";
 
 const API_URL = "http://localhost:5000/api";
 
 function ProductTouristPage() {
+  // Existing states
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [userWallet, setUserWallet] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState(0);
   const [priceFilter, setPriceFilter] = useState({ min: "", max: "" });
+  const [currency, setCurrency] = useState("USD");
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [currency, setCurrency] = useState("USD");
-  const [user, setUser] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+  const [processingPurchase, setProcessingPurchase] = useState(false);
 
+  // New cart-related states
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+
+  // Currency conversion rates (existing)
   const currencyRates = {
     USD: 1,
-    EGP: 49.10,
+    EGP: 49.1,
     SAR: 3.75,
     AED: 3.67,
   };
 
+  // Existing useEffects and functions
   useEffect(() => {
-    // Get user information from JWT token
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUser({
-          id: decoded.user?._id || decoded.userId || decoded.id || decoded._id,
-          name: decoded.user?.name || decoded.name,
-        });
-      } catch (error) {
-        console.error("Error decoding token:", error);
-        // Handle invalid token
-        localStorage.removeItem('token');
-      }
-    }
+    initializeUser();
     fetchProducts();
   }, []);
 
@@ -55,21 +67,49 @@ function ProductTouristPage() {
     filterProducts();
   }, [products, searchTerm, ratingFilter, priceFilter]);
 
+  // Keep all your existing functions here...
+  const initializeUser = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please login to access this page");
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+      const userId = decoded._id || decoded.user?._id;
+      setUserId(userId);
+      fetchUserWallet(userId);
+    } catch (error) {
+      console.error("Token decode error:", error);
+      setError("Invalid session. Please login again.");
+    }
+  };
+
+  const fetchUserWallet = async (userId) => {
+    try {
+      const touristData = JSON.parse(localStorage.getItem("tourist"));
+      if (touristData?.wallet !== undefined) {
+        setUserWallet(touristData.wallet);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/products`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setProducts(response.data.products);
+      const response = await axios.get(`${API_URL}/products`);
+      const activeProducts = response.data.products.filter(
+        (p) => !p.isArchived
+      );
+      setProducts(activeProducts);
+      setFilteredProducts(activeProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
-      if (error.response?.status === 401) {
-        // Handle unauthorized access
-        alert("Please log in to view products");
-      }
+      setError("Failed to load products");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,18 +127,21 @@ function ProductTouristPage() {
     if (ratingFilter > 0) {
       filtered = filtered.filter((product) => {
         const avgRating =
-          product.reviews.reduce((sum, review) => sum + review.rating, 0) /
-          product.reviews.length;
+          product.reviews && product.reviews.length > 0
+            ? product.reviews.reduce((sum, review) => sum + review.rating, 0) /
+              product.reviews.length
+            : 0;
         return avgRating >= ratingFilter;
       });
     }
 
-    if (priceFilter.min !== "") {
+    if (priceFilter.min) {
       filtered = filtered.filter(
         (product) => product.price >= parseFloat(priceFilter.min)
       );
     }
-    if (priceFilter.max !== "") {
+
+    if (priceFilter.max) {
       filtered = filtered.filter(
         (product) => product.price <= parseFloat(priceFilter.max)
       );
@@ -107,77 +150,187 @@ function ProductTouristPage() {
     setFilteredProducts(filtered);
   };
 
-  const handleAddReview = async (event) => {
-    event.preventDefault();
-    
-    if (!user) {
-      alert("Please log in to add a review");
-      return;
-    }
+  // New cart functions
+  const addToCart = (product) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((item) => item._id === product._id);
+      if (existingItem) {
+        return prevCart.map((item) =>
+          item._id === product._id
+            ? {
+                ...item,
+                quantity: Math.min(item.quantity + 1, product.quantity),
+              }
+            : item
+        );
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
+  };
 
-    const formData = new FormData(event.target);
-    const reviewData = {
-      rating: Number(formData.get('rating')),
-      comment: formData.get('comment'),
-      reviewerId: user.id,
-      reviewerName: user.name
-    };
+  const removeFromCart = (productId) => {
+    setCart((prevCart) => prevCart.filter((item) => item._id !== productId));
+  };
+
+  const updateCartQuantity = (productId, newQuantity) => {
+    const product = products.find((p) => p._id === productId);
+    if (!product) return;
+
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item._id === productId
+          ? {
+              ...item,
+              quantity: Math.min(Math.max(1, newQuantity), product.quantity),
+            }
+          : item
+      )
+    );
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const handlePurchase = async () => {
+    setProcessingPurchase(true);
+    try {
+      for (const item of cart) {
+        await axios.post(
+          `${API_URL}/products/purchase`,
+          {
+            userId,
+            productId: item._id,
+            quantity: item.quantity,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+      const newBalance = userWallet - getCartTotal();
+      localStorage.setItem(
+        "tourist",
+        JSON.stringify({
+          ...touristData,
+          wallet: newBalance,
+        })
+      );
+
+      setUserWallet(newBalance);
+      setCart([]);
+      setShowCart(false);
+      await fetchProducts();
+      alert("Purchase successful!");
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to complete purchase");
+    } finally {
+      setProcessingPurchase(false);
+    }
+  };
+
+  const handleReview = async () => {
+    if (!rating || !selectedProduct) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/products/${selectedProduct._id}`,
-        reviewData,
+      await axios.post(
+        `${API_URL}/products/${selectedProduct._id}/review`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          reviewerName: userId,
+          rating,
+          comment: review,
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
 
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product._id === selectedProduct._id ? response.data.product : product
-        )
-      );
-
+      alert("Review submitted successfully!");
       setShowReviewModal(false);
-      alert("Review added successfully!");
+      await fetchProducts();
     } catch (error) {
-      console.error("Error adding review:", error);
-      if (error.response?.status === 401) {
-        alert("Please log in to add a review");
-      } else {
-        alert("Failed to add review. Please try again.");
-      }
+      alert(error.response?.data?.message || "Failed to submit review");
     }
   };
 
-  const convertPrice = (price) => {
-    return (price * currencyRates[currency]).toFixed(2);
-  };
+  if (loading) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </Container>
+    );
+  }
 
-  const handleReviewClick = () => {
-    if (!user) {
-      alert("Please log in to add a review");
-      return;
-    }
-    setShowReviewModal(true);
-  };
+  if (error) {
+    return (
+      <Container className="mt-5">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
+  }
 
   return (
-    <Container>
-      <h1 className="my-4">Product Catalog</h1>
+    <Container className="py-4">
+      {/* Wallet Balance Display */}
+      <div className="bg-light p-3 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
+        <div className="d-flex align-items-center">
+          <FaWallet className="text-primary me-2" size={24} />
+          <div>
+            <h4 className="mb-0">Wallet Balance</h4>
+            <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+          </div>
+        </div>
+        <div className="d-flex gap-3">
+          <Form.Select
+            className="w-auto"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            <option value="USD">USD</option>
+            <option value="EGP">EGP</option>
+            <option value="SAR">SAR</option>
+            <option value="AED">AED</option>
+          </Form.Select>
+          <Button
+            variant="primary"
+            onClick={() => setShowCart(true)}
+            className="position-relative"
+          >
+            <FaShoppingCart className="me-2" />
+            Cart
+            {cart.length > 0 && (
+              <Badge
+                bg="danger"
+                className="position-absolute top-0 start-100 translate-middle"
+              >
+                {cart.length}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </div>
 
-      <Row className="mb-3">
-        <Col md={3}>
-          <Form.Control
-            type="text"
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Filters */}
+      <Row className="mb-4 g-3">
+        <Col md={4}>
+          <InputGroup>
+            <InputGroup.Text>
+              <FaSearch />
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
         </Col>
         <Col md={3}>
           <Form.Select
@@ -192,128 +345,285 @@ function ProductTouristPage() {
             <option value={5}>5 Stars</option>
           </Form.Select>
         </Col>
-        <Col md={3}>
-          <Form.Control
-            type="number"
-            placeholder="Min Price"
-            value={priceFilter.min}
-            onChange={(e) =>
-              setPriceFilter({ ...priceFilter, min: e.target.value })
-            }
-          />
-        </Col>
-        <Col md={3}>
-          <Form.Control
-            type="number"
-            placeholder="Max Price"
-            value={priceFilter.max}
-            onChange={(e) =>
-              setPriceFilter({ ...priceFilter, max: e.target.value })
-            }
-          />
-        </Col>
-      </Row>
-
-      <Row className="mb-3">
-        <Col md={3}>
-          <Form.Select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            <option value="USD">USD</option>
-            <option value="EGP">EGP</option>
-            <option value="SAR">SAR</option>
-            <option value="AED">AED</option>
-          </Form.Select>
+        <Col md={5}>
+          <InputGroup>
+            <Form.Control
+              type="number"
+              placeholder="Min Price"
+              value={priceFilter.min}
+              onChange={(e) =>
+                setPriceFilter({ ...priceFilter, min: e.target.value })
+              }
+            />
+            <Form.Control
+              type="number"
+              placeholder="Max Price"
+              value={priceFilter.max}
+              onChange={(e) =>
+                setPriceFilter({ ...priceFilter, max: e.target.value })
+              }
+            />
+          </InputGroup>
         </Col>
       </Row>
 
-      <Row>
+      {/* Products Grid */}
+      <Row xs={1} md={2} lg={3} className="g-4">
         {filteredProducts.map((product) => (
-          <Col md={6} lg={4} key={product._id} className="mb-4">
-            <Card>
-              <Card.Img variant="top" src={product.imageUrl} />
+          <Col key={product._id}>
+            <Card className="h-100">
+              {product.productImage && product.productImage[0] && (
+                <Card.Img
+                  variant="top"
+                  src={product.productImage[0].path}
+                  style={{ height: "200px", objectFit: "cover" }}
+                />
+              )}
               <Card.Body>
                 <Card.Title>{product.name}</Card.Title>
                 <Card.Text>{product.description}</Card.Text>
-                <Card.Text>Price: {convertPrice(product.price)} {currency}</Card.Text>
-                <Card.Text>Quantity: {product.quantity}</Card.Text>
-                <Card.Text>Seller: {product.seller}</Card.Text>
-                <Card.Text>
-                  Average Rating:{" "}
-                  {product.reviews.length > 0
-                    ? (
-                        product.reviews.reduce(
-                          (sum, review) => sum + review.rating,
-                          0
-                        ) / product.reviews.length
-                      ).toFixed(1)
-                    : "No ratings yet"}{" "}
-                  ({product.reviews.length} reviews)
-                </Card.Text>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setSelectedProduct(product);
-                    handleReviewClick();
-                  }}
-                >
-                  Add Review
-                </Button>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">
+                    {currency}{" "}
+                    {(product.price * currencyRates[currency]).toFixed(2)}
+                  </h5>
+                  <Badge bg={product.quantity > 0 ? "success" : "danger"}>
+                    {product.quantity > 0
+                      ? `In Stock: ${product.quantity}`
+                      : "Out of Stock"}
+                  </Badge>
+                </div>
+                <div className="d-flex gap-2">
+                  <Button
+                    variant="primary"
+                    className="flex-grow-1"
+                    disabled={product.quantity === 0}
+                    onClick={() => addToCart(product)}
+                  >
+                    <FaShoppingCart className="me-2" />
+                    Add to Cart
+                  </Button>
+                  <Button
+                    variant="outline-primary"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setRating(0);
+                      setReview("");
+                      setShowReviewModal(true);
+                    }}
+                  >
+                    <FaStar className="me-2" />
+                    Review
+                  </Button>
+                </div>
               </Card.Body>
               <Card.Footer>
-                <h5>Reviews</h5>
-                {product.reviews.length > 0 ? (
-                  <ListGroup variant="flush">
-                    {product.reviews.map((review, index) => (
-                      <ListGroup.Item key={index}>
-                        <div>
-                          <strong>Rating: {review.rating}/5</strong>
-                        </div>
-                        <div>
-                          <strong>Reviewer:</strong> {review.reviewerName}
-                        </div>
-                        <div>{review.comment}</div>
-                        <small className="text-muted">
-                          {new Date(review.timestamp).toLocaleDateString()}
-                        </small>
-                      </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-                ) : (
-                  <p>No reviews yet.</p>
-                )}
+                <small className="text-muted">
+                  Rating:{" "}
+                  {product.reviews && product.reviews.length > 0
+                    ? `${(
+                        product.reviews.reduce((sum, r) => sum + r.rating, 0) /
+                        product.reviews.length
+                      ).toFixed(1)} / 5`
+                    : "No ratings yet"}
+                  ({product.reviews ? product.reviews.length : 0} reviews)
+                </small>
               </Card.Footer>
             </Card>
           </Col>
         ))}
       </Row>
 
-      {/* Add Review Modal */}
+      {/* Review Modal */}
       <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
+          <Modal.Title>Review Product</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={handleAddReview}>
-            <Form.Group className="mb-3">
-              <Form.Label>Rating</Form.Label>
-              <Form.Select name="rating" required>
-                <option value="1">1 Star</option>
-                <option value="2">2 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="5">5 Stars</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Comment</Form.Label>
-              <Form.Control as="textarea" name="comment" required />
-            </Form.Group>
-            <Button type="submit">Submit Review</Button>
-          </Form>
+          {selectedProduct && (
+            <>
+              <h5>{selectedProduct.name}</h5>
+              <Form.Group className="mb-3">
+                <Form.Label>Rating</Form.Label>
+                <div className="d-flex gap-2 mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                      key={star}
+                      className={`cursor-pointer ${
+                        star <= rating ? "text-warning" : "text-secondary"
+                      }`}
+                      style={{ cursor: "pointer" }}
+                      size={24}
+                      onClick={() => setRating(star)}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Review</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="Share your thoughts about this product..."
+                />
+              </Form.Group>
+            </>
+          )}
         </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleReview} disabled={!rating}>
+            Submit Review
+          </Button>
+        </Modal.Footer>
       </Modal>
+
+      {/* Cart Offcanvas */}
+      <Offcanvas
+        show={showCart}
+        onHide={() => setShowCart(false)}
+        placement="end"
+      >
+        <Offcanvas.Header closeButton>
+          <Offcanvas.Title>Shopping Cart</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body>
+          {cart.length === 0 ? (
+            <Alert variant="info">Your cart is empty</Alert>
+          ) : (
+            <>
+              {cart.map((item) => (
+                <Card key={item._id} className="mb-3">
+                  <Card.Body>
+                    <div className="d-flex">
+                      {item.productImage && item.productImage[0] && (
+                        <img
+                          src={item.productImage[0].path}
+                          alt={item.name}
+                          style={{
+                            width: "80px",
+                            height: "80px",
+                            objectFit: "cover",
+                          }}
+                          className="me-3"
+                        />
+                      )}
+                      <div className="flex-grow-1">
+                        <Card.Title className="h6">{item.name}</Card.Title>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="d-flex align-items-center">
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={() =>
+                                updateCartQuantity(item._id, item.quantity - 1)
+                              }
+                            >
+                              <FaMinus size={12} />
+                            </Button>
+                            <span className="mx-2">{item.quantity}</span>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={() =>
+                                updateCartQuantity(item._id, item.quantity + 1)
+                              }
+                              disabled={item.quantity >= item.availableQuantity}
+                            >
+                              <FaPlus size={12} />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => removeFromCart(item._id)}
+                          >
+                            <FaTrash />
+                          </Button>
+                        </div>
+                        <div className="text-end text-primary fw-bold">
+                          {currency}{" "}
+                          {(
+                            item.price *
+                            currencyRates[currency] *
+                            item.quantity
+                          ).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+
+              <div className="border-top pt-3 mt-3">
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Subtotal:</span>
+                  <span className="fw-bold">
+                    {currency}{" "}
+                    {(getCartTotal() * currencyRates[currency]).toFixed(2)}
+                  </span>
+                </div>
+                <div className="d-flex justify-content-between mb-3">
+                  <span>Wallet Balance:</span>
+                  <span
+                    className={`fw-bold ${
+                      userWallet >= getCartTotal()
+                        ? "text-success"
+                        : "text-danger"
+                    }`}
+                  >
+                    {currency}{" "}
+                    {(userWallet * currencyRates[currency]).toFixed(2)}
+                  </span>
+                </div>
+
+                {userWallet < getCartTotal() && (
+                  <Alert variant="danger" className="mb-3">
+                    Insufficient wallet balance
+                  </Alert>
+                )}
+
+                <Button
+                  variant="primary"
+                  className="w-100"
+                  disabled={
+                    cart.length === 0 ||
+                    processingPurchase ||
+                    userWallet < getCartTotal()
+                  }
+                  onClick={handlePurchase}
+                >
+                  {processingPurchase ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Purchase (${currency} ${(
+                      getCartTotal() * currencyRates[currency]
+                    ).toFixed(2)})`
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </Offcanvas.Body>
+      </Offcanvas>
+
+      {/* Empty State */}
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-5">
+          <FaSearch size={48} className="text-muted mb-3" />
+          <h4>No Products Found</h4>
+          <p className="text-muted">
+            Try adjusting your search or filter criteria
+          </p>
+        </div>
+      )}
     </Container>
   );
 }

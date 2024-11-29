@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaTrash, FaExclamationTriangle } from "react-icons/fa";
+
 // Redeemption Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
@@ -57,10 +58,7 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
         );
         setPointsToRedeem("");
 
-        // Update parent components
         if (onRedeem) onRedeem();
-
-        // Fetch updated loyalty status
         await fetchUpdatedStatus(user.id, token);
       }
     } catch (err) {
@@ -125,10 +123,15 @@ const MyProfile = () => {
   const [touristLevel, setTouristLevel] = useState("null");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  const [isDeletionChecking, setIsDeletionChecking] = useState(false);
+  const [preferenceTags, setPreferenceTags] = useState([]);
+
+  const [selectedPreferences, setSelectedPreferences] = useState([]);
   const navigate = useNavigate();
 
-  // Account Deletion Modal
+  // Get user data from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = localStorage.getItem("token");
+
   const DeleteAccountModal = () => {
     const [confirmText, setConfirmText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
@@ -150,7 +153,6 @@ const MyProfile = () => {
           throw new Error("User ID not found");
         }
 
-        // First check if deletion is possible
         const checkResponse = await axios.get(
           `http://localhost:5000/api/tourist/check-deletion/${user.id}`,
           {
@@ -166,7 +168,6 @@ const MyProfile = () => {
           return;
         }
 
-        // If checks pass, proceed with deletion
         const deleteResponse = await axios.delete(
           `http://localhost:5000/api/tourist/delete/${user.id}`,
           {
@@ -191,6 +192,7 @@ const MyProfile = () => {
         setIsDeleting(false);
       }
     };
+
     return (
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
         <Modal.Header closeButton className="bg-danger text-white">
@@ -250,6 +252,24 @@ const MyProfile = () => {
     );
   };
 
+  // Fetch preference tags
+  const fetchPreferenceTags = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/api/preference-tags",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setPreferenceTags(response.data);
+    } catch (err) {
+      console.error("Error fetching preference tags:", err);
+      setError("Failed to load preference tags");
+    }
+  };
+
   const fetchLoyaltyStatus = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -274,15 +294,12 @@ const MyProfile = () => {
       console.error("Error fetching loyalty status:", error);
     }
   };
+
   const handleLoyaltyUpdate = (newStatus) => {
     setLoyaltyPoints(newStatus.points);
     setTouristLevel(newStatus.level);
-    fetchProfile(); // Refresh the entire profile to get updated wallet balance
+    fetchProfile();
   };
-
-  // Get user data from localStorage
-  const user = JSON.parse(localStorage.getItem("user"));
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     if (!user || !token) {
@@ -290,6 +307,7 @@ const MyProfile = () => {
     } else {
       fetchProfile();
       fetchLoyaltyStatus();
+      fetchPreferenceTags();
     }
     const storedPoints = JSON.parse(localStorage.getItem("loyaltyPoints"));
     const storedLevel = JSON.parse(localStorage.getItem("touristLevel"));
@@ -310,6 +328,12 @@ const MyProfile = () => {
       );
 
       setProfile(response.data.tourist);
+      // Convert preferences to array of IDs if they exist
+      const preferences = response.data.tourist.preferences || [];
+      const preferenceIds = preferences.map((pref) =>
+        typeof pref === "object" ? pref._id : pref
+      );
+      setSelectedPreferences(preferenceIds);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -332,7 +356,7 @@ const MyProfile = () => {
           jobStatus: profile?.jobStatus,
           jobTitle:
             profile?.jobStatus === "job" ? profile?.jobTitle : undefined,
-          preferences: profile?.preferences,
+          preferences: selectedPreferences,
         },
         {
           headers: {
@@ -360,33 +384,15 @@ const MyProfile = () => {
     }));
   };
 
-  const handlePreferencesChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (type === "checkbox") {
-      setProfile((prev) => {
-        const newTripTypes = checked
-          ? [...(prev.preferences.tripTypes || []), value]
-          : prev.preferences.tripTypes.filter((type) => type !== value);
-        return {
-          ...prev,
-          preferences: {
-            ...prev.preferences,
-            tripTypes: newTripTypes,
-          },
-        };
-      });
-    } else {
-      setProfile((prev) => ({
-        ...prev,
-        preferences: {
-          ...prev.preferences,
-          [name]: value,
-        },
-      }));
-    }
+  const handlePreferenceChange = (preferenceId) => {
+    setSelectedPreferences((prev) => {
+      if (prev.includes(preferenceId)) {
+        return prev.filter((id) => id !== preferenceId);
+      } else {
+        return [...prev, preferenceId];
+      }
+    });
   };
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -478,7 +484,6 @@ const MyProfile = () => {
                     <Col>{profile?.wallet} EGP</Col>
                   </Row>
 
-                  {/* Loyalty Information */}
                   <Row className="mb-3">
                     <Col sm={4}>
                       <strong>Loyalty Points:</strong>
@@ -492,25 +497,19 @@ const MyProfile = () => {
                     <Col>{touristLevel}</Col>
                   </Row>
 
-                  {/* Vacation Preferences */}
-                  <h4 className="mt-4">Vacation Preferences</h4>
+                  <h4 className="mt-4">Travel Preferences</h4>
                   <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Budget Limit:</strong>
+                    <Col>
+                      {Array.isArray(selectedPreferences) &&
+                      selectedPreferences.length > 0
+                        ? preferenceTags
+                            .filter((tag) =>
+                              selectedPreferences.includes(tag._id)
+                            )
+                            .map((tag) => tag.name)
+                            .join(", ")
+                        : "No preferences selected"}
                     </Col>
-                    <Col>{profile?.preferences?.budgetLimit}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Preferred Destinations:</strong>
-                    </Col>
-                    <Col>{profile?.preferences?.preferredDestinations}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Trip Types:</strong>
-                    </Col>
-                    <Col>{profile?.preferences?.tripTypes?.join(", ")}</Col>
                   </Row>
 
                   {/* Loyalty Points Redemption */}
@@ -527,7 +526,7 @@ const MyProfile = () => {
                   >
                     Edit Profile
                   </Button>
-                  {/* Delete Account Section */}
+
                   <hr className="my-4" />
                   <div className="text-center">
                     <Button
@@ -540,7 +539,6 @@ const MyProfile = () => {
                     </Button>
                   </div>
 
-                  {/* Delete Account Modal */}
                   <DeleteAccountModal />
                 </div>
               ) : (
@@ -600,46 +598,21 @@ const MyProfile = () => {
                     </Form.Group>
                   )}
 
-                  {/* Preferences Section */}
-                  <h4 className="mt-4">Vacation Preferences</h4>
+                  <h4 className="mt-4">Travel Preferences</h4>
                   <Form.Group className="mb-3">
-                    <Form.Label>Budget Limit</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="budgetLimit"
-                      value={profile?.preferences?.budgetLimit || ""}
-                      onChange={(e) => handlePreferencesChange(e)}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Preferred Destinations</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="preferredDestinations"
-                      value={profile?.preferences?.preferredDestinations || ""}
-                      onChange={(e) => handlePreferencesChange(e)}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Trip Types</Form.Label>
-                    <div>
-                      {["Adventure", "Relaxation", "Cultural", "Nature"].map(
-                        (type) => (
-                          <Form.Check
-                            key={type}
-                            type="checkbox"
-                            label={type}
-                            value={type}
-                            checked={profile?.preferences?.tripTypes?.includes(
-                              type
-                            )}
-                            onChange={(e) => handlePreferencesChange(e)}
-                          />
-                        )
-                      )}
-                    </div>
+                    {preferenceTags.map((tag) => (
+                      <Form.Check
+                        key={tag._id}
+                        type="checkbox"
+                        label={tag.name}
+                        checked={
+                          Array.isArray(selectedPreferences) &&
+                          selectedPreferences.includes(tag._id)
+                        }
+                        onChange={() => handlePreferenceChange(tag._id)}
+                        className="mb-2"
+                      />
+                    ))}
                   </Form.Group>
 
                   <div className="mt-4">

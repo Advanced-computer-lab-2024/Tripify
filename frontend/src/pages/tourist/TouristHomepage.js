@@ -68,6 +68,12 @@ const TouristHomePage = () => {
       variant: "primary",
     },
     {
+      to: "/tourist/purchases",
+      label: "My Purchases",
+      icon: <FaShoppingBag />,
+      variant: "primary",
+    },
+    {
       to: "/tourist/view-bookings",
       label: "View Bookings",
       icon: <FaMap />,
@@ -109,21 +115,13 @@ const TouristHomePage = () => {
           </div>
 
           {Object.entries(menuCategories).map(([category, items]) => (
-            <div
-              key={category}
-              className="mb-4"
-            >
+            <div key={category} className="mb-4">
               <h3 className="mb-3 text-primary border-bottom pb-2">
                 {category}
               </h3>
               <Row className="g-4 justify-content-center">
                 {items.map((item, index) => (
-                  <Col
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    key={index}
-                  >
+                  <Col xs={12} sm={6} md={4} key={index}>
                     <Link
                       to={item.to}
                       className={`btn btn-${item.variant} w-100 d-flex align-items-center justify-content-center gap-2 p-3`}
