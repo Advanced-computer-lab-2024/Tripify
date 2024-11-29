@@ -84,8 +84,13 @@ const touristSchema = new mongoose.Schema({
     default: 0,
   },
   preferences: {
-    type: preferenceSchema,
-    default: {},
+    type: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PreferenceTag",
+      },
+    ],
+    default: [], // Set default value as empty array
   },
   loyaltypoints: {
     type: Number,
