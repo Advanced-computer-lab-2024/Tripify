@@ -5,8 +5,8 @@ import cors from "cors";
 import path from "path"; // Import path module
 import { connectDB } from "./config/db.js";
 import Preference from "./models/preference.model.js"; // Imported for handling preferences
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 // Other imports for routes
 import activityRoutes from "./routes/activity.route.js";
@@ -27,11 +27,8 @@ import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
 
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 
 dotenv.config();
 
@@ -55,7 +52,7 @@ connectDB()
   });
 
 // Serve static files (uploaded documents) from the 'uploads' folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Ensure this line is correct
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Ensure this line is correct
 
 // Routes configuration
 app.use("/api/activities", activityRoutes);
@@ -63,7 +60,8 @@ app.use("/api/itineraries", itineraryRoutes);
 app.use("/api/historicalplace", historicalplacesRoutes);
 app.use("/api/tourist", touristRoutes);
 app.use("/api/tourguide", tourguideRoutes);
-app.use("/api/tourismGovernor", tourismGovernorRoutes);
+app.use("/api/toursimGovernor", tourismGovernorRoutes);
+
 app.use("/api/seller", sellerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/advertiser", advertiserRoutes);
