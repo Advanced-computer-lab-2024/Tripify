@@ -59,6 +59,8 @@ import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
+// Import the new component for filtering historical places
+import FilterHistoricalPlaces from "./pages/tourist/FilterHistoricalPlaces"; // New component
 
 function App() {
   return (
@@ -102,6 +104,11 @@ function App() {
           <Route
             path="/tourist/change-password"
             element={<TouristChangePassword />}
+          />
+          {/* New Route for Filtering Historical Places */}
+          <Route
+            path="/tourist/filter-historical-places"
+            element={<FilterHistoricalPlaces />}
           />
           {/* Review System Routes */}
           <Route
