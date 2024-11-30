@@ -551,36 +551,43 @@ export const rateTourGuide = async (req, res) => {
   }
 };
 
+// Example for tourist controller - apply similar fixes to other user controllers
 export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const tourist = await Tourist.findByIdAndUpdate(_id, {
-      password: hashedPassword,
-    });
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
 
-    if (!tourist) {
-      return res.status(404).send("Admin not found");
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
     }
 
-    // Compare the current password with the stored password
-    const isMatch = await tourist.comparePassword(currentPassword);
+    // First find the user with current password
+    const user = await Tourist.findById(_id).select("+password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    // Hash the new password
+    user.password = newPassword; // The pre-save middleware will hash this
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
   }
 };
-
 // Add these functions to tourist.controller.js
 
 // Check if tourist can delete their account

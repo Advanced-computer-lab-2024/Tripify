@@ -7,7 +7,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
-
 dotenv.config();
 
 // Generate JWT Token with admin role
@@ -58,33 +57,42 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
+// In admin.controller.js
+
 export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const admin = await Admin.findByIdAndUpdate(_id, {
-      password: hashedPassword,
-    });
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
 
-    if (!admin) {
-      return res.status(404).send("Admin not found");
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
     }
 
-    // Compare the current password with the stored password
+    // Find the admin and explicitly select the password field
+    const admin = await Admin.findById(_id).select("+password");
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    // Verify current password
     const isMatch = await admin.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    // Set new password (it will be hashed by the pre-save middleware)
+    admin.password = newPassword;
+    await admin.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
   }
 };
 // Login an Admin
@@ -227,8 +235,9 @@ export const getAdminProfile = async (req, res) => {
 // Get unverified sellers
 export const getUnverifiedSellers = async (req, res) => {
   try {
-    const sellers = await Seller.find({ isVerified: false })
-      .select('username email createdAt businessLicense identificationDocument isVerified');
+    const sellers = await Seller.find({ isVerified: false }).select(
+      "username email createdAt businessLicense identificationDocument isVerified"
+    );
     res.json(sellers);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -238,8 +247,9 @@ export const getUnverifiedSellers = async (req, res) => {
 // Get unverified advertisers
 export const getUnverifiedAdvertisers = async (req, res) => {
   try {
-    const advertisers = await Advertiser.find({ isVerified: false })
-      .select('username email createdAt businessLicense identificationDocument isVerified');
+    const advertisers = await Advertiser.find({ isVerified: false }).select(
+      "username email createdAt businessLicense identificationDocument isVerified"
+    );
     res.json(advertisers);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -249,8 +259,9 @@ export const getUnverifiedAdvertisers = async (req, res) => {
 // Get unverified tour guides
 export const getUnverifiedTourGuides = async (req, res) => {
   try {
-    const tourGuides = await TourGuide.find({ isVerified: false })
-      .select('username email createdAt identificationDocument certificate isVerified');
+    const tourGuides = await TourGuide.find({ isVerified: false }).select(
+      "username email createdAt identificationDocument certificate isVerified"
+    );
     res.json(tourGuides);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -265,13 +276,15 @@ export const verifySeller = async (req, res) => {
 
     const seller = await Seller.findById(id);
     if (!seller) {
-      return res.status(404).json({ message: 'Seller not found' });
+      return res.status(404).json({ message: "Seller not found" });
     }
 
     seller.isVerified = isApproved;
     await seller.save();
 
-    res.json({ message: `Seller ${isApproved ? 'approved' : 'rejected'} successfully` });
+    res.json({
+      message: `Seller ${isApproved ? "approved" : "rejected"} successfully`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -285,13 +298,17 @@ export const verifyAdvertiser = async (req, res) => {
 
     const advertiser = await Advertiser.findById(id);
     if (!advertiser) {
-      return res.status(404).json({ message: 'Advertiser not found' });
+      return res.status(404).json({ message: "Advertiser not found" });
     }
 
     advertiser.isVerified = isApproved;
     await advertiser.save();
 
-    res.json({ message: `Advertiser ${isApproved ? 'approved' : 'rejected'} successfully` });
+    res.json({
+      message: `Advertiser ${
+        isApproved ? "approved" : "rejected"
+      } successfully`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -305,13 +322,17 @@ export const verifyTourGuide = async (req, res) => {
 
     const tourGuide = await TourGuide.findById(id);
     if (!tourGuide) {
-      return res.status(404).json({ message: 'Tour guide not found' });
+      return res.status(404).json({ message: "Tour guide not found" });
     }
 
     tourGuide.isVerified = isApproved;
     await tourGuide.save();
 
-    res.json({ message: `Tour guide ${isApproved ? 'approved' : 'rejected'} successfully` });
+    res.json({
+      message: `Tour guide ${
+        isApproved ? "approved" : "rejected"
+      } successfully`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
