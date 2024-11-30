@@ -49,6 +49,7 @@ import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
+import ArchivedProducts from "./pages/product/ArchivedProduct";
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
 import AdminChangePassword from "./changePassword/AdminChangePassword";
@@ -158,6 +159,12 @@ function App() {
             path="/admin/change-password"
             element={<AdminChangePassword />}
           />
+          <Route
+            path="/admin/products/archived"
+            element={
+                <ArchivedProducts />
+            }
+          />
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
@@ -204,6 +211,12 @@ function App() {
           <Route
             path="/seller/change-password"
             element={<SellerChangePassword />}
+          />
+           <Route
+            path="/seller/products/archived"
+            element={
+                <ArchivedProducts />
+            }
           />
           {/* Registration Routes */}
           <Route path="/register/admin" element={<AdminRegister />} />

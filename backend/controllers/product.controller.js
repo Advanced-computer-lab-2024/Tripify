@@ -350,3 +350,168 @@ export const addPurchaseReview = async (req, res) => {
     });
   }
 };
+
+export const getProductsForTourists = async (req, res) => {
+  try {
+    const products = await Product.find({ isArchived: false }).sort({
+      createdAt: -1,
+    });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// Get All Products (Admin/Seller views showing archived status)
+export const getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const toggleArchiveProduct = async (req, res) => {
+  const { productId } = req.params;
+  const { isArchived } = req.body;
+  const userRole = req.user.role;
+  try {
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    // Check permissions
+    if (userRole === "seller" && product.seller !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You don't have permission to archive this product",
+      });
+    }
+    product.isArchived = isArchived;
+    product.archivedAt = isArchived ? new Date() : null;
+    product.archivedBy = req.user._id;
+    await product.save();
+    res.status(200).json({
+      message: `Product ${isArchived ? "archived" : "unarchived"} successfully`,
+      product,
+    });
+  } catch (error) {
+    console.error("Error in toggleArchiveProduct:", error);
+    res.status(500).json({
+      message: "Error toggling product archive status",
+      error: error.message,
+    });
+  }
+};
+
+
+export const getArchivedProducts = async (req, res) => {
+    try {
+        console.log('Starting getArchivedProducts controller');
+        console.log('Query parameters:', req.query);
+
+        // Extract pagination parameters with validation
+        let page = 1;
+        let limit = 10;
+
+        try {
+            if (req.query.page) {
+                page = Math.max(1, parseInt(req.query.page));
+            }
+            if (req.query.limit) {
+                limit = Math.max(1, Math.min(100, parseInt(req.query.limit)));
+            }
+        } catch (parseError) {
+            console.log('Error parsing pagination parameters:', parseError);
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid pagination parameters'
+            });
+        }
+
+        const skip = (page - 1) * limit;
+        console.log('Pagination values:', { page, limit, skip });
+
+        // Build query
+        const query = { isArchived: true };
+        console.log('Query object:', query);
+
+        // Get total count
+        const totalProducts = await Product.countDocuments(query);
+        console.log('Total products count:', totalProducts);
+
+        // Fetch archived products
+        const archivedProducts = await Product.find(query)
+            .select('-__v') // Exclude version key
+            .populate({
+                path: 'reviewerName',
+                select: 'name',
+                options: { strictPopulate: false } // Make population less strict
+            })
+            .populate({
+                path: 'archivedBy',
+                select: 'name',
+                options: { strictPopulate: false }
+            })
+            .skip(skip)
+            .limit(limit)
+            .sort({ archivedAt: -1 })
+            .lean(); // Convert to plain JavaScript objects for better performance
+
+        console.log('Retrieved products count:', archivedProducts.length);
+
+        if (!archivedProducts.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'No archived products found'
+            });
+        }
+
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                products: archivedProducts,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalProducts,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1,
+                    limit
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Detailed error in getArchivedProducts:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        
+        // Handle specific types of errors
+        if (error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid ID format',
+                error: error.message
+            });
+        }
+
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation Error',
+                error: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+        });
+    }
+};
