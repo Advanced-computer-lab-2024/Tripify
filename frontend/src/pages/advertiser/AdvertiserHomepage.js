@@ -32,7 +32,7 @@ const AdvertiserHomepage = () => {
         }
 
         const decoded = jwtDecode(token);
-        
+
         // Fetch current user data
         const response = await axios.get(
           `http://localhost:5000/api/advertiser/profile/${decoded.username}`,
@@ -70,7 +70,7 @@ const AdvertiserHomepage = () => {
         }
       );
 
-      setAdvertiserInfo(prev => ({ ...prev, TandC: true }));
+      setAdvertiserInfo((prev) => ({ ...prev, TandC: true }));
     } catch (error) {
       console.error("Error accepting T&C:", error);
       setError("Failed to accept Terms and Conditions. Please try again.");
@@ -139,27 +139,41 @@ const AdvertiserHomepage = () => {
   if (advertiserInfo && !advertiserInfo.TandC) {
     return (
       <Container fluid className="p-5">
-        <Modal show={true} backdrop="static" keyboard={false} centered size="lg">
+        <Modal
+          show={true}
+          backdrop="static"
+          keyboard={false}
+          centered
+          size="lg"
+        >
           <Modal.Header>
             <Modal.Title>Terms and Conditions</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div className="terms-content" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <div
+              className="terms-content"
+              style={{ maxHeight: "400px", overflowY: "auto" }}
+            >
               <h5>Please read and accept our Terms and Conditions</h5>
               <p>1. Account Responsibilities</p>
               <ul>
-                <li>You are responsible for maintaining accurate and up-to-date information</li>
-                <li>All activities must comply with local laws and regulations</li>
+                <li>
+                  You are responsible for maintaining accurate and up-to-date
+                  information
+                </li>
+                <li>
+                  All activities must comply with local laws and regulations
+                </li>
                 <li>You must maintain appropriate licenses and permits</li>
               </ul>
-              
+
               <p>2. Content Guidelines</p>
               <ul>
                 <li>All posted content must be accurate and truthful</li>
                 <li>No misleading or fraudulent activities</li>
                 <li>Content must not infringe on any third-party rights</li>
               </ul>
-              
+
               <p>3. Service Standards</p>
               <ul>
                 <li>Maintain professional communication with customers</li>
@@ -176,14 +190,18 @@ const AdvertiserHomepage = () => {
 
               <p>5. Platform Usage</p>
               <ul>
-                <li>Do not engage in activities that could harm the platform</li>
+                <li>
+                  Do not engage in activities that could harm the platform
+                </li>
                 <li>Maintain accurate availability and pricing information</li>
                 <li>Respond to customer inquiries within 24 hours</li>
               </ul>
 
               <p>6. Cancellation and Refunds</p>
               <ul>
-                <li>Clear cancellation policies must be stated for all services</li>
+                <li>
+                  Clear cancellation policies must be stated for all services
+                </li>
                 <li>Process refunds according to stated policies</li>
                 <li>Maintain fair and transparent pricing</li>
               </ul>
@@ -274,6 +292,20 @@ const AdvertiserHomepage = () => {
               <Card.Title>Change Your Password</Card.Title>
               <Link to="/advertiser/change-password">
                 <Button variant="warning">Change Your Password</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Sales Report</Card.Title>
+              <Card.Text>
+                View detailed revenue reports and statistics for your
+                activities.
+              </Card.Text>
+              <Link to="/advertiser/sales-report">
+                <Button variant="primary">View Sales Report</Button>
               </Link>
             </Card.Body>
           </Card>

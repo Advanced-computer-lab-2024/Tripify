@@ -242,7 +242,7 @@ export const getAdvertiserByUsername = async (req, res) => {
       website: advertiser.website,
       hotline: advertiser.hotline,
       companyLogo: advertiser.companyLogo,
-      TandC: advertiser.TandC  // Add this line
+      TandC: advertiser.TandC, // Add this line
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -305,7 +305,6 @@ export const updateAdvertiserByUsername = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Delete Advertiser (Protected Route)
 export const deleteAdvertiser = async (req, res) => {
@@ -386,5 +385,40 @@ export const getAdvertiserActivities = async (req, res) => {
   } catch (error) {
     console.error("Error fetching advertiser activities:", error);
     res.status(500).json({ message: "Error fetching activities" });
+  }
+};
+export const getAdvertiserSalesReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const activities = await Activity.find({
+      createdBy: id,
+      flagged: { $ne: true },
+    });
+
+    const activityIds = activities.map((activity) => activity._id);
+
+    const bookings = await Booking.find({
+      bookingType: "Activity",
+      itemId: { $in: activityIds },
+      status: { $in: ["confirmed", "attended"] },
+    }).populate({
+      path: "itemId",
+      select: "price name",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        bookings,
+        activities,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching sales report:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching sales data",
+    });
   }
 };

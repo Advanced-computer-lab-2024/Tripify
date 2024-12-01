@@ -47,11 +47,11 @@ const TourguideHomePage = () => {
       const token = localStorage.getItem("token");
       const decodedToken = jwtDecode(token);
       const username = decodedToken.username; // Use username instead of ID
-  
+
       await axios.put(
         `http://localhost:5000/api/tourguide/profile/${username}`,
         {
-          TandC: true
+          TandC: true,
         },
         {
           headers: {
@@ -59,7 +59,7 @@ const TourguideHomePage = () => {
           },
         }
       );
-  
+
       setShowTandCModal(false);
     } catch (error) {
       console.error("Error accepting T&C:", error);
@@ -119,6 +119,9 @@ const TourguideHomePage = () => {
         <Link to="/tourguide/change-password" className="btn btn-primary m-2">
           Change My Password
         </Link>
+        <Link to="/tourguide/sales-report" className="btn btn-primary m-2">
+          View Sales Report
+        </Link>
         <Button
           variant="danger"
           className="m-2"
@@ -136,10 +139,16 @@ const TourguideHomePage = () => {
         <Modal.Body>
           <div className="text-start mb-4">
             <h5>Please read and accept our Terms and Conditions</h5>
-            <div className="terms-content" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <div
+              className="terms-content"
+              style={{ maxHeight: "300px", overflowY: "auto" }}
+            >
               {/* Add your terms and conditions content here */}
               <p>1. Introduction</p>
-              <p>By using our services, you agree to these terms and conditions...</p>
+              <p>
+                By using our services, you agree to these terms and
+                conditions...
+              </p>
               <p>2. User Responsibilities</p>
               <p>As a tour guide, you are responsible for...</p>
               <p>3. Service Standards</p>
