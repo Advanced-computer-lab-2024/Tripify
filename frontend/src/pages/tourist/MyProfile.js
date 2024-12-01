@@ -12,6 +12,18 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaTrash, FaExclamationTriangle } from "react-icons/fa";
+import "./assets/css/animate.css";
+import "./assets/css/bootstrap-datepicker.css"
+import "./assets/css/bootstrap.min.css"
+import "./assets/css/flaticon.css"
+import "./assets/css/jquery.timepicker.css"
+import "./assets/css/magnific-popup.css"
+import "./assets/css/owl.carousel.min.css"
+import "./assets/css/owl.theme.default.min.css"
+import "./assets/css/style.css";
+import "./assets/css/bootstrap/bootstrap-grid.css"
+import "./assets/css/bootstrap/bootstrap-reboot.css"
+import Navbar from "./components/Navbar";
 // Redeemption Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
@@ -412,7 +424,13 @@ const MyProfile = () => {
   }
 
   return (
-    <Container className="mt-5">
+    <div className="">
+    <Navbar/>
+   
+    <Container className="mt-5"
+        style={{
+          paddingTop: "70px", // Adjust based on your navbar height
+        }}>
       <Row className="justify-content-center">
         <Col md={8}>
           <Card>
@@ -660,6 +678,7 @@ const MyProfile = () => {
         </Col>
       </Row>
     </Container>
+    </div>
   );
 };
 

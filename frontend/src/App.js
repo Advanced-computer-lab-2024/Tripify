@@ -50,7 +50,9 @@ import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
 // Import Bootstrap CSS
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap/dist/css/bootstrap.min.css";
+
 import AdminChangePassword from "./changePassword/AdminChangePassword";
 import AdvertiserChangePassword from "./changePassword/AdvertiserChangePassword";
 import SellerChangePassword from "./changePassword/SellerChangePassword";

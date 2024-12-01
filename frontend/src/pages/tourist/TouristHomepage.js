@@ -13,6 +13,32 @@ import {
   FaComments,
   FaLock,
 } from "react-icons/fa";
+import "./assets/css/animate.css";
+import "./assets/css/owl.carousel.min.css";
+import "./assets/css/owl.theme.default.min.css";
+import "./assets/css/magnific-popup.css";
+import "./assets/css/bootstrap-datepicker.css";
+import "./assets/css/jquery.timepicker.css";
+import "./assets/css/flaticon.css";
+import "./assets/css/bootstrap/bootstrap-grid.css";
+import "./assets/css/bootstrap/bootstrap-reboot.css";
+import "./assets/css/bootstrap.min.css"; // Bootstrap should come last among its files
+import "./assets/css/style.css"; // Custom styles should be last
+
+
+
+import Navbar from "./components/Navbar";
+import HeroSection from "./components/HeroSection";
+import SearchSection from "./components/SearchSection";
+import ServicesSection from "./components/ServicesSection";
+import SelectDestination from "./components/SelectDestination";
+import TourDestinations from "./components/TourDestniations";
+import AboutSection from "./components/AboutSection";
+import AboutUsSection from "./components/AboutUsSection";
+import TestimonialSection from "./components/TestimonialSection";
+import BlogSection from "./components/BlogSection";
+import IntroSection from "./components/IntroSection";
+import Footer from "./components/Footer";
 
 const TouristHomePage = () => {
   const username =
@@ -100,7 +126,20 @@ const TouristHomePage = () => {
   };
 
   return (
-    <Container className="py-5">
+    <>
+    <Navbar/>
+   <HeroSection username={username}/>
+   <SearchSection/>
+   <ServicesSection/>
+   {/* <SelectDestination/> */}
+   <TourDestinations/>
+   <AboutSection/>
+   <AboutUsSection/>
+   {/* <TestimonialSection/> */}
+   <BlogSection/>
+   <IntroSection/>
+   <Footer/>
+    {/* <Container className="py-5">
       <Card className="shadow-sm">
         <Card.Body>
           <div className="text-center mb-4">
@@ -152,7 +191,8 @@ const TouristHomePage = () => {
           ))}
         </Card.Body>
       </Card>
-    </Container>
+    </Container> */}
+    </>
   );
 };
 
