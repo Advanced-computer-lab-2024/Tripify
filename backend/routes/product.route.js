@@ -10,7 +10,11 @@ import {
   purchaseProduct,
   getUserPurchases,
   addPurchaseReview,
+  toggleArchiveProduct,
+  getArchivedProducts,
+  getSellerSales,
 } from "../controllers/product.controller.js";
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -35,4 +39,8 @@ router.post("/purchase", purchaseProduct);
 router.get("/purchases/:userId", getUserPurchases);
 router.post("/purchases/:purchaseId/review", addPurchaseReview);
 
+router.get("/archived", authMiddleware, getArchivedProducts);
+router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
+// Add this to product.route.js
+router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
 export default router;

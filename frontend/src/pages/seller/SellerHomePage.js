@@ -5,7 +5,9 @@ import axios from "axios"; // Make sure axios is imported
 
 const SellerHomePage = () => {
   const [showTandC, setShowTandC] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || {});
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || {}
+  );
   const username = user?.username || "Seller";
 
   useEffect(() => {
@@ -26,7 +28,7 @@ const SellerHomePage = () => {
         `http://localhost:5000/api/seller/profile/${user.id}`,
         { TandC: true },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -62,8 +64,16 @@ const SellerHomePage = () => {
               </Link>
             </Col>
             <Col xs={12} sm={6} md={4}>
-              <Link to="/seller/change-password" className="btn btn-primary w-100">
+              <Link
+                to="/seller/change-password"
+                className="btn btn-primary w-100"
+              >
                 Change My Password
+              </Link>
+            </Col>
+            <Col xs={12} sm={6} md={4}>
+              <Link to="/seller/sales-report" className="btn btn-primary w-100">
+                View Sales Report
               </Link>
             </Col>
           </Row>
@@ -71,37 +81,28 @@ const SellerHomePage = () => {
       </Card>
 
       {/* Terms and Conditions Modal */}
-      <Modal
-        show={showTandC}
-        backdrop="static"
-        keyboard={false}
-        centered
-      >
+      <Modal show={showTandC} backdrop="static" keyboard={false} centered>
         <Modal.Header>
           <Modal.Title>Terms and Conditions</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
             <h5>Please read and accept our Terms and Conditions</h5>
             <p>
-              1. Seller Responsibilities:
-              - Maintain accurate product information
-              - Process orders in a timely manner
-              - Maintain professional communication
-              - Comply with all applicable laws and regulations
+              1. Seller Responsibilities: - Maintain accurate product
+              information - Process orders in a timely manner - Maintain
+              professional communication - Comply with all applicable laws and
+              regulations
             </p>
             <p>
-              2. Product Guidelines:
-              - List only legitimate and legal products
-              - Provide accurate product descriptions
-              - Set fair and transparent pricing
-              - Maintain adequate inventory
+              2. Product Guidelines: - List only legitimate and legal products -
+              Provide accurate product descriptions - Set fair and transparent
+              pricing - Maintain adequate inventory
             </p>
             <p>
-              3. Order Fulfillment:
-              - Process orders within stated timeframes
-              - Provide tracking information when available
-              - Handle returns and refunds according to policy
+              3. Order Fulfillment: - Process orders within stated timeframes -
+              Provide tracking information when available - Handle returns and
+              refunds according to policy
             </p>
             {/* Add more terms as needed */}
           </div>

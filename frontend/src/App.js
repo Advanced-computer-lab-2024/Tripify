@@ -60,6 +60,7 @@ import TouristGovernorChangePassword from "./changePassword/TouristGovernerChang
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
+import SellerSalesReport from "./pages/seller/SellerSalesReport";
 
 function App() {
   return (
@@ -203,6 +204,7 @@ function App() {
             path="/seller/change-password"
             element={<SellerChangePassword />}
           />
+          <Route path="/seller/sales-report" element={<SellerSalesReport />} />
           {/* Registration Routes */}
           <Route path="/register/admin" element={<AdminRegister />} />
           <Route path="/register/tourist" element={<TouristRegister />} />

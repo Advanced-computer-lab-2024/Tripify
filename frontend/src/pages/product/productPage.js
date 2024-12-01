@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import {
   Container,
@@ -9,6 +10,7 @@ import {
   Form,
   Modal,
   ListGroup,
+  Badge
 } from "react-bootstrap";
 
 const API_URL = "http://localhost:5000/api"; // Adjust this to your backend URL
@@ -35,7 +37,11 @@ function ProductPage() {
   const fetchProducts = async () => {
     try {
       const response = await axios.get(`${API_URL}/products`);
-      setProducts(response.data.products);
+      // Filter out archived products in the frontend
+      const activeProducts = response.data.products.filter(
+        (p) => !p.isArchived
+      );
+      setProducts(activeProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -200,6 +206,18 @@ function ProductPage() {
         <Col md={3}>
           <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
         </Col>
+        <Col md={2}>
+          <Link
+            to={
+              localStorage.getItem("userRole") === "admin"
+                ? "/admin/products/archived"
+                : "/seller/products/archived"
+            }
+            className="btn btn-secondary w-100"
+          >
+            View Archived
+          </Link>
+        </Col>
       </Row>
 
       <Row>
@@ -219,6 +237,14 @@ function ProductPage() {
                 <Card.Img variant="top" src={product.imageUrl} />
               )}
               <Card.Body>
+              {product.isArchived && (
+                  <Badge
+                    bg="secondary"
+                    className="mb-2"
+                  >
+                    Archived
+                  </Badge>
+                )}
                 <Card.Title>{product.name}</Card.Title>
                 <Card.Text>{product.description}</Card.Text>
                 <Card.Text>Price: ${product.price}</Card.Text>
@@ -257,6 +283,48 @@ function ProductPage() {
                 >
                   Edit
                 </Button>
+                <Button
+                    variant="secondary"
+                    className="me-2"
+                    onClick={async () => {
+                      if (
+                        window.confirm(
+                          "Are you sure you want to archive this product?"
+                        )
+                      ) {
+                        try {
+                          const token = localStorage.getItem("token");
+                          const userRole = localStorage.getItem("userRole");
+
+                          await axios.put(
+                            `${API_URL}/products/${product._id}/archive`,
+                            {
+                              isArchived: true,
+                              sellerId:
+                                userRole === "seller"
+                                  ? localStorage.getItem("userId")
+                                  : undefined,
+                            },
+                            {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
+                                "User-Role": userRole, // Add role to headers
+                              },
+                            }
+                          );
+                          fetchProducts();
+                        } catch (error) {
+                          console.error("Error archiving product:", error);
+                          alert(
+                            error.response?.data?.message ||
+                              "Error archiving product"
+                          );
+                        }
+                      }
+                    }}
+                  >
+                    Archive
+                  </Button>
                 <Button
                   variant="danger"
                   onClick={() => handleDeleteProduct(product._id)}

@@ -25,6 +25,8 @@
     "multer-gridfs-storage": "^5.0.2",
     "nodemailer": "^6.9.16",
     "path": "^0.12.7"
+    "path": "^0.12.7",
+    "recharts": "^2.13.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

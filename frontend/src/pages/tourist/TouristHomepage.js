@@ -1,6 +1,6 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Link } from "react-router-dom";  // Import Link from react-router-dom
+import { Container, Row, Col, Card, Button } from "react-bootstrap";  // For Bootstrap styling
 import {
   FaPlane,
   FaHotel,
@@ -9,10 +9,8 @@ import {
   FaShoppingBag,
   FaExclamationCircle,
   FaUser,
-  FaStar,
-  FaComments,
   FaLock,
-} from "react-icons/fa";
+} from "react-icons/fa";  // Add icons if needed
 
 const TouristHomePage = () => {
   const username =
@@ -101,8 +99,8 @@ const TouristHomePage = () => {
 
   // Group menu items by category
   const menuCategories = {
-    "Main Services": menuItems.slice(0, 10),
-    Support: menuItems.slice(10),
+    "Main Services": menuItems.slice(0, 10), // The first 10 items go in "Main Services"
+    Support: menuItems.slice(10), // The remaining items go in "Support"
   };
 
   return (
@@ -120,8 +118,8 @@ const TouristHomePage = () => {
                 {category}
               </h3>
               <Row className="g-4 justify-content-center">
-                {items.map((item, index) => (
-                  <Col xs={12} sm={6} md={4} key={index}>
+                {items.map((item) => (
+                  <Col xs={12} sm={6} md={4} key={item.to}>
                     <Link
                       to={item.to}
                       className={`btn btn-${item.variant} w-100 d-flex align-items-center justify-content-center gap-2 p-3`}
@@ -129,6 +127,7 @@ const TouristHomePage = () => {
                         transition: "all 0.3s ease",
                         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                       }}
+                      aria-label={item.label}  // Improved accessibility
                       onMouseOver={(e) => {
                         e.currentTarget.style.transform = "translateY(-2px)";
                         e.currentTarget.style.boxShadow =
@@ -146,6 +145,17 @@ const TouristHomePage = () => {
                   </Col>
                 ))}
               </Row>
+
+              {/* Add Filter Historical Places button in the Main Services section */}
+              {category === "Main Services" && (
+                <div className="text-center mt-4">
+                  <Link to="/tourist/filter-historical-places">
+                    <Button variant="outline-primary" aria-label="Filter Historical Places">
+                      Filter Historical Places by Tags
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
         </Card.Body>

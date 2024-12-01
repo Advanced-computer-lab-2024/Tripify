@@ -3,7 +3,7 @@ import TourGuide from "../models/tourGuide.model.js";
 import Itinerary from "../models/itinerary.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import fs from 'fs';
+import fs from "fs";
 
 dotenv.config();
 
@@ -153,7 +153,7 @@ export const loginTourGuide = async (req, res) => {
 
     const tourGuide = await TourGuide.findOne({
       $or: [{ username }, { email: username }],
-    }).select('+password');
+    }).select("+password");
 
     if (!tourGuide) {
       return res.status(401).json({ message: "Invalid username or password" });
@@ -238,7 +238,8 @@ export const getTourGuideByUsername = async (req, res) => {
 // Update Tour Guide Profile (Protected Route)
 export const updateTourGuideAccount = async (req, res) => {
   const { username } = req.params;
-  const { email, mobileNumber, yearsOfExperience, previousWork, TandC } = req.body;
+  const { email, mobileNumber, yearsOfExperience, previousWork, TandC } =
+    req.body;
 
   try {
     // Check if the requesting user matches the username from token
@@ -290,28 +291,42 @@ export const updateTourGuideAccount = async (req, res) => {
 };
 
 // Change Password (Protected Route)
-export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
+// In tourGuide.controller.js
 
+export const changePassword = async (req, res) => {
   try {
-    const tourGuide = await TourGuide.findById(_id).select('+password');
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
+    }
+
+    // Find the tour guide and explicitly select the password field
+    const tourGuide = await TourGuide.findById(_id).select("+password");
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
+    // Verify current password
     const isMatch = await tourGuide.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    tourGuide.password = newPassword; // Will be hashed by pre-save middleware
+    // Set new password (it will be hashed by the pre-save middleware)
+    tourGuide.password = newPassword;
     await tourGuide.save();
 
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Error changing password:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
   }
 };
 
