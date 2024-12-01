@@ -26,7 +26,7 @@ import flightRoutes from "./routes/flight.route.js";
 import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
-
+import sendEmail from "./utils/sendEmail.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,5 +127,19 @@ router.get("/preferences/:userId", async (req, res) => {
 
 // Attach preferences routes to the application
 app.use("/api/tourist", router);
+
+
+
+
+app.post("/api/notify", async (req, res) => {
+  const { email, message } = req.body;
+
+  try {
+    await sendEmail(email, "Notification", message);
+    res.status(200).json({ success: true, message: "Email sent!" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to send email." });
+  }
+});
 
 export default app;

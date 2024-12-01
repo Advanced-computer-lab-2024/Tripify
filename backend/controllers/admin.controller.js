@@ -3,9 +3,11 @@ import TourGuide from "../models/tourGuide.model.js";
 import Tourist from "../models/tourist.model.js";
 import Advertiser from "../models/advertiser.model.js";
 import Seller from "../models/seller.model.js";
+import PromoCode from "../models/promoCode.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+
 
 
 dotenv.config();
@@ -314,5 +316,91 @@ export const verifyTourGuide = async (req, res) => {
     res.json({ message: `Tour guide ${isApproved ? 'approved' : 'rejected'} successfully` });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const createPromoCode = async (req, res) => {
+  const { code, discount, expiryDate, usageLimit } = req.body;
+
+  if (!code || !discount || !expiryDate || !usageLimit) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    // Check if promo code already exists
+    const existingPromoCode = await PromoCode.findOne({ code });
+    if (existingPromoCode) {
+      return res.status(400).json({ message: "Promo code already exists" });
+    }
+
+    // Create new promo code
+    const newPromoCode = new PromoCode({
+      code,
+      discount,
+      expiryDate,
+      usageLimit,
+    });
+
+    await newPromoCode.save();
+    res.status(201).json({
+      message: "Promo code created successfully",
+      promoCode: newPromoCode,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating promo code", error });
+  }
+};
+
+// Update an existing promo code (Admin Only)
+export const updatePromoCode = async (req, res) => {
+  const { id } = req.params; // Promo code ID from URL
+  const { code, discount, expiryDate, usageLimit, isActive } = req.body;
+
+  try {
+    // Find promo code by ID
+    const promoCode = await PromoCode.findById(id);
+    if (!promoCode) {
+      return res.status(404).json({ message: "Promo code not found" });
+    }
+
+    // Update fields
+    promoCode.code = code || promoCode.code;
+    promoCode.discount = discount || promoCode.discount;
+    promoCode.expiryDate = expiryDate || promoCode.expiryDate;
+    promoCode.usageLimit = usageLimit || promoCode.usageLimit;
+    promoCode.isActive = isActive !== undefined ? isActive : promoCode.isActive;
+
+    await promoCode.save();
+    res.status(200).json({ message: "Promo code updated successfully", promoCode });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating promo code", error });
+  }
+};
+
+// Delete a promo code (Admin Only)
+export const deletePromoCode = async (req, res) => {
+  const { id } = req.params; // Promo code ID from URL
+
+  try {
+    // Find and delete the promo code by ID
+    const promoCode = await PromoCode.findByIdAndDelete(id);
+    if (!promoCode) {
+      return res.status(404).json({ message: "Promo code not found" });
+    }
+
+    res.status(200).json({ message: "Promo code deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting promo code", error });
+  }
+};
+
+// Get all promo codes (Admin Only)
+export const getAllPromoCodes = async (req, res) => {
+  try {
+    const promoCodes = await PromoCode.find();
+    res.status(200).json(promoCodes);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching promo codes", error });
   }
 };

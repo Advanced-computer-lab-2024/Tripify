@@ -372,6 +372,41 @@ const ViewEvents = () => {
             );
             await fetchUserProfile();
             await fetchLoyaltyStatus();
+            const user = JSON.parse(localStorage.getItem("user"));
+          const userEmail = user ? user.email : null;
+
+          if (userEmail) {
+            // Construct email content (a receipt)
+            const emailSubject = "Booking Confirmation - Your Receipt";
+            const emailMessage = `
+              <h3>Booking Confirmation</h3>
+              <p>Thank you for booking with us!</p>
+              <p><strong>Booking Details:</strong></p>
+              <p><strong>Event:</strong> ${item.name}</p>
+              <p><strong>Type:</strong> ${type}</p>
+              <p><strong>Date:</strong> ${formattedBookingDate.toDateString()}</p>
+              <p><strong>Cost:</strong> $${bookingCost}</p>
+              <p>Your wallet has been charged, and the booking is now confirmed.</p>
+              <p>If you have any questions or need further assistance, feel free to contact us.</p>
+            `;
+
+            // Send the email to the user
+            try {
+              await axios.post(
+                "http://localhost:5000/api/notify", 
+                {
+                  email: userEmail,
+                  message: emailMessage,
+                }
+              );
+              console.log("Receipt email sent successfully!");
+            }
+            catch (emailError) {
+              console.error("Error sending receipt email:", emailError);
+            }
+          } else {
+            console.error("User email not found in profile");
+          }
           }
         } catch (paymentError) {
           console.error("Payment error:", paymentError);

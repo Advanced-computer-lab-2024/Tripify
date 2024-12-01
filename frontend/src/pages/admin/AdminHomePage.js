@@ -66,6 +66,12 @@ const AdminHomePage = () => {
         >
           View Documents
         </Link>
+        <Link
+          to="/admin/promo-codes"
+          className="btn btn-primary m-2"
+        >
+          View Promo Codes
+        </Link>
       </div>
     </div>
   );

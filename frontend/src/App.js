@@ -59,6 +59,7 @@ import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
+import PromoCodeManager from "./pages/admin/PromoCodeManager";
 
 function App() {
   return (
@@ -136,6 +137,10 @@ function App() {
           <Route
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
+          />
+          <Route
+            path="/admin/promo-codes"
+            element={<PromoCodeManager />}
           />
           <Route
             path="/admin/preference-tags"
