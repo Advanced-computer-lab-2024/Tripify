@@ -62,6 +62,7 @@ import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
 import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
+import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
 
 function App() {
   return (
@@ -185,6 +186,10 @@ function App() {
           <Route
             path="/advertiser/change-password"
             element={<AdvertiserChangePassword />}
+          />
+          <Route
+            path="/advertiser/sales-report"
+            element={<AdvertiserSalesReport />}
           />
           {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
