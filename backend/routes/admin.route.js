@@ -16,8 +16,11 @@ import {
   updatePromoCode,
   deletePromoCode,
   getAllPromoCodes,
-  triggerBirthdayPromos
-  
+  triggerBirthdayPromos,
+  getItinerarySales,
+  getActivitySales,
+  getProductSales,
+  getHistoricalPlaceSales,
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -39,17 +42,42 @@ router.put(
   changePassword
 );
 
-router.get('/unverified-sellers', authMiddleware, getUnverifiedSellers);
-router.get('/unverified-advertisers', authMiddleware, getUnverifiedAdvertisers);
-router.get('/unverified-tourguides', authMiddleware, getUnverifiedTourGuides);
+router.get("/unverified-sellers", authMiddleware, getUnverifiedSellers);
+router.get("/unverified-advertisers", authMiddleware, getUnverifiedAdvertisers);
+router.get("/unverified-tourguides", authMiddleware, getUnverifiedTourGuides);
 
-router.put('/verify-seller/:id', authMiddleware, verifySeller);
-router.put('/verify-advertiser/:id', authMiddleware, verifyAdvertiser);
-router.put('/verify-tourguide/:id', authMiddleware, verifyTourGuide);
+router.put("/verify-seller/:id", authMiddleware, verifySeller);
+router.put("/verify-advertiser/:id", authMiddleware, verifyAdvertiser);
+router.put("/verify-tourguide/:id", authMiddleware, verifyTourGuide);
 
 router.post("/promo-codes", authMiddleware, createPromoCode); // Create promo code
 router.put("/promo-codes/:id", authMiddleware, updatePromoCode); // Update promo code by ID
 router.delete("/promo-codes/:id", authMiddleware, deletePromoCode); // Delete promo code by ID
 router.get("/promo-codes", authMiddleware, getAllPromoCodes);
-router.post('/promos/trigger-birthday', triggerBirthdayPromos);
+router.post("/promos/trigger-birthday", triggerBirthdayPromos);
+
+router.get(
+  "/sales/itineraries",
+  authMiddleware,
+  adminAuthMiddleware,
+  getItinerarySales
+);
+router.get(
+  "/sales/activities",
+  authMiddleware,
+  adminAuthMiddleware,
+  getActivitySales
+);
+router.get(
+  "/sales/products",
+  authMiddleware,
+  adminAuthMiddleware,
+  getProductSales
+);
+router.get(
+  "/sales/historical",
+  authMiddleware,
+  adminAuthMiddleware,
+  getHistoricalPlaceSales
+);
 export default router;

@@ -7,8 +7,7 @@ import PromoCode from "../models/promoCode.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-
-
+import Booking from "../models/booking.model.js";
 
 dotenv.config();
 
@@ -341,7 +340,6 @@ export const verifyTourGuide = async (req, res) => {
   }
 };
 
-
 export const createPromoCode = async (req, res) => {
   const { code, discount, expiryDate, usageLimit } = req.body;
 
@@ -394,7 +392,9 @@ export const updatePromoCode = async (req, res) => {
     promoCode.isActive = isActive !== undefined ? isActive : promoCode.isActive;
 
     await promoCode.save();
-    res.status(200).json({ message: "Promo code updated successfully", promoCode });
+    res
+      .status(200)
+      .json({ message: "Promo code updated successfully", promoCode });
   } catch (error) {
     res.status(500).json({ message: "Error updating promo code", error });
   }
@@ -431,9 +431,153 @@ export const triggerBirthdayPromos = async (req, res) => {
     const results = await checkAndSendBirthdayPromos();
     res.status(200).json({
       message: "Birthday promos processed successfully",
-      results
+      results,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error processing birthday promos", error });
+    res
+      .status(500)
+      .json({ message: "Error processing birthday promos", error });
+  }
+};
+
+export const getItinerarySales = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      bookingType: "Itinerary",
+      status: { $in: ["confirmed", "completed", "attended"] },
+    }).populate({
+      path: "itemId",
+      select: "name totalPrice",
+    });
+
+    const sales = bookings
+      .filter((booking) => booking.itemId)
+      .map((booking) => ({
+        purchaseDate: booking.bookingDate,
+        totalPrice: booking.itemId.totalPrice || 0,
+        itemName: booking.itemId.name,
+        bookingId: booking._id,
+      }));
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error("Error in getItinerarySales:", error);
+    res.status(500).json({
+      message: "Error fetching itinerary sales",
+      error: error.message,
+    });
+  }
+};
+
+export const getActivitySales = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      bookingType: "Activity",
+      status: { $in: ["confirmed", "completed", "attended"] },
+    }).populate({
+      path: "itemId",
+      select: "name price",
+    });
+
+    const sales = bookings
+      .filter((booking) => booking.itemId)
+      .map((booking) => ({
+        purchaseDate: booking.bookingDate,
+        totalPrice: booking.itemId.price || 0,
+        itemName: booking.itemId.name,
+        bookingId: booking._id,
+      }));
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error("Error in getActivitySales:", error);
+    res.status(500).json({
+      message: "Error fetching activity sales",
+      error: error.message,
+    });
+  }
+};
+
+// In admin.controller.js, update the getProductSales function:
+
+// In admin.controller.js, update the getProductSales function:
+
+export const getProductSales = async (req, res) => {
+  try {
+    // Find all completed product purchases
+    const bookings = await Booking.find({
+      bookingType: "Product",
+      // Include both confirmed and completed statuses
+      status: { $in: ["confirmed", "completed"] },
+    }).populate({
+      path: "itemId",
+      model: "Product", // Explicitly specify Product model
+      select: "name price productImage seller",
+    });
+
+    // Map the sales data, ensuring we handle null itemId cases
+    const sales = bookings
+      .filter((booking) => booking.itemId !== null) // Filter out null items
+      .map((booking) => {
+        const price = booking.itemId.price || 0;
+        const quantity = booking.quantity || 1;
+        const totalPrice = price * quantity;
+
+        return {
+          purchaseDate: booking.bookingDate,
+          totalPrice: totalPrice,
+          itemName: booking.itemId.name,
+          quantity: quantity,
+          status: booking.status,
+          // Include additional details that might be useful
+          productId: booking.itemId._id,
+          bookingId: booking._id,
+        };
+      });
+
+    // Log the data for debugging
+    console.log("Product Sales Data:", {
+      totalBookings: bookings.length,
+      validSales: sales.length,
+      totalRevenue: sales.reduce((sum, sale) => sum + sale.totalPrice, 0),
+      sampleSale: sales[0],
+    });
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error("Error in getProductSales:", error);
+    res.status(500).json({
+      message: "Error fetching product sales",
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+};
+export const getHistoricalPlaceSales = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      bookingType: "HistoricalPlace",
+      status: { $in: ["confirmed", "completed", "attended"] },
+    }).populate({
+      path: "itemId",
+      select: "name ticketPrices",
+    });
+
+    const sales = bookings
+      .filter((booking) => booking.itemId)
+      .map((booking) => ({
+        purchaseDate: booking.bookingDate,
+        totalPrice: booking.itemId.ticketPrices?.price || 0,
+        itemName: booking.itemId.name,
+        bookingId: booking._id,
+      }));
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error("Error in getHistoricalPlaceSales:", error);
+    res.status(500).json({
+      message: "Error fetching historical place sales",
+      error: error.message,
+    });
   }
 };

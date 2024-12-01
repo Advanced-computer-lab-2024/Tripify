@@ -43,4 +43,5 @@ router.get("/archived", authMiddleware, getArchivedProducts);
 router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
 // Add this to product.route.js
 router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
+
 export default router;

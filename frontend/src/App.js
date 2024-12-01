@@ -63,6 +63,7 @@ import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
 import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
 import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
+import AdminSalesReport from "./pages/admin/AdminSalesReport";
 
 function App() {
   return (
@@ -160,6 +161,7 @@ function App() {
             path="/admin/change-password"
             element={<AdminChangePassword />}
           />
+          <Route path="/admin/sales-report" element={<AdminSalesReport />} />
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
