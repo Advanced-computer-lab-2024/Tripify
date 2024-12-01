@@ -426,3 +426,14 @@ export const getAllPromoCodes = async (req, res) => {
     res.status(500).json({ message: "Error fetching promo codes", error });
   }
 };
+export const triggerBirthdayPromos = async (req, res) => {
+  try {
+    const results = await checkAndSendBirthdayPromos();
+    res.status(200).json({
+      message: "Birthday promos processed successfully",
+      results
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error processing birthday promos", error });
+  }
+};

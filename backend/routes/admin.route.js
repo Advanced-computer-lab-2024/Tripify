@@ -16,6 +16,7 @@ import {
   updatePromoCode,
   deletePromoCode,
   getAllPromoCodes,
+  triggerBirthdayPromos
   
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -50,4 +51,5 @@ router.post("/promo-codes", authMiddleware, createPromoCode); // Create promo co
 router.put("/promo-codes/:id", authMiddleware, updatePromoCode); // Update promo code by ID
 router.delete("/promo-codes/:id", authMiddleware, deletePromoCode); // Delete promo code by ID
 router.get("/promo-codes", authMiddleware, getAllPromoCodes);
+router.post('/promos/trigger-birthday', triggerBirthdayPromos);
 export default router;

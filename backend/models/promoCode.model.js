@@ -27,6 +27,15 @@ const promoCodeSchema = new mongoose.Schema(
       type: Number,
       default: 0, // Initially no usage
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    type: {
+      type: String,
+      enum: ['BIRTHDAY', 'REGULAR'],
+      default: 'REGULAR'
+    }
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

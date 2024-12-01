@@ -27,6 +27,7 @@ import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
 import sendEmail from "./utils/sendEmail.js";
+import { checkAndSendBirthdayPromos } from './services/birthdayPromo.service.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,13 +40,28 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const runBirthdayPromoCheck = async () => {
+  console.log('Checking for birthdays on server start...');
+  try {
+    const results = await checkAndSendBirthdayPromos();
+    console.log('Birthday promo check completed:', results);
+  } catch (error) {
+    console.error('Birthday promo check failed:', error);
+  }
+};
+
 // Database connection
 connectDB()
-  .then(() => {
-    app.listen(process.env.PORT || 5000, () => {
+  .then(async () => {
+    app.listen(process.env.PORT || 5000, async () => {
       console.log(
         `Server started at http://localhost:${process.env.PORT || 5000}`
       );
+      // Run birthday check when server starts
+      await runBirthdayPromoCheck();
+      
+      // Optional: Check every hour while server is running
+      setInterval(runBirthdayPromoCheck, 1000 * 60 * 60);
     });
   })
   .catch((error) => {

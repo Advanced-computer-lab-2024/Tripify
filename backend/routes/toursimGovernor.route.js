@@ -16,7 +16,7 @@ import {
 } from "../controllers/tourismGovernor.controller.js";
 
 const router = express.Router();
-console.log("Setting up tourism governor routes...");
+// console.log("Setting up tourism governor routes...");
 
 // Public routes with debug logging
 router.post("/login", (req, res) => {
@@ -42,6 +42,6 @@ router.post("/places", authMiddleware, createHistoricalPlace);
 router.put("/places/:id", authMiddleware, updateHistoricalPlace);
 router.delete("/places/:id", authMiddleware, deleteHistoricalPlace);
 
-console.log("Tourism governor routes configured");
+// console.log("Tourism governor routes configured");
 
 export default router;
