@@ -61,6 +61,7 @@ import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
+import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
 
 function App() {
   return (
@@ -132,6 +133,10 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
+          <Route
+            path="/tourguide/sales-report"
+            element={<TourGuideSalesReport />}
+          />
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/manage-users" element={<ListUsers />} />
@@ -139,10 +144,7 @@ function App() {
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
           />
-          <Route
-            path="/admin/promo-codes"
-            element={<PromoCodeManager />}
-          />
+          <Route path="/admin/promo-codes" element={<PromoCodeManager />} />
           <Route
             path="/admin/preference-tags"
             element={<PreferenceTagManagement />}
