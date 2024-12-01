@@ -565,24 +565,35 @@ export const getProductSales = async (req, res) => {
     });
   }
 };
+// Historical Place Sales
 export const getHistoricalPlaceSales = async (req, res) => {
   try {
     const bookings = await Booking.find({
       bookingType: "HistoricalPlace",
-      status: { $in: ["confirmed", "completed", "attended"] },
+      bookingTypeModel: "HistoricalPlace",
+      status: { $in: ["confirmed", "completed"] },
     }).populate({
       path: "itemId",
       select: "name ticketPrices",
+      model: "HistoricalPlace",
     });
 
     const sales = bookings
       .filter((booking) => booking.itemId)
-      .map((booking) => ({
-        purchaseDate: booking.bookingDate,
-        totalPrice: booking.itemId.ticketPrices?.price || 0,
-        itemName: booking.itemId.name,
-        bookingId: booking._id,
-      }));
+      .map((booking) => {
+        const price = booking.itemId?.ticketPrices?.[0]?.price || 0;
+        const quantity = booking.quantity || 1;
+        const totalPrice = price * quantity;
+        const platformFee = totalPrice * 10; // Calculate 10% fee
+
+        return {
+          purchaseDate: booking.bookingDate,
+          totalPrice: platformFee, // Only return the platform's 10% cut
+          itemName: booking.itemId?.name || "Unknown Historical Place",
+          bookingId: booking._id,
+          originalPrice: totalPrice, // For reference
+        };
+      });
 
     res.status(200).json(sales);
   } catch (error) {
