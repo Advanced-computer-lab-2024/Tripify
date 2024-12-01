@@ -68,7 +68,47 @@ function ProductTouristPage() {
   }, [products, searchTerm, ratingFilter, priceFilter]);
 
   // Keep all your existing functions here...
-  const initializeUser = () => {
+  const getUserSpecificKey = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return `tourist_${user?.username}`;
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!token || !user) {
+        console.error("No token or user found");
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_URL}/tourist/profile/${user.username}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.tourist) {
+        setUserWallet(response.data.tourist.wallet);
+        const userKey = getUserSpecificKey();
+        localStorage.setItem(
+          userKey,
+          JSON.stringify({
+            wallet: response.data.tourist.wallet,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
+  // Replace your existing initializeUser function with this:
+  const initializeUser = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setError("Please login to access this page");
@@ -79,7 +119,7 @@ function ProductTouristPage() {
       const decoded = jwtDecode(token);
       const userId = decoded._id || decoded.user?._id;
       setUserId(userId);
-      fetchUserWallet(userId);
+      await fetchUserProfile(); // Replace fetchUserWallet with fetchUserProfile
     } catch (error) {
       console.error("Token decode error:", error);
       setError("Invalid session. Please login again.");
@@ -212,10 +252,13 @@ function ProductTouristPage() {
         );
       }
 
-      const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+      const userKey = getUserSpecificKey();
       const newBalance = userWallet - getCartTotal();
+
+      // Update localStorage with the new wallet balance
+      const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
       localStorage.setItem(
-        "tourist",
+        userKey,
         JSON.stringify({
           ...touristData,
           wallet: newBalance,
@@ -233,6 +276,28 @@ function ProductTouristPage() {
       setProcessingPurchase(false);
     }
   };
+
+  // Add this effect to handle storage changes
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      const userKey = getUserSpecificKey();
+      if (e.key === userKey) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          if (newData && typeof newData.wallet !== "undefined") {
+            setUserWallet(newData.wallet);
+          }
+        } catch (error) {
+          console.error("Error parsing storage data:", error);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   const handleReview = async () => {
     if (!rating || !selectedProduct) return;

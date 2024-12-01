@@ -11,7 +11,8 @@ import {
   getUserPurchases,
   addPurchaseReview,
   toggleArchiveProduct,
-  getArchivedProducts
+  getArchivedProducts,
+  getSellerSales,
 } from "../controllers/product.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -40,6 +41,6 @@ router.post("/purchases/:purchaseId/review", addPurchaseReview);
 
 router.get("/archived", authMiddleware, getArchivedProducts);
 router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
-
-
+// Add this to product.route.js
+router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
 export default router;

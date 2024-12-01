@@ -49,7 +49,6 @@ import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
-import ArchivedProducts from "./pages/product/ArchivedProduct";
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
 import AdminChangePassword from "./changePassword/AdminChangePassword";
@@ -60,8 +59,7 @@ import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
-// Import the new component for filtering historical places
-import FilterHistoricalPlaces from "./pages/tourist/FilterHistoricalPlaces"; // New component
+import SellerSalesReport from "./pages/seller/SellerSalesReport";
 
 function App() {
   return (
@@ -105,11 +103,6 @@ function App() {
           <Route
             path="/tourist/change-password"
             element={<TouristChangePassword />}
-          />
-          {/* New Route for Filtering Historical Places */}
-          <Route
-            path="/tourist/filter-historical-places"
-            element={<FilterHistoricalPlaces />}
           />
           {/* Review System Routes */}
           <Route
@@ -159,12 +152,6 @@ function App() {
             path="/admin/change-password"
             element={<AdminChangePassword />}
           />
-          <Route
-            path="/admin/products/archived"
-            element={
-                <ArchivedProducts />
-            }
-          />
           {/* Advertiser Routes */}
           <Route path="/advertiser" element={<AdvertiserHomepage />} />
           <Route
@@ -212,12 +199,7 @@ function App() {
             path="/seller/change-password"
             element={<SellerChangePassword />}
           />
-           <Route
-            path="/seller/products/archived"
-            element={
-                <ArchivedProducts />
-            }
-          />
+          <Route path="/seller/sales-report" element={<SellerSalesReport />} />
           {/* Registration Routes */}
           <Route path="/register/admin" element={<AdminRegister />} />
           <Route path="/register/tourist" element={<TouristRegister />} />

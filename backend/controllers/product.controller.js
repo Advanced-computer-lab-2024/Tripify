@@ -404,114 +404,173 @@ export const toggleArchiveProduct = async (req, res) => {
   }
 };
 
-
 export const getArchivedProducts = async (req, res) => {
+  try {
+    console.log("Starting getArchivedProducts controller");
+    console.log("Query parameters:", req.query);
+
+    // Extract pagination parameters with validation
+    let page = 1;
+    let limit = 10;
+
     try {
-        console.log('Starting getArchivedProducts controller');
-        console.log('Query parameters:', req.query);
-
-        // Extract pagination parameters with validation
-        let page = 1;
-        let limit = 10;
-
-        try {
-            if (req.query.page) {
-                page = Math.max(1, parseInt(req.query.page));
-            }
-            if (req.query.limit) {
-                limit = Math.max(1, Math.min(100, parseInt(req.query.limit)));
-            }
-        } catch (parseError) {
-            console.log('Error parsing pagination parameters:', parseError);
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid pagination parameters'
-            });
-        }
-
-        const skip = (page - 1) * limit;
-        console.log('Pagination values:', { page, limit, skip });
-
-        // Build query
-        const query = { isArchived: true };
-        console.log('Query object:', query);
-
-        // Get total count
-        const totalProducts = await Product.countDocuments(query);
-        console.log('Total products count:', totalProducts);
-
-        // Fetch archived products
-        const archivedProducts = await Product.find(query)
-            .select('-__v') // Exclude version key
-            .populate({
-                path: 'reviewerName',
-                select: 'name',
-                options: { strictPopulate: false } // Make population less strict
-            })
-            .populate({
-                path: 'archivedBy',
-                select: 'name',
-                options: { strictPopulate: false }
-            })
-            .skip(skip)
-            .limit(limit)
-            .sort({ archivedAt: -1 })
-            .lean(); // Convert to plain JavaScript objects for better performance
-
-        console.log('Retrieved products count:', archivedProducts.length);
-
-        if (!archivedProducts.length) {
-            return res.status(404).json({
-                success: false,
-                message: 'No archived products found'
-            });
-        }
-
-        const totalPages = Math.ceil(totalProducts / limit);
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                products: archivedProducts,
-                pagination: {
-                    currentPage: page,
-                    totalPages,
-                    totalProducts,
-                    hasNextPage: page < totalPages,
-                    hasPrevPage: page > 1,
-                    limit
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('Detailed error in getArchivedProducts:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-        });
-        
-        // Handle specific types of errors
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid ID format',
-                error: error.message
-            });
-        }
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                error: error.message
-            });
-        }
-
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-        });
+      if (req.query.page) {
+        page = Math.max(1, parseInt(req.query.page));
+      }
+      if (req.query.limit) {
+        limit = Math.max(1, Math.min(100, parseInt(req.query.limit)));
+      }
+    } catch (parseError) {
+      console.log("Error parsing pagination parameters:", parseError);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters",
+      });
     }
+
+    const skip = (page - 1) * limit;
+    console.log("Pagination values:", { page, limit, skip });
+
+    // Build query
+    const query = { isArchived: true };
+    console.log("Query object:", query);
+
+    // Get total count
+    const totalProducts = await Product.countDocuments(query);
+    console.log("Total products count:", totalProducts);
+
+    // Fetch archived products
+    const archivedProducts = await Product.find(query)
+      .select("-__v") // Exclude version key
+      .populate({
+        path: "reviewerName",
+        select: "name",
+        options: { strictPopulate: false }, // Make population less strict
+      })
+      .populate({
+        path: "archivedBy",
+        select: "name",
+        options: { strictPopulate: false },
+      })
+      .skip(skip)
+      .limit(limit)
+      .sort({ archivedAt: -1 })
+      .lean(); // Convert to plain JavaScript objects for better performance
+
+    console.log("Retrieved products count:", archivedProducts.length);
+
+    if (!archivedProducts.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No archived products found",
+      });
+    }
+
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        products: archivedProducts,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalProducts,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+          limit,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Detailed error in getArchivedProducts:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+
+    // Handle specific types of errors
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: error.message,
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation Error",
+        error: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Something went wrong",
+    });
+  }
+};
+
+// Update this in product.controller.js
+
+export const getSellerSales = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    // Validate seller ID
+    if (!sellerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Seller ID is required",
+      });
+    }
+
+    // Get all purchases and populate product details
+    const purchases = await ProductPurchase.find()
+      .populate({
+        path: "productId",
+        match: { seller: "External seller" }, // Match products with seller type "External seller"
+        select: "name price seller",
+      })
+      .populate("userId", "username")
+      .sort({ purchaseDate: -1 });
+
+    // Filter out purchases where productId is null (means product doesn't match seller criteria)
+    const sellerPurchases = purchases.filter(
+      (purchase) => purchase.productId !== null
+    );
+
+    // Calculate totals and format the data
+    const salesData = sellerPurchases.map((purchase) => ({
+      _id: purchase._id,
+      purchaseDate: purchase.purchaseDate,
+      productName: purchase.productId?.name || "Product Deleted",
+      buyerName: purchase.userId?.username || "User Deleted",
+      quantity: purchase.quantity,
+      totalPrice: purchase.totalPrice,
+      grossAmount: purchase.totalPrice,
+      appFee: purchase.totalPrice * 0.1,
+      netAmount: purchase.totalPrice * 0.9,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: salesData,
+      message: "Sales data retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Error in getSellerSales:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching sales data",
+      error: error.message,
+    });
+  }
 };
