@@ -71,7 +71,6 @@ const SellerHomePage = () => {
                 Change My Password
               </Link>
             </Col>
-            // In SellerHomePage.js, add this to the Row of links:
             <Col xs={12} sm={6} md={4}>
               <Link to="/seller/sales-report" className="btn btn-primary w-100">
                 View Sales Report
