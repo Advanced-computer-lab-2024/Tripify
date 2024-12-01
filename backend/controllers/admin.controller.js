@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Booking from "../models/booking.model.js";
+import ProductPurchase from "../models/productPurchase.model.js";
 
 dotenv.config();
 
@@ -498,49 +499,60 @@ export const getActivitySales = async (req, res) => {
   }
 };
 
-// In admin.controller.js, update the getProductSales function:
-
-// In admin.controller.js, update the getProductSales function:
-
 export const getProductSales = async (req, res) => {
   try {
-    // Find all completed product purchases
-    const bookings = await Booking.find({
-      bookingType: "Product",
-      // Include both confirmed and completed statuses
-      status: { $in: ["confirmed", "completed"] },
-    }).populate({
-      path: "itemId",
-      model: "Product", // Explicitly specify Product model
-      select: "name price productImage seller",
-    });
+    console.log("Starting product sales query...");
 
-    // Map the sales data, ensuring we handle null itemId cases
-    const sales = bookings
-      .filter((booking) => booking.itemId !== null) // Filter out null items
-      .map((booking) => {
-        const price = booking.itemId.price || 0;
-        const quantity = booking.quantity || 1;
-        const totalPrice = price * quantity;
-
-        return {
-          purchaseDate: booking.bookingDate,
-          totalPrice: totalPrice,
-          itemName: booking.itemId.name,
-          quantity: quantity,
-          status: booking.status,
-          // Include additional details that might be useful
-          productId: booking.itemId._id,
-          bookingId: booking._id,
-        };
+    // Use ProductPurchase model instead of Booking
+    const purchases = await ProductPurchase.find({
+      status: "completed",
+    })
+      .populate({
+        path: "productId",
+        select: "name price productImage seller",
+      })
+      .populate({
+        path: "userId",
+        select: "username",
       });
 
-    // Log the data for debugging
-    console.log("Product Sales Data:", {
-      totalBookings: bookings.length,
+    console.log("Initial purchases query result:", {
+      purchasesFound: purchases.length,
+      firstPurchase: purchases[0]
+        ? {
+            id: purchases[0]._id,
+            status: purchases[0].status,
+            productDetails: purchases[0].productId,
+          }
+        : "No purchases found",
+    });
+
+    // Map and calculate sales data
+    const sales = purchases
+      .filter((purchase) => purchase.productId) // Filter out null productId entries
+      .map((purchase) => ({
+        purchaseDate: purchase.purchaseDate,
+        itemName: purchase.productId?.name || "Unknown Product",
+        totalPrice: purchase.totalPrice,
+        quantity: purchase.quantity,
+        purchaseId: purchase._id,
+        status: purchase.status,
+        buyerName: purchase.userId?.username || "Unknown Buyer",
+      }));
+
+    // Detailed logging for debugging
+    console.log("Product Sales Processing:", {
+      totalPurchases: purchases.length,
       validSales: sales.length,
       totalRevenue: sales.reduce((sum, sale) => sum + sale.totalPrice, 0),
-      sampleSale: sales[0],
+      samplePurchase: purchases[0]
+        ? {
+            id: purchases[0]._id,
+            status: purchases[0].status,
+            totalPrice: purchases[0].totalPrice,
+          }
+        : "No purchases",
+      sampleSale: sales[0] || "No sales",
     });
 
     res.status(200).json(sales);
@@ -549,7 +561,7 @@ export const getProductSales = async (req, res) => {
     res.status(500).json({
       message: "Error fetching product sales",
       error: error.message,
-      stack: error.stack,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
