@@ -21,6 +21,7 @@ import {
   getActivitySales,
   getProductSales,
   getHistoricalPlaceSales,
+  getUserStats, // Import the new controller function
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -56,6 +57,7 @@ router.delete("/promo-codes/:id", authMiddleware, deletePromoCode); // Delete pr
 router.get("/promo-codes", authMiddleware, getAllPromoCodes);
 router.post("/promos/trigger-birthday", triggerBirthdayPromos);
 
+// Sales routes
 router.get(
   "/sales/itineraries",
   authMiddleware,
@@ -80,4 +82,13 @@ router.get(
   adminAuthMiddleware,
   getHistoricalPlaceSales
 );
+
+// New route to get user stats
+router.get(
+  "/user-stats",
+  authMiddleware,
+  adminAuthMiddleware,
+  getUserStats // Adding the new controller function for user stats
+);
+
 export default router;

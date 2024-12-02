@@ -8,12 +8,16 @@ const ListUsers = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [userStats, setUserStats] = useState({
+        totalUsers: 0,
+        newUsersThisMonth: 0
+    });
 
     useEffect(() => {
-        checkAdminAndFetchUsers();
+        checkAdminAndFetchData();
     }, []);
 
-    const checkAdminAndFetchUsers = async () => {
+    const checkAdminAndFetchData = async () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -25,6 +29,8 @@ const ListUsers = () => {
                 throw new Error('Unauthorized: Admin access required');
             }
 
+            // Fetch both user stats and the user list
+            await fetchUserStats();
             fetchUsers();
         } catch (error) {
             setError(error.message);
@@ -39,6 +45,18 @@ const ListUsers = () => {
                 Authorization: `Bearer ${token}`,
             },
         };
+    };
+
+    const fetchUserStats = async () => {
+        try {
+            const response = await axios.get(
+                'http://localhost:5000/api/admin/user-stats', 
+                getAuthConfig()
+            );
+            setUserStats(response.data);
+        } catch (err) {
+            setError(`Failed to fetch user stats: ${err.response?.data?.message || err.message}`);
+        }
     };
 
     const fetchUsers = async () => {
@@ -96,6 +114,14 @@ const ListUsers = () => {
     return (
         <div className="container mt-5">
             <h1 className="text-center mb-4">All Users</h1>
+
+            {/* Display user statistics */}
+            <div className="mb-4 text-center">
+                <h4>User Statistics</h4>
+                <p>Total Users: {userStats.totalUsers}</p>
+                <p>New Users This Month: {userStats.newUsersThisMonth}</p>
+            </div>
+
             {users.length === 0 ? (
                 <div className="alert alert-info text-center">
                     No users found.

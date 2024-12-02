@@ -469,6 +469,74 @@ export const getItinerarySales = async (req, res) => {
     });
   }
 };
+export const getUserStats = async (req, res) => {
+  try {
+    // Count all users across different models
+    const totalTourists = await Tourist.countDocuments();
+    const totalAdmins = await Admin.countDocuments();
+    const totalSellers = await Seller.countDocuments();
+    const totalAdvertisers = await Advertiser.countDocuments();
+    const totalTourGuides = await TourGuide.countDocuments();
+
+    // Total users
+    const totalUsers = totalTourists + totalAdmins + totalSellers + totalAdvertisers + totalTourGuides;
+
+    // Get the current month and year
+    const currentMonth = new Date().getMonth(); // 0-based (0 = January, 11 = December)
+    const currentYear = new Date().getFullYear();
+
+    // New users this month
+    const newTouristsThisMonth = await Tourist.countDocuments({
+      registrationDate: {
+        $gte: new Date(currentYear, currentMonth, 1), // Start of the current month
+        $lt: new Date(currentYear, currentMonth + 1, 0), // End of the current month
+      },
+    });
+
+    const newAdminsThisMonth = await Admin.countDocuments({
+      registrationDate: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 0),
+      },
+    });
+
+    const newSellersThisMonth = await Seller.countDocuments({
+      registrationDate: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 0),
+      },
+    });
+
+    const newAdvertisersThisMonth = await Advertiser.countDocuments({
+      registrationDate: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 0),
+      },
+    });
+
+    const newTourGuidesThisMonth = await TourGuide.countDocuments({
+      registrationDate: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 0),
+      },
+    });
+
+    // Sum up new users this month across all types
+    const newUsersThisMonth = newTouristsThisMonth + newAdminsThisMonth + newSellersThisMonth + newAdvertisersThisMonth + newTourGuidesThisMonth;
+
+    // Respond with the stats
+    res.status(200).json({
+      totalUsers,
+      newUsersThisMonth,
+    });
+  } catch (error) {
+    console.error("Error fetching user statistics:", error);
+    res.status(500).json({
+      message: "Error fetching user statistics",
+      error: error.message,
+    });
+  }
+};
 
 export const getActivitySales = async (req, res) => {
   try {
@@ -481,10 +549,10 @@ export const getActivitySales = async (req, res) => {
     });
 
     const sales = bookings
-      .filter((booking) => booking.itemId)
+      .filter((booking) => booking.itemId) // Ensure itemId exists
       .map((booking) => ({
         purchaseDate: booking.bookingDate,
-        totalPrice: booking.itemId.price || 0,
+        totalPrice: booking.itemId.price || 0, // Ensure price exists
         itemName: booking.itemId.name,
         bookingId: booking._id,
       }));
@@ -498,6 +566,7 @@ export const getActivitySales = async (req, res) => {
     });
   }
 };
+
 
 export const getProductSales = async (req, res) => {
   try {
