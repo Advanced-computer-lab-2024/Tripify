@@ -11,6 +11,7 @@ import {
   FaUser,
   FaStar,
   FaComments,
+  FaInfo,
   FaLock,
 } from "react-icons/fa";
 import "./assets/css/animate.css";
@@ -103,6 +104,12 @@ const TouristHomePage = () => {
       to: "/tourist/change-password",
       label: "Change My Password",
       icon: <FaLock />,
+      variant: "primary",
+    },
+    {
+      to: "/tourist/about",  // Add this new item
+      label: "About Us",
+      icon: <FaInfo />,
       variant: "primary",
     },
     {

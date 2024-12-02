@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import Navbar from "./components/Navbar";
+
 import { 
   Container, 
   Card, 
@@ -8,9 +10,18 @@ import {
   Col, 
   InputGroup, 
   Alert,
-  Spinner
+  Spinner 
 } from 'react-bootstrap';
-import { FaPlaneDeparture, FaCalendarAlt, FaUsers } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { 
+  FaPlaneDeparture, 
+  FaPlaneArrival,
+  FaCalendarAlt, 
+  FaUsers,
+  FaSearch,
+  FaChevronRight,
+  FaInfoCircle
+} from 'react-icons/fa';
 import axios from 'axios';
 import FlightCard from './FlightCard';
 import BookingModal from './BookingModal';
@@ -80,155 +91,274 @@ const FlightBooking = () => {
   }, []);
 
   return (
-    <Container className="py-4">
-      {/* Search Form */}
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <Card.Title className="h4 mb-0">Search Flights</Card.Title>
-        </Card.Header>
-        <Card.Body>
-          <Form onSubmit={handleSearch}>
-            <Row className="g-3">
-              {/* Origin Input */}
-              <Col md={6}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaPlaneDeparture />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Origin (e.g., JFK)"
-                    value={searchParams.origin}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      origin: e.target.value.toUpperCase()
-                    }))}
-                    required
-                    maxLength="3"
-                  />
-                </InputGroup>
-              </Col>
+    <>
+  <Navbar/>
+    <div className="flight-booking-page">
+      {/* Hero Section */}
+      <div 
+        style={{
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          padding: '8rem 0 4rem 0',
+          marginBottom: '2rem'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1
+          }}
+        ></div>
+        <Container style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span className="me-2">
+                <Link to="/tourist" className="text-white text-decoration-none">
+                  Home <FaChevronRight className="small mx-2" />
+                </Link>
+              </span>
+              <span>
+                Book Flight <FaChevronRight className="small" />
+              </span>
+            </p>
+            <h1 className="display-4 mb-0">Search & Book Flights</h1>
+          </div>
+        </Container>
+      </div>
 
-              {/* Destination Input */}
-              <Col md={6}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaPlaneDeparture />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Destination (e.g., LAX)"
-                    value={searchParams.destination}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      destination: e.target.value.toUpperCase()
-                    }))}
-                    required
-                    maxLength="3"
-                  />
-                </InputGroup>
-              </Col>
+      <Container className="py-5">
+        {/* Search Card */}
+        <Card 
+          className="shadow-sm mb-5" 
+          style={{ 
+            borderRadius: '15px',
+            border: 'none'
+          }}
+        >
+          <Card.Body className="p-4">
+            <div className="d-flex align-items-center mb-4">
+              <FaPlaneDeparture className="text-primary me-3" size={24} />
+              <h3 className="mb-0">Find Your Flight</h3>
+            </div>
 
-              {/* Date Input */}
-              <Col md={6}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaCalendarAlt />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="date"
-                    value={searchParams.departureDate}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      departureDate: e.target.value
-                    }))}
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </InputGroup>
-              </Col>
+            <Form onSubmit={handleSearch}>
+              <Row className="g-4">
+                {/* Origin Input */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaPlaneDeparture className="me-2" />
+                      Origin
+                    </Form.Label>
+                    <Form.Control
+                      placeholder="Origin Airport (e.g., JFK)"
+                      value={searchParams.origin}
+                      onChange={(e) => setSearchParams(prev => ({
+                        ...prev,
+                        origin: e.target.value.toUpperCase()
+                      }))}
+                      required
+                      maxLength="3"
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Passengers Input */}
-              <Col md={6}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaUsers />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="number"
-                    min="1"
-                    max="9"
-                    value={searchParams.adults}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      adults: parseInt(e.target.value)
-                    }))}
-                    required
-                  />
-                </InputGroup>
-              </Col>
+                {/* Destination Input */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaPlaneArrival className="me-2" />
+                      Destination
+                    </Form.Label>
+                    <Form.Control
+                      placeholder="Destination Airport (e.g., LAX)"
+                      value={searchParams.destination}
+                      onChange={(e) => setSearchParams(prev => ({
+                        ...prev,
+                        destination: e.target.value.toUpperCase()
+                      }))}
+                      required
+                      maxLength="3"
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Search Button */}
-              <Col xs={12}>
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  className="w-100"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
+                {/* Date Input */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaCalendarAlt className="me-2" />
+                      Departure Date
+                    </Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={searchParams.departureDate}
+                      onChange={(e) => setSearchParams(prev => ({
+                        ...prev,
+                        departureDate: e.target.value
+                      }))}
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
+
+                {/* Passengers Input */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaUsers className="me-2" />
+                      Passengers
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="1"
+                      max="9"
+                      value={searchParams.adults}
+                      onChange={(e) => setSearchParams(prev => ({
+                        ...prev,
+                        adults: parseInt(e.target.value)
+                      }))}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
+
+                {/* Search Button */}
+                <Col xs={12}>
+                  <Button 
+                    type="submit" 
+                    className="w-100 rounded-pill"
+                    style={{
+                      backgroundColor: '#1089ff',
+                      border: 'none',
+                      padding: '0.75rem'
+                    }}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          className="me-2"
+                        />
+                        Searching Flights...
+                      </>
+                    ) : (
+                      <>
+                        <FaSearch className="me-2" />
+                        Search Flights
+                      </>
+                    )}
+                  </Button>
+                </Col>
+              </Row>
+            </Form>
+          </Card.Body>
+        </Card>
+
+        {/* Error Display */}
+        {error && (
+          <Alert 
+            variant="danger" 
+            className="mb-4"
+            style={{ borderRadius: '10px' }}
+          >
+            <div className="d-flex align-items-center">
+              <FaInfoCircle className="me-2" />
+              {error}
+            </div>
+          </Alert>
+        )}
+
+        {/* Flight Results */}
+        {flights.length > 0 ? (
+          <div className="mb-5">
+            <h3 className="mb-4 text-primary border-bottom pb-2">Available Flights</h3>
+            <Row className="g-4">
+              {flights.map((flight) => (
+                <Col xs={12} key={flight.id}>
+                  <Card 
+                    className="shadow-hover" 
+                    style={{
+                      borderRadius: '15px',
+                      border: 'none',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <Card.Body className="p-4">
+                      <FlightCard
+                        flight={flight}
+                        onBook={handleBookingClick}
+                        formatPrice={formatPrice}
+                        formatDuration={formatDuration}
                       />
-                      Searching...
-                    </>
-                  ) : (
-                    'Search Flights'
-                  )}
-                </Button>
-              </Col>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
             </Row>
-          </Form>
-        </Card.Body>
-      </Card>
+          </div>
+        ) : !loading && !error && (
+          <Card 
+            className="text-center p-5" 
+            style={{ 
+              borderRadius: '15px',
+              border: 'none'
+            }}
+          >
+            <Card.Body>
+              <FaInfoCircle size={48} className="text-muted mb-3" />
+              <h4>No Flights Found</h4>
+              <p className="text-muted">Search for flights to see available options.</p>
+            </Card.Body>
+          </Card>
+        )}
 
-      {/* Error Display */}
-      {error && (
-        <Alert variant="danger" className="mb-4">
-          {error}
-        </Alert>
-      )}
+        {/* Booking Modal */}
+        {selectedFlight && (
+          <BookingModal
+            show={showBookingModal}
+            onHide={() => setShowBookingModal(false)}
+            flight={selectedFlight}
+            formatPrice={formatPrice}
+          />
+        )}
+      </Container>
+    </div>
+    \    </>
 
-      {/* Flight Results */}
-      {flights.length > 0 && (
-        <>
-          <h2 className="h4 mb-3">Available Flights</h2>
-          {flights.map((flight) => (
-            <FlightCard
-              key={flight.id}
-              flight={flight}
-              onBook={handleBookingClick}
-              formatPrice={formatPrice}
-              formatDuration={formatDuration}
-            />
-          ))}
-        </>
-      )}
-
-      {/* Booking Modal */}
-      {selectedFlight && (
-        <BookingModal
-          show={showBookingModal}
-          onHide={() => setShowBookingModal(false)}
-          flight={selectedFlight}
-          formatPrice={formatPrice}
-        />
-      )}
-    </Container>
   );
 };
 

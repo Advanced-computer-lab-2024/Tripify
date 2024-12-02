@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from "react";
+import Navbar from "./components/Navbar";
+
 import {
   Container,
   Card,
@@ -6,21 +8,24 @@ import {
   Button,
   Row,
   Col,
-  InputGroup,
   Alert,
   Spinner,
 } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaHotel,
   FaCalendarAlt,
   FaUsers,
   FaBed,
   FaSearch,
+  FaChevronRight,
+  FaInfoCircle,
+  FaMapMarkerAlt,
+  FaHistory
 } from "react-icons/fa";
 import axios from "axios";
 import HotelCard from "./HotelCard";
 import HotelBookingModal from "./HotelBookingModal";
-import { useNavigate } from "react-router-dom";
 
 const HotelBooking = () => {
   const navigate = useNavigate();
@@ -102,235 +107,346 @@ const HotelBooking = () => {
   }, []);
 
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Book a Hotel</h2>
-        <Button
-          variant="outline-primary"
-          onClick={() => navigate("/tourist/hotel-bookings")}
-        >
-          <FaHotel className="me-2" />
-          View My Hotel Bookings
-        </Button>
+    <>
+  <Navbar/>
+    <div className="hotel-booking-page">
+      {/* Hero Section */}
+      <div 
+        style={{
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          padding: '8rem 0 4rem 0',
+          marginBottom: '2rem'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1
+          }}
+        ></div>
+        <Container style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span className="me-2">
+                <Link to="/tourist" className="text-white text-decoration-none">
+                  Home <FaChevronRight className="small mx-2" />
+                </Link>
+              </span>
+              <span>
+                Book Hotel <FaChevronRight className="small" />
+              </span>
+            </p>
+            <h1 className="display-4 mb-0">Search & Book Hotels</h1>
+          </div>
+        </Container>
       </div>
 
-      {/* Search Form */}
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <Card.Title className="h4 mb-0">Search Hotels</Card.Title>
-        </Card.Header>
-        <Card.Body>
-          <Form onSubmit={handleSearch}>
-            <Row className="g-3">
-              {/* City Input */}
-              <Col md={12}>
-                <Form.Group>
-                  <Form.Label>
-                    <FaHotel className="me-2" />
-                    City Code (3 letters, e.g., NYC, LON, PAR)
-                  </Form.Label>
-                  <InputGroup>
+      <Container className="py-5">
+        {/* View Bookings Button */}
+        <Card 
+          className="shadow-sm mb-5" 
+          style={{ 
+            borderRadius: '15px',
+            border: 'none',
+            backgroundImage: 'url("/images/bg_2.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            position: 'relative'
+          }}
+        >
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              borderRadius: '15px',
+              zIndex: 1
+            }}
+          />
+          <Card.Body className="p-4 position-relative" style={{ zIndex: 2 }}>
+            <div className="d-flex justify-content-between align-items-center text-white">
+              <div className="d-flex align-items-center">
+                <FaHotel className="me-3" size={30} />
+                <h3 className="mb-0">Find Your Perfect Stay</h3>
+              </div>
+              <Button
+                variant="light"
+                onClick={() => navigate("/tourist/hotel-bookings")}
+                className="rounded-pill px-4"
+              >
+                <FaHistory className="me-2" />
+                View My Bookings
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
+
+        {/* Search Form */}
+        <Card 
+          className="shadow-sm mb-5" 
+          style={{ 
+            borderRadius: '15px',
+            border: 'none'
+          }}
+        >
+          <Card.Body className="p-4">
+            <div className="d-flex align-items-center mb-4">
+              <FaSearch className="text-primary me-3" size={24} />
+              <h3 className="mb-0">Search Hotels</h3>
+            </div>
+
+            <Form onSubmit={handleSearch}>
+              <Row className="g-4">
+                {/* City Input */}
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaMapMarkerAlt className="me-2" />
+                      City Code
+                    </Form.Label>
                     <Form.Control
                       required
                       type="text"
-                      placeholder="Enter city code"
+                      placeholder="Enter city code (e.g., NYC, LON, PAR)"
                       value={searchParams.cityCode}
                       onChange={handleCityChange}
                       minLength={3}
                       maxLength={3}
-                      style={{ textTransform: "uppercase" }}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee',
+                        textTransform: "uppercase"
+                      }}
                     />
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() =>
-                        setSearchParams((prev) => ({ ...prev, cityCode: "" }))
-                      }
-                    >
-                      Clear
-                    </Button>
-                  </InputGroup>
-                  <Form.Text className="text-muted">
-                    Enter the 3-letter IATA code for your destination city
-                  </Form.Text>
-                </Form.Group>
-              </Col>
+                    <Form.Text className="text-muted">
+                      Enter the 3-letter IATA code for your destination city
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
 
-              {/* Check-in Date */}
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>
-                    <FaCalendarAlt className="me-2" />
-                    Check-in Date
-                  </Form.Label>
-                  <Form.Control
-                    type="date"
-                    required
-                    value={searchParams.checkInDate}
-                    onChange={(e) =>
-                      setSearchParams((prev) => ({
+                {/* Check-in Date */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaCalendarAlt className="me-2" />
+                      Check-in Date
+                    </Form.Label>
+                    <Form.Control
+                      type="date"
+                      required
+                      value={searchParams.checkInDate}
+                      onChange={(e) => setSearchParams(prev => ({
                         ...prev,
-                        checkInDate: e.target.value,
-                      }))
-                    }
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </Form.Group>
-              </Col>
+                        checkInDate: e.target.value
+                      }))}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Check-out Date */}
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>
-                    <FaCalendarAlt className="me-2" />
-                    Check-out Date
-                  </Form.Label>
-                  <Form.Control
-                    type="date"
-                    required
-                    value={searchParams.checkOutDate}
-                    onChange={(e) =>
-                      setSearchParams((prev) => ({
+                {/* Check-out Date */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaCalendarAlt className="me-2" />
+                      Check-out Date
+                    </Form.Label>
+                    <Form.Control
+                      type="date"
+                      required
+                      value={searchParams.checkOutDate}
+                      onChange={(e) => setSearchParams(prev => ({
                         ...prev,
-                        checkOutDate: e.target.value,
-                      }))
-                    }
-                    min={
-                      searchParams.checkInDate ||
-                      new Date().toISOString().split("T")[0]
-                    }
-                  />
-                </Form.Group>
-              </Col>
+                        checkOutDate: e.target.value
+                      }))}
+                      min={searchParams.checkInDate || new Date().toISOString().split('T')[0]}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Number of Guests */}
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>
-                    <FaUsers className="me-2" />
-                    Number of Guests
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    required
-                    min="1"
-                    max="10"
-                    value={searchParams.adults}
-                    onChange={(e) =>
-                      setSearchParams((prev) => ({
+                {/* Number of Guests */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaUsers className="me-2" />
+                      Number of Guests
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      required
+                      min="1"
+                      max="10"
+                      value={searchParams.adults}
+                      onChange={(e) => setSearchParams(prev => ({
                         ...prev,
-                        adults: parseInt(e.target.value),
-                      }))
-                    }
-                  />
-                </Form.Group>
-              </Col>
+                        adults: parseInt(e.target.value)
+                      }))}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Number of Rooms */}
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>
-                    <FaBed className="me-2" />
-                    Number of Rooms
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    required
-                    min="1"
-                    max="5"
-                    value={searchParams.rooms}
-                    onChange={(e) =>
-                      setSearchParams((prev) => ({
+                {/* Number of Rooms */}
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaBed className="me-2" />
+                      Number of Rooms
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      required
+                      min="1"
+                      max="5"
+                      value={searchParams.rooms}
+                      onChange={(e) => setSearchParams(prev => ({
                         ...prev,
-                        rooms: parseInt(e.target.value),
-                      }))
-                    }
-                  />
-                </Form.Group>
-              </Col>
+                        rooms: parseInt(e.target.value)
+                      }))}
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
 
-              {/* Search Button */}
-              <Col xs={12}>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-100"
-                  disabled={loading || searchParams.cityCode.length !== 3}
+                {/* Search Button */}
+                <Col xs={12}>
+                  <Button
+                    type="submit"
+                    className="w-100 rounded-pill"
+                    style={{
+                      backgroundColor: '#1089ff',
+                      border: 'none',
+                      padding: '0.75rem'
+                    }}
+                    disabled={loading || searchParams.cityCode.length !== 3}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Searching Hotels...
+                      </>
+                    ) : (
+                      <>
+                        <FaSearch className="me-2" />
+                        Search Hotels
+                      </>
+                    )}
+                  </Button>
+                </Col>
+              </Row>
+            </Form>
+          </Card.Body>
+        </Card>
+
+        {/* Error Display */}
+        {error && (
+          <Alert 
+            variant="danger" 
+            className="mb-4"
+            style={{ borderRadius: '10px' }}
+          >
+            <div className="d-flex align-items-center">
+              <FaInfoCircle className="me-2" />
+              {error}
+            </div>
+          </Alert>
+        )}
+
+        {/* Results Count */}
+        {hotels.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-primary border-bottom pb-2">
+              {hotels.length} Hotels Available
+            </h3>
+          </div>
+        )}
+
+        {/* Hotel Results */}
+        {hotels.length > 0 ? (
+          <Row className="g-4">
+            {hotels.map((hotel) => (
+              <Col md={6} key={hotel.hotel.hotelId}>
+                <Card 
+                  className="h-100 shadow-hover" 
+                  style={{
+                    borderRadius: '15px',
+                    border: 'none',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+                  }}
                 >
-                  {loading ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      Searching Hotels...
-                    </>
-                  ) : (
-                    <>
-                      <FaSearch className="me-2" />
-                      Search Hotels
-                    </>
-                  )}
-                </Button>
+                  <Card.Body className="p-4">
+                    <HotelCard
+                      hotel={hotel}
+                      onBook={handleBookingClick}
+                      formatPrice={formatPrice}
+                      searchParams={searchParams}
+                    />
+                  </Card.Body>
+                </Card>
               </Col>
-            </Row>
-          </Form>
-        </Card.Body>
-      </Card>
+            ))}
+          </Row>
+        ) : !loading && !error && (
+          <Card 
+            className="text-center p-5" 
+            style={{ 
+              borderRadius: '15px',
+              border: 'none'
+            }}
+          >
+            <Card.Body>
+              <FaInfoCircle size={48} className="text-muted mb-3" />
+              <h4>No Hotels Found</h4>
+              <p className="text-muted">Search for hotels to see available options.</p>
+            </Card.Body>
+          </Card>
+        )}
 
-      {/* Error Display */}
-      {error && (
-        <Alert variant="danger" className="mb-4">
-          {error}
-        </Alert>
-      )}
+        {/* Booking Modal */}
+        {selectedHotel && (
+          <HotelBookingModal
+            show={showBookingModal}
+            onHide={() => setShowBookingModal(false)}
+            hotel={selectedHotel}
+            formatPrice={formatPrice}
+            searchParams={searchParams}
+          />
+        )}
+      </Container>
+    </div>
+    </>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center my-4">
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        </div>
-      )}
-
-      {/* Results Count */}
-      {hotels.length > 0 && (
-        <Alert variant="info" className="mb-4">
-          Found {hotels.length} hotels matching your criteria
-        </Alert>
-      )}
-
-      {/* Hotel Results */}
-      {hotels.length > 0 && (
-        <>
-          <h2 className="h4 mb-3">Available Hotels</h2>
-          {hotels.map((hotel) => (
-            <HotelCard
-              key={hotel.hotel.hotelId}
-              hotel={hotel}
-              onBook={handleBookingClick}
-              formatPrice={formatPrice}
-              searchParams={searchParams}
-            />
-          ))}
-        </>
-      )}
-
-      {/* Booking Modal */}
-      {selectedHotel && (
-        <HotelBookingModal
-          show={showBookingModal}
-          onHide={() => setShowBookingModal(false)}
-          hotel={selectedHotel}
-          formatPrice={formatPrice}
-          searchParams={searchParams}
-        />
-      )}
-    </Container>
   );
 };
 

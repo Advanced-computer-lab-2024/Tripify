@@ -49,6 +49,8 @@ import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
+import TouristAboutPage from "./pages/tourist/TouristAboutPage";
+
 // Import Bootstrap CSS
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -155,6 +157,10 @@ function App() {
           <Route
             path="/tourist/my-reviews"
             element={<MyReviews />}
+          />
+           <Route
+            path="/about"
+            element={<TouristAboutPage />}
           />
           <Route
             path="/tourist/reviews"

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Link } from 'react-router-dom';
+import { FaChevronRight } from 'react-icons/fa';
+import Navbar from "./components/Navbar";
+
 import {
   Container,
   Card,
@@ -427,272 +431,422 @@ const ViewBookings = () => {
   }
 
   return (
-    <Container className="py-5">
-      <h2 className="mb-4">My Bookings</h2>
-      <WalletBalance />
-
-      {bookings.length === 0 ? (
-        <Card className="text-center p-5">
-          <Card.Body>
-            <h4>No bookings found</h4>
-            <p>You haven't made any bookings yet.</p>
+    <>
+  <Navbar/>
+    
+    <div className="bookings-page">
+      {/* Hero Section */}
+      <div 
+        style={{
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          padding: '8rem 0 4rem 0',
+          marginBottom: '2rem'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1
+          }}
+        ></div>
+        <Container style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span className="me-2">
+                <Link to="/tourist" className="text-white text-decoration-none">
+                  Home <FaChevronRight className="small mx-2" />
+                </Link>
+              </span>
+              <span>
+                My Bookings <FaChevronRight className="small" />
+              </span>
+            </p>
+            <h1 className="display-4 mb-0">View My Bookings</h1>
+          </div>
+        </Container>
+      </div>
+  
+      <Container className="py-5">
+        {/* Wallet Info Card */}
+        <Card 
+          className="shadow-sm mb-5" 
+          style={{ 
+            borderRadius: '15px',
+            border: 'none',
+            backgroundImage: 'url("/images/bg_2.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1
+            }}
+          ></div>
+          <Card.Body className="p-4 position-relative" style={{ zIndex: 2 }}>
+            <div className="d-flex align-items-center text-white">
+              <FaWallet className="me-3" size={40} />
+              <div>
+                <h3 className="mb-1">Wallet Balance: ${JSON.parse(localStorage.getItem("tourist"))?.wallet || 0}</h3>
+                <p className="mb-0">Available for bookings</p>
+              </div>
+            </div>
           </Card.Body>
         </Card>
-      ) : (
-        <Row>
-          {bookings.map((booking) => (
-            <Col md={6} lg={4} key={booking._id} className="mb-4">
-              <Card>
-                <Card.Header className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">{booking.bookingType}</h5>
-                  <Badge bg={getStatusBadge(booking.status)}>
-                    {booking.status}
-                  </Badge>
-                </Card.Header>
-                <Card.Body>
-                  <Card.Title>
-                    {booking.itemId?.name || "Item Unavailable"}
-                  </Card.Title>
-                  <Card.Text>
-                    <strong>Booking Date:</strong>{" "}
-                    {formatDate(booking.bookingDate)}
-                  </Card.Text>
-                  {!isEventPassed(booking.bookingDate) && (
-                    <Card.Text>
-                      <strong>Time Until Event:</strong>{" "}
-                      {getTimeRemaining(booking.bookingDate)}
-                    </Card.Text>
-                  )}
-                  <Card.Text>
-                    <strong>Booked On:</strong> {formatDate(booking.createdAt)}
-                  </Card.Text>
-
-                  <div className="d-grid gap-2">
-                    {/* Rating Button for the booking */}
-                    {canBeRated(booking) && (
-                      <Button
-                        variant="primary"
-                        onClick={() => handleRateBooking(booking)}
-                        className="mt-2"
+  
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-3 text-muted">Loading your bookings...</p>
+          </div>
+        ) : bookings.length === 0 ? (
+          <Card 
+            className="text-center p-5 shadow-sm" 
+            style={{ borderRadius: '15px', border: 'none' }}
+          >
+            <Card.Body>
+              <FaCalendarTimes size={48} className="text-muted mb-3" />
+              <h4>No bookings found</h4>
+              <p className="text-muted mb-4">You haven't made any bookings yet.</p>
+              <Link to="/tourist/view-events" className="btn btn-primary px-4 py-2">
+                Browse Events
+              </Link>
+            </Card.Body>
+          </Card>
+        ) : (
+          <Row>
+            {bookings.map((booking) => (
+              <Col key={booking._id} lg={4} md={6} className="mb-4">
+                <Card 
+                  className="h-100 shadow-hover" 
+                  style={{
+                    borderRadius: '15px',
+                    border: 'none',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: '#fff',
+                    boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <div 
+                    className="card-img-top"
+                    style={{
+                      height: '120px',
+                      backgroundImage: 'url("/images/services-2.jpg")',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      borderTopLeftRadius: '15px',
+                      borderTopRightRadius: '15px',
+                      position: 'relative'
+                    }}
+                  >
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        borderTopLeftRadius: '15px',
+                        borderTopRightRadius: '15px'
+                      }}
+                    />
+                    <div 
+                      className="p-3" 
+                      style={{ 
+                        position: 'relative',
+                        zIndex: 1,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <Badge 
+                        bg={getStatusBadge(booking.status)}
+                        style={{
+                          padding: '8px 15px',
+                          borderRadius: '20px',
+                          fontSize: '0.85rem',
+                          alignSelf: 'flex-start'
+                        }}
                       >
-                        <FaStar className="me-2" />
-                        Rate {booking.bookingType}
-                      </Button>
-                    )}
-
-                    {/* Show booking rating if exists */}
-                    {booking.rating > 0 && (
-                      <div className="mt-2">
-                        <strong>{booking.bookingType} Rating: </strong>
-                        {[...Array(booking.rating)].map((_, i) => (
-                          <FaStar key={i} className="text-warning" />
-                        ))}
-                        {booking.review && (
-                          <p className="mt-1 text-muted small">
-                            <strong>Review:</strong> {booking.review}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Tour Guide Rating Section - Only for attended Itineraries */}
-                    {booking.bookingType === "Itinerary" && 
-                     booking.status === "attended" && (
-                      <div className="mt-3">
-                        {!booking.guideRating ? (
-                          <Button
-                            variant="outline-primary"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setShowGuideRatingModal(true);
-                            }}
-                            className="mt-2"
-                          >
-                            <FaStar className="me-2" />
-                            Rate Tour Guide
-                          </Button>
-                        ) : (
-                          <div className="mt-2">
-                            <strong>Tour Guide Rating: </strong>
-                            {[...Array(booking.guideRating)].map((_, i) => (
-                              <FaStar key={i} className="text-warning" />
-                            ))}
-                            {booking.guideReview && (
-                              <p className="mt-1 text-muted small">
-                                <strong>Guide Review:</strong> {booking.guideReview}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Cancellation Button */}
-                    {!isEventPassed(booking.bookingDate) &&
-                      booking.status !== "cancelled" && (
-                        <>
-                          {canCancelBooking(booking.bookingDate) ? (
-                            <Button
-                              variant="danger"
-                              onClick={() => handleCancelBooking(booking._id)}
-                              disabled={cancellingId === booking._id}
-                            >
-                              {cancellingId === booking._id ? (
-                                <Spinner
-                                  as="span"
-                                  animation="border"
-                                  size="sm"
-                                  role="status"
-                                  aria-hidden="true"
-                                  className="me-2"
-                                />
-                              ) : (
-                                <FaCalendarTimes className="me-2" />
-                              )}
-                              Cancel Booking
-                            </Button>
-                          ) : (
-                            <OverlayTrigger
-                              placement="top"
-                              overlay={
-                                <Tooltip>
-                                  Cancellation is only allowed up to 48 hours
-                                  before the event
-                                </Tooltip>
-                              }
-                            >
-                              <div>
-                                <Button
-                                  variant="danger"
-                                  disabled
-                                  className="w-100"
-                                >
-                                  <FaInfoCircle className="me-2" />
-                                  Cannot Cancel
-                                </Button>
-                              </div>
-                            </OverlayTrigger>
-                          )}
-                        </>
-                      )}
+                        {booking.status}
+                      </Badge>
+                    </div>
                   </div>
-                </Card.Body>
-                <Card.Footer className="text-muted">
-                  Booking ID: {booking._id}
-                </Card.Footer>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-
-      {/* Rating Modal */}
-      <Modal show={showRatingModal} onHide={() => setShowRatingModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Rate Your Experience</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Rating</Form.Label>
-              <div>
-                <StarRating value={rating} onChange={setRating} />
-              </div>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Review (Optional)</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                placeholder="Share your experience..."
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowRatingModal(false)}>
-            Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={submitRating}
-            disabled={!rating || submittingRating}
+  
+                  <Card.Body className="p-4">
+                    <h5 className="mb-3">{booking.itemId?.name || "Item Unavailable"}</h5>
+                    <div className="text-muted mb-3">
+                      <p className="mb-2">
+                        <strong>Booking Date:</strong> {formatDate(booking.bookingDate)}
+                      </p>
+                      {!isEventPassed(booking.bookingDate) && (
+                        <p className="mb-2">
+                          <strong>Time Until Event:</strong> {getTimeRemaining(booking.bookingDate)}
+                        </p>
+                      )}
+                    </div>
+  
+                    {booking.rating > 0 && (
+                      <div className="mb-3 p-3 bg-light rounded">
+                        <div className="d-flex align-items-center mb-2">
+                          <strong className="me-2">Rating:</strong>
+                          {[...Array(booking.rating)].map((_, i) => (
+                            <FaStar key={i} className="text-warning" />
+                          ))}
+                        </div>
+                        {booking.review && (
+                          <p className="mb-0 small text-muted">{booking.review}</p>
+                        )}
+                      </div>
+                    )}
+  
+                    <div className="d-grid gap-2">
+                      {canBeRated(booking) && (
+                        <Button
+                          variant="primary"
+                          onClick={() => handleRateBooking(booking)}
+                          className="rounded-pill"
+                          style={{
+                            backgroundColor: '#1089ff',
+                            border: 'none',
+                            padding: '0.8rem'
+                          }}
+                        >
+                          <FaStar className="me-2" />
+                          Rate {booking.bookingType}
+                        </Button>
+                      )}
+  
+                      {!isEventPassed(booking.bookingDate) &&
+                        booking.status !== "cancelled" &&
+                        canCancelBooking(booking.bookingDate) && (
+                          <Button
+                            variant="danger"
+                            onClick={() => handleCancelBooking(booking._id)}
+                            disabled={cancellingId === booking._id}
+                            className="rounded-pill"
+                            style={{ padding: '0.8rem' }}
+                          >
+                            {cancellingId === booking._id ? (
+                              <Spinner animation="border" size="sm" className="me-2" />
+                            ) : (
+                              <FaCalendarTimes className="me-2" />
+                            )}
+                            Cancel Booking
+                          </Button>
+                      )}
+                    </div>
+                  </Card.Body>
+  
+                  <Card.Footer 
+                    className="text-muted py-3 px-4" 
+                    style={{ 
+                      backgroundColor: '#f8f9fa',
+                      borderBottomLeftRadius: '15px',
+                      borderBottomRightRadius: '15px',
+                      borderTop: '1px solid rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <small>Booking ID: {booking._id}</small>
+                  </Card.Footer>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+  
+        {/* Rating Modal */}
+        <Modal 
+          show={showRatingModal} 
+          onHide={() => setShowRatingModal(false)}
+          centered
+        >
+          <Modal.Header 
+            closeButton
+            className="border-bottom"
+            style={{ 
+              background: '#f8f9fa',
+              borderTopLeftRadius: '15px',
+              borderTopRightRadius: '15px'
+            }}
           >
-            {submittingRating ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                  className="me-2"
+            <Modal.Title>Rate Your Experience</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-4">
+            <Form>
+              <Form.Group className="mb-4">
+                <Form.Label className="fw-bold">Rating</Form.Label>
+                <div className="d-flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                      key={star}
+                      className="cursor-pointer"
+                      style={{ cursor: 'pointer' }}
+                      color={star <= rating ? "#ffc107" : "#e4e5e9"}
+                      size={24}
+                      onClick={() => setRating(star)}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-bold">Review (Optional)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="Share your experience..."
+                  style={{
+                    borderRadius: '10px',
+                    border: '2px solid #eee'
+                  }}
                 />
-                Submitting...
-              </>
-            ) : (
-              "Submit Rating"
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Tour Guide Rating Modal */}
-      <Modal show={showGuideRatingModal} onHide={() => setShowGuideRatingModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Rate Tour Guide</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Rating</Form.Label>
-              <div>
-                <StarRating value={guideRating} onChange={setGuideRating} />
-              </div>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Review (Optional)</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={guideReview}
-                onChange={(e) => setGuideReview(e.target.value)}
-                placeholder="Share your experience with the tour guide..."
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowGuideRatingModal(false)}>
-            Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={submitGuideRating}
-            disabled={!guideRating || submittingGuideRating}
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer className="border-top">
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowRatingModal(false)}
+              className="rounded-pill"
+            >
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              onClick={submitRating}
+              disabled={!rating || submittingRating}
+              className="rounded-pill"
+              style={{ backgroundColor: '#1089ff', border: 'none' }}
+            >
+              {submittingRating ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Rating"
+              )}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+  
+        {/* Guide Rating Modal */}
+        <Modal 
+          show={showGuideRatingModal} 
+          onHide={() => setShowGuideRatingModal(false)}
+          centered
+        >
+          <Modal.Header 
+            closeButton
+            className="border-bottom"
+            style={{ 
+              background: '#f8f9fa',
+              borderTopLeftRadius: '15px',
+              borderTopRightRadius: '15px'
+            }}
           >
-            {submittingGuideRating ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                  className="me-2"
+            <Modal.Title>Rate Tour Guide</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-4">
+            <Form>
+              <Form.Group className="mb-4">
+                <Form.Label className="fw-bold">Rating</Form.Label>
+                <div className="d-flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                      key={star}
+                      className="cursor-pointer"
+                      style={{ cursor: 'pointer' }}
+                      color={star <= guideRating ? "#ffc107" : "#e4e5e9"}
+                      size={24}
+                      onClick={() => setGuideRating(star)}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-bold">Review (Optional)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={guideReview}
+                  onChange={(e) => setGuideReview(e.target.value)}
+                  placeholder="Share your experience with the tour guide..."
+                  style={{
+                    borderRadius: '10px',
+                    border: '2px solid #eee'
+                  }}
                 />
-                Submitting...
-              </>
-            ) : (
-              "Submit Rating"
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer className="border-top">
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowGuideRatingModal(false)}
+              className="rounded-pill"
+            >
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              onClick={submitGuideRating}
+              disabled={!guideRating || submittingGuideRating}
+              className="rounded-pill"
+              style={{ backgroundColor: '#1089ff', border: 'none' }}
+            >
+              {submittingGuideRating ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Rating"
+              )}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </Container>
+    </div>
+    </>
   );
+
+ 
 };
 
 export default ViewBookings;

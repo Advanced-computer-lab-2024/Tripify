@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Navbar from "./components/Navbar";
+
 import {
   Container,
   Row,
@@ -8,22 +10,23 @@ import {
   Form,
   Alert,
   Modal,
+  Spinner
 } from "react-bootstrap";
+import {
+  FaUser,
+  FaSignOutAlt,
+  FaEdit,
+  FaSave,
+  FaTimes,
+  FaGift,
+  FaExchangeAlt,
+  FaChevronRight,
+  FaTrash,
+  FaExclamationTriangle
+} from 'react-icons/fa';
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { FaTrash, FaExclamationTriangle } from "react-icons/fa";
-import "./assets/css/animate.css";
-import "./assets/css/bootstrap-datepicker.css"
-import "./assets/css/bootstrap.min.css"
-import "./assets/css/flaticon.css"
-import "./assets/css/jquery.timepicker.css"
-import "./assets/css/magnific-popup.css"
-import "./assets/css/owl.carousel.min.css"
-import "./assets/css/owl.theme.default.min.css"
-import "./assets/css/style.css";
-import "./assets/css/bootstrap/bootstrap-grid.css"
-import "./assets/css/bootstrap/bootstrap-reboot.css"
-import Navbar from "./components/Navbar";
+import { Link, useNavigate } from "react-router-dom";
+
 // Redeemption Points Component
 const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
@@ -129,6 +132,7 @@ const RedeemPoints = ({ loyaltyPoints, onRedeem, onUpdate }) => {
 };
 
 const MyProfile = () => {
+  // Existing states
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -138,7 +142,113 @@ const MyProfile = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletionChecking, setIsDeletionChecking] = useState(false);
+
+  // Add these new states
+  const [confirmText, setConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState("");
+  const [success, setSuccess] = useState("");
+
   const navigate = useNavigate();
+  const handleDeleteAccount = async () => {
+    if (confirmText !== profile?.username) {
+      setDeleteError("Please enter your username correctly to confirm deletion");
+      return;
+    }
+  
+    setIsDeleting(true);
+    setDeleteError("");
+  
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user?.id) {
+        throw new Error("User ID not found");
+      }
+  
+      const checkResponse = await axios.get(
+        `http://localhost:5000/api/tourist/check-deletion/${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+  
+      if (!checkResponse.data.canDelete) {
+        setDeleteError(checkResponse.data.message);
+        setIsDeleting(false);
+        return;
+      }
+  
+      const deleteResponse = await axios.delete(
+        `http://localhost:5000/api/tourist/delete/${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+  
+      if (deleteResponse.data.success) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Delete account error:", error);
+      setDeleteError(
+        error.response?.data?.message ||
+        "Unable to delete account at this time. Please try again later."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  const handleRedeem = async () => {
+    try {
+      setError("");
+      setSuccess("");
+  
+      const points = parseInt(pointsToRedeem);
+      if (!points || points < 10000 || points % 10000 !== 0) {
+        setError("Points must be at least 10,000 and in multiples of 10,000");
+        return;
+      }
+  
+      if (points > loyaltyPoints) {
+        setError("Insufficient points");
+        return;
+      }
+  
+      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(userStr);
+  
+      const response = await axios.post(
+        `http://localhost:5000/api/tourist/loyalty/redeem/${user.id}`,
+        { pointsToRedeem: points },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        setSuccess(
+          `Successfully redeemed ${points} points for ${(points / 10000) * 100} EGP`
+        );
+        setPointsToRedeem("");
+        
+        fetchProfile();
+        fetchLoyaltyStatus();
+      }
+    } catch (err) {
+      console.error("Redemption error:", err);
+      setError("Failed to redeem points. Please try again.");
+    }
+  };
 
   // Account Deletion Modal
   const DeleteAccountModal = () => {
@@ -424,262 +534,519 @@ const MyProfile = () => {
   }
 
   return (
-    <div className="">
-    <Navbar/>
-   
-    <Container className="mt-5"
+    <>
+  <Navbar/>
+    <div className="profile-page">
+      {/* Hero Section */}
+      <div 
         style={{
-          paddingTop: "70px", // Adjust based on your navbar height
-        }}>
-      <Row className="justify-content-center">
-        <Col md={8}>
-          <Card>
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="mb-0">My Profile</h2>
-                <Button variant="danger" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </div>
-
-              {error && (
-                <Alert variant="danger" className="mb-4">
-                  {error}
-                </Alert>
-              )}
-
-              {!isEditing ? (
-                // View Mode
-                <div>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Username:</strong>
-                    </Col>
-                    <Col>{profile?.username}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Email:</strong>
-                    </Col>
-                    <Col>{profile?.email}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Mobile Number:</strong>
-                    </Col>
-                    <Col>{profile?.mobileNumber}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Nationality:</strong>
-                    </Col>
-                    <Col>{profile?.nationality}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Job Status:</strong>
-                    </Col>
-                    <Col>{profile?.jobStatus}</Col>
-                  </Row>
-                  {profile?.jobStatus === "job" && (
-                    <Row className="mb-3">
-                      <Col sm={4}>
-                        <strong>Job Title:</strong>
-                      </Col>
-                      <Col>{profile?.jobTitle}</Col>
-                    </Row>
-                  )}
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Wallet Balance:</strong>
-                    </Col>
-                    <Col>{profile?.wallet} EGP</Col>
-                  </Row>
-
-                  {/* Loyalty Information */}
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Loyalty Points:</strong>
-                    </Col>
-                    <Col>{loyaltyPoints}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Tourist Level:</strong>
-                    </Col>
-                    <Col>{touristLevel}</Col>
-                  </Row>
-
-                  {/* Vacation Preferences */}
-                  <h4 className="mt-4">Vacation Preferences</h4>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Budget Limit:</strong>
-                    </Col>
-                    <Col>{profile?.preferences?.budgetLimit}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Preferred Destinations:</strong>
-                    </Col>
-                    <Col>{profile?.preferences?.preferredDestinations}</Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col sm={4}>
-                      <strong>Trip Types:</strong>
-                    </Col>
-                    <Col>{profile?.preferences?.tripTypes?.join(", ")}</Col>
-                  </Row>
-
-                  {/* Loyalty Points Redemption */}
-                  <RedeemPoints
-                    loyaltyPoints={loyaltyPoints}
-                    onRedeem={fetchProfile}
-                    onUpdate={handleLoyaltyUpdate}
-                  />
-
-                  <Button
-                    variant="primary"
-                    onClick={() => setIsEditing(true)}
-                    className="mt-3"
-                  >
-                    Edit Profile
-                  </Button>
-                  {/* Delete Account Section */}
-                  <hr className="my-4" />
-                  <div className="text-center">
-                    <Button
-                      variant="outline-danger"
-                      onClick={() => setShowDeleteModal(true)}
-                      className="mt-3"
-                    >
-                      <FaTrash className="me-2" />
-                      Delete Account
-                    </Button>
-                  </div>
-
-                  {/* Delete Account Modal */}
-                  <DeleteAccountModal />
-                </div>
-              ) : (
-                // Edit Mode
-                <Form onSubmit={handleUpdateProfile}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={profile?.email || ""}
-                      onChange={handleInputChange}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Mobile Number</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="mobileNumber"
-                      value={profile?.mobileNumber || ""}
-                      onChange={handleInputChange}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Nationality</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="nationality"
-                      value={profile?.nationality || ""}
-                      onChange={handleInputChange}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Job Status</Form.Label>
-                    <Form.Select
-                      name="jobStatus"
-                      value={profile?.jobStatus || ""}
-                      onChange={handleInputChange}
-                    >
-                      <option value="student">Student</option>
-                      <option value="job">Employed</option>
-                    </Form.Select>
-                  </Form.Group>
-
-                  {profile?.jobStatus === "job" && (
-                    <Form.Group className="mb-3">
-                      <Form.Label>Job Title</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="jobTitle"
-                        value={profile?.jobTitle || ""}
-                        onChange={handleInputChange}
-                      />
-                    </Form.Group>
-                  )}
-
-                  {/* Preferences Section */}
-                  <h4 className="mt-4">Vacation Preferences</h4>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Budget Limit</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="budgetLimit"
-                      value={profile?.preferences?.budgetLimit || ""}
-                      onChange={(e) => handlePreferencesChange(e)}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Preferred Destinations</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="preferredDestinations"
-                      value={profile?.preferences?.preferredDestinations || ""}
-                      onChange={(e) => handlePreferencesChange(e)}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Trip Types</Form.Label>
-                    <div>
-                      {["Adventure", "Relaxation", "Cultural", "Nature"].map(
-                        (type) => (
-                          <Form.Check
-                            key={type}
-                            type="checkbox"
-                            label={type}
-                            value={type}
-                            checked={profile?.preferences?.tripTypes?.includes(
-                              type
-                            )}
-                            onChange={(e) => handlePreferencesChange(e)}
-                          />
-                        )
-                      )}
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          padding: '8rem 0 4rem 0',
+          marginBottom: '2rem'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1
+          }}
+        ></div>
+        <Container style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span className="me-2">
+                <Link to="/tourist" className="text-white text-decoration-none">
+                  Home <FaChevronRight className="small mx-2" />
+                </Link>
+              </span>
+              <span>
+                My Profile <FaChevronRight className="small" />
+              </span>
+            </p>
+            <h1 className="display-4 mb-0">My Profile</h1>
+          </div>
+        </Container>
+      </div>
+  
+      <Container className="py-5">
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-3 text-muted">Loading your profile...</p>
+          </div>
+        ) : !profile ? (
+          <Alert variant="danger" className="text-center">
+            {error || "Profile not found."}
+          </Alert>
+        ) : (
+          <Row className="justify-content-center">
+            <Col lg={8}>
+              {/* Profile Card */}
+              <Card 
+                className="shadow-sm mb-4" 
+                style={{ 
+                  borderRadius: '15px',
+                  border: 'none'
+                }}
+              >
+                <Card.Body className="p-4">
+                  {/* Header with Logout Button */}
+                  <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="d-flex align-items-center">
+                      <FaUser className="text-primary me-3" size={24} />
+                      <h3 className="mb-0">Profile Information</h3>
                     </div>
-                  </Form.Group>
-
-                  <div className="mt-4">
-                    <Button type="submit" variant="primary" className="me-2">
-                      Save Changes
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsEditing(false)}
+                    <Button 
+                      variant="danger" 
+                      onClick={handleLogout}
+                      className="rounded-pill px-4"
                     >
-                      Cancel
+                      <FaSignOutAlt className="me-2" />
+                      Logout
                     </Button>
                   </div>
-                </Form>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-    </div>
+  
+                  {error && (
+                    <Alert variant="danger" className="mb-4">
+                      {error}
+                    </Alert>
+                  )}
+  
+                  {!isEditing ? (
+                    // View Mode
+                    <div>
+                      <Row className="gy-4">
+                        <Col md={6}>
+                          <div className="p-4 bg-light rounded-3">
+                            <h5 className="mb-3 text-primary">Basic Information</h5>
+                            <div className="mb-3">
+                              <strong>Username:</strong>
+                              <p className="mb-0">{profile?.username}</p>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Email:</strong>
+                              <p className="mb-0">{profile?.email}</p>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Mobile Number:</strong>
+                              <p className="mb-0">{profile?.mobileNumber}</p>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Nationality:</strong>
+                              <p className="mb-0">{profile?.nationality}</p>
+                            </div>
+                          </div>
+                        </Col>
+  
+                        <Col md={6}>
+                          <div className="p-4 bg-light rounded-3">
+                            <h5 className="mb-3 text-primary">Financial Information</h5>
+                            <div className="mb-3">
+                              <strong>Wallet Balance:</strong>
+                              <p className="mb-0">{profile?.wallet} EGP</p>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Loyalty Points:</strong>
+                              <p className="mb-0">{loyaltyPoints}</p>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Tourist Level:</strong>
+                              <p className="mb-0">Level {touristLevel}</p>
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+  
+                      {/* Vacation Preferences Section */}
+                      <div className="mt-4 p-4 bg-light rounded-3">
+                        <h5 className="mb-3 text-primary">Vacation Preferences</h5>
+                        <Row className="gy-3">
+                          <Col md={4}>
+                            <div>
+                              <strong>Budget Limit:</strong>
+                              <p className="mb-0">{profile?.preferences?.budgetLimit} EGP</p>
+                            </div>
+                          </Col>
+                          <Col md={4}>
+                            <div>
+                              <strong>Preferred Destinations:</strong>
+                              <p className="mb-0">{profile?.preferences?.preferredDestinations}</p>
+                            </div>
+                          </Col>
+                          <Col md={4}>
+                            <div>
+                              <strong>Trip Types:</strong>
+                              <p className="mb-0">{profile?.preferences?.tripTypes?.join(", ")}</p>
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+  
+                      {/* Action Buttons */}
+                      <div className="mt-4 d-flex gap-3">
+                        <Button 
+                          variant="primary" 
+                          onClick={() => setIsEditing(true)}
+                          className="rounded-pill px-4"
+                        >
+                          <FaEdit className="me-2" />
+                          Edit Profile
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          onClick={() => setShowDeleteModal(true)}
+                          className="rounded-pill px-4"
+                        >
+                          <FaTrash className="me-2" />
+                          Delete Account
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Edit Mode Form - Updated with styled form controls
+                    <Form onSubmit={handleUpdateProfile}>
+                      {/* Form fields with improved styling */}
+                      <Row className="gy-4">
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="fw-bold">Email</Form.Label>
+                            <Form.Control
+                              type="email"
+                              name="email"
+                              value={profile?.email || ""}
+                              onChange={handleInputChange}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Form.Group>
+                        </Col>
+  
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="fw-bold">Mobile Number</Form.Label>
+                            <Form.Control
+                              type="text"
+                              name="mobileNumber"
+                              value={profile?.mobileNumber || ""}
+                              onChange={handleInputChange}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Form.Group>
+                        </Col>
+  
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="fw-bold">Nationality</Form.Label>
+                            <Form.Control
+                              type="text"
+                              name="nationality"
+                              value={profile?.nationality || ""}
+                              onChange={handleInputChange}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Form.Group>
+                        </Col>
+  
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="fw-bold">Job Status</Form.Label>
+                            <Form.Select
+                              name="jobStatus"
+                              value={profile?.jobStatus || ""}
+                              onChange={handleInputChange}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            >
+                              <option value="student">Student</option>
+                              <option value="job">Employed</option>
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+  
+                        {profile?.jobStatus === "job" && (
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label className="fw-bold">Job Title</Form.Label>
+                              <Form.Control
+                                type="text"
+                                name="jobTitle"
+                                value={profile?.jobTitle || ""}
+                                onChange={handleInputChange}
+                                className="rounded-pill"
+                                style={{
+                                  padding: '0.75rem 1.25rem',
+                                  border: '2px solid #eee'
+                                }}
+                              />
+                            </Form.Group>
+                          </Col>
+                        )}
+                      </Row>
+  
+                      {/* Preferences Section */}
+                      <div className="mt-5">
+                        <h5 className="mb-4 text-primary">Vacation Preferences</h5>
+                        <Row className="gy-4">
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label className="fw-bold">Budget Limit</Form.Label>
+                              <Form.Control
+                                type="number"
+                                name="budgetLimit"
+                                value={profile?.preferences?.budgetLimit || ""}
+                                onChange={handlePreferencesChange}
+                                className="rounded-pill"
+                                style={{
+                                  padding: '0.75rem 1.25rem',
+                                  border: '2px solid #eee'
+                                }}
+                              />
+                            </Form.Group>
+                          </Col>
+  
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label className="fw-bold">Preferred Destinations</Form.Label>
+                              <Form.Control
+                                type="text"
+                                name="preferredDestinations"
+                                value={profile?.preferences?.preferredDestinations || ""}
+                                onChange={handlePreferencesChange}
+                                className="rounded-pill"
+                                style={{
+                                  padding: '0.75rem 1.25rem',
+                                  border: '2px solid #eee'
+                                }}
+                              />
+                            </Form.Group>
+                          </Col>
+  
+                          <Col xs={12}>
+                            <Form.Group>
+                              <Form.Label className="fw-bold">Trip Types</Form.Label>
+                              <div className="d-flex flex-wrap gap-3">
+                                {["Adventure", "Relaxation", "Cultural", "Nature"].map((type) => (
+                                  <Form.Check
+                                    key={type}
+                                    type="checkbox"
+                                    label={type}
+                                    value={type}
+                                    checked={profile?.preferences?.tripTypes?.includes(type)}
+                                    onChange={handlePreferencesChange}
+                                    className="user-select-none"
+                                  />
+                                ))}
+                              </div>
+                            </Form.Group>
+                          </Col>
+                        </Row>
+                      </div>
+  
+                      {/* Form Action Buttons */}
+                      <div className="mt-5 d-flex gap-3">
+                        <Button 
+                          type="submit" 
+                          variant="primary"
+                          className="rounded-pill px-4"
+                          style={{
+                            backgroundColor: '#1089ff',
+                            border: 'none'
+                          }}
+                        >
+                          <FaSave className="me-2" />
+                          Save Changes
+                        </Button>
+                        <Button
+                          variant="light"
+                          onClick={() => setIsEditing(false)}
+                          className="rounded-pill px-4"
+                        >
+                          <FaTimes className="me-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </Form>
+                  )}
+  
+                  {/* Points Redemption Section */}
+                  <div className="mt-5 p-4 bg-light rounded-3">
+                    <RedeemPoints
+                      loyaltyPoints={loyaltyPoints}
+                      onRedeem={fetchProfile}
+                      onUpdate={handleLoyaltyUpdate}
+                    />
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        )}
+  
+        {/* Delete Account Modal - styled version */}
+        <Modal 
+          show={showDeleteModal} 
+          onHide={() => setShowDeleteModal(false)}
+          centered
+        >
+          <Modal.Header 
+            closeButton 
+            className="bg-danger text-white"
+            style={{
+              borderTopLeftRadius: '15px',
+              borderTopRightRadius: '15px'
+            }}
+          >
+            <Modal.Title>
+              <FaExclamationTriangle className="me-2" />
+              Delete Account
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-4">
+            <Alert variant="warning">
+              <strong>Warning:</strong> This action cannot be undone. Your account will be permanently deleted.
+            </Alert>
+            <p>Please note that account deletion is only possible if you have:</p>
+            <ul>
+              <li>No upcoming bookings</li>
+              <li>No pending payments</li>
+              <li>No active itineraries</li>
+            </ul>
+            {deleteError && <Alert variant="danger">{deleteError}</Alert>}
+            <Form.Group>
+              <Form.Label className="fw-bold">
+                Please type <strong>{profile?.username}</strong> to confirm deletion
+              </Form.Label>
+              <Form.Control
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Enter your username"
+                className="rounded-pill mt-2"
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: '2px solid #eee'
+                }}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button 
+              variant="light"
+              onClick={() => setShowDeleteModal(false)}
+              className="rounded-pill px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting || confirmText !== profile?.username}
+              className="rounded-pill px-4"
+            >
+              {isDeleting ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <FaTrash className="me-2" />
+              Delete Account
+            </>
+          )}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  
+    {/* RedeemPoints Component - Styled version */}
+    <Card 
+      className="shadow-sm mb-4" 
+      style={{ 
+        borderRadius: '15px',
+        border: 'none' 
+      }}
+    >
+      <Card.Body className="p-4">
+        <div className="d-flex align-items-center mb-4">
+          <FaGift className="text-primary me-3" size={24} />
+          <h3 className="mb-0">Redeem Points</h3>
+        </div>
+        <p className="text-muted mb-4">Convert your loyalty points to wallet balance - 10,000 points = 100 EGP</p>
+        
+        <Form>
+          <Form.Group className="mb-4">
+            <Form.Label className="fw-bold">Points to Redeem</Form.Label>
+            <Form.Control
+              type="number"
+              value={pointsToRedeem}
+              onChange={(e) => setPointsToRedeem(e.target.value)}
+              placeholder="Enter points (minimum 10,000)"
+              step="10000"
+              min="10000"
+              className="rounded-pill"
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: '2px solid #eee'
+              }}
+            />
+            <Form.Text className="text-muted">
+              Available points: {loyaltyPoints}
+            </Form.Text>
+          </Form.Group>
+  
+          {error && (
+            <Alert variant="danger" className="mb-3 rounded-3">
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert variant="success" className="mb-3 rounded-3">
+              {success}
+            </Alert>
+          )}
+  
+          <Button
+            onClick={handleRedeem}
+            disabled={!pointsToRedeem || parseInt(pointsToRedeem) < 10000}
+            className="rounded-pill px-4"
+            style={{
+              backgroundColor: '#1089ff',
+              border: 'none'
+            }}
+          >
+            <FaExchangeAlt className="me-2" />
+            Redeem Points
+          </Button>
+        </Form>
+      </Card.Body>
+    </Card>
+  </Container>
+  </div>
+      </>
+
   );
-};
+}
 
 export default MyProfile;

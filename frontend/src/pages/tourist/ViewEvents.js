@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import Navbar from "./components/Navbar";
+
+
+import { FaClock, FaMoneyBill, FaSearch } from 'react-icons/fa';
+import { FaChevronRight } from 'react-icons/fa';
+
 import {
   Card,
   Container,
@@ -23,6 +29,7 @@ import {
   FaMedal,
   FaCrown,
   FaRegSmile,
+  
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
@@ -510,41 +517,83 @@ const ViewEvents = () => {
   };
 
   const HistoricalPlaceCard = ({ place }) => (
-    <Card className="mb-3 h-100">
-      <Card.Body>
-        <Card.Title>{place.name}</Card.Title>
-        <Card.Text>{place.description}</Card.Text>
-        <Card.Text>
-          <FaCalendar className="me-2" />
-          <strong>Opening Hours:</strong> {place.openingHours}
-        </Card.Text>
-        <Card.Text>
-          <strong>Price:</strong> ${getItemPrice(place, "HistoricalPlace")}
-        </Card.Text>
+    <Card className="h-100 border-0 shadow-hover" 
+      style={{
+        borderRadius: '15px',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        backgroundColor: '#fff',
+        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+      }}>
+      <div 
+        className="card-img-top"
+        style={{
+          height: '200px',
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/bg_1.jpg")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="p-4 text-white">
+          <h3 className="mb-0 fw-bold">{place.name}</h3>
+        </div>
+      </div>
+      <Card.Body className="p-4">
+        <p className="text-muted">{place.description}</p>
+        
+        <div className="d-flex align-items-center mb-3">
+          <FaClock className="text-primary me-2" />
+          <span><strong>Opening Hours:</strong> {place.openingHours}</span>
+        </div>
+        
+        <div className="d-flex align-items-center mb-3">
+          <FaMoneyBill className="text-success me-2" />
+          <span><strong>Price:</strong> ${getItemPrice(place, "HistoricalPlace")}</span>
+        </div>
+  
         {place.tags?.length > 0 && (
-          <div className="mb-3">
+          <div className="mb-4">
             {place.tags.map((tag) => (
-              <Badge bg="secondary" className="me-1" key={tag._id}>
+              <Badge 
+                key={tag._id}
+                className="me-2 mb-2" 
+                style={{
+                  backgroundColor: '#1089ff',
+                  padding: '8px 15px',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem'
+                }}
+              >
                 {tag.name}
               </Badge>
             ))}
           </div>
         )}
-        <Form.Group className="mb-3">
-          <Form.Label>Select Visit Date</Form.Label>
+  
+        <Form.Group className="mb-4">
+          <Form.Label className="fw-bold">Select Visit Date</Form.Label>
           <Form.Control
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
             required
+            className="rounded-pill"
+            style={{ padding: '12px 20px' }}
           />
         </Form.Group>
-        <div className="d-flex gap-2 mt-3">
+  
+        <div className="d-flex gap-2">
           <Button
             variant="primary"
+            className="flex-grow-1 rounded-pill py-2"
             onClick={(e) => handleBooking(place, "HistoricalPlace", e)}
             disabled={bookingLoading && bookingItemId === place._id}
+            style={{
+              backgroundColor: '#1089ff',
+              border: 'none',
+              transition: 'all 0.3s ease'
+            }}
           >
             {bookingLoading && bookingItemId === place._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
@@ -554,20 +603,18 @@ const ViewEvents = () => {
             Book Now (${getItemPrice(place, "HistoricalPlace")})
           </Button>
           <Button
-            variant="outline-secondary"
+            variant="light"
+            className="rounded-circle p-2"
             onClick={() => handleShare({ ...place, type: "historicalplace" })}
           >
-            <FaCopy className="me-2" />
-            Share
+            <FaCopy />
           </Button>
           <Button
-            variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...place, type: "historicalplace" })
-            }
+            variant="light"
+            className="rounded-circle p-2"
+            onClick={() => handleEmailShare({ ...place, type: "historicalplace" })}
           >
-            <FaEnvelope className="me-2" />
-            Email
+            <FaEnvelope />
           </Button>
         </div>
       </Card.Body>
@@ -575,57 +622,90 @@ const ViewEvents = () => {
   );
 
   const ActivityCard = ({ activity }) => (
-    <Card className="mb-3 h-100">
-      <Card.Body>
-        <Card.Title>{activity.name}</Card.Title>
-        <Card.Text>{activity.description}</Card.Text>
+    <Card className="h-100 border-0 shadow-hover" 
+      style={{
+        borderRadius: '15px',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        backgroundColor: '#fff',
+        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+      }}>
+      <div 
+        className="card-img-top"
+        style={{
+          height: '200px',
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/services-2.jpg")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="p-4 text-white">
+          <h3 className="mb-0 fw-bold">{activity.name}</h3>
+          {activity.category?.name && (
+            <span className="badge bg-primary rounded-pill mt-2" style={{ backgroundColor: '#1089ff !important' }}>
+              {activity.category.name}
+            </span>
+          )}
+        </div>
+      </div>
+      <Card.Body className="p-4">
+        <p className="text-muted">{activity.description}</p>
+        
         {activity.date && (
-          <Card.Text className="text-primary">
-            <FaCalendar className="me-2" />
-            <strong>Event Date:</strong> {formatDate(activity.date)}
-          </Card.Text>
+          <div className="d-flex align-items-center mb-3">
+            <FaCalendar className="text-primary me-2" />
+            <span><strong>Event Date:</strong> {formatDate(activity.date)}</span>
+          </div>
         )}
-        <Card.Text>
-          <strong>Category:</strong> {activity.category?.name || "No Category"}
-        </Card.Text>
-        <Card.Text>
-          <strong>Price:</strong> ${activity.price}
-        </Card.Text>
-        {activity.location && (
-          <Card.Text>
-            <strong>Location:</strong>{" "}
-            {activity.location?.coordinates?.join(", ") || "No location"}
-          </Card.Text>
-        )}
+        
+        <div className="d-flex align-items-center mb-3">
+          <FaMoneyBill className="text-success me-2" />
+          <span><strong>Price:</strong> ${activity.price}</span>
+        </div>
+  
         {activity.tags?.length > 0 && (
-          <div className="mb-3">
+          <div className="mb-4">
             {activity.tags.map((tag) => (
-              <Badge bg="secondary" className="me-1" key={tag._id}>
+              <Badge 
+                key={tag._id}
+                className="me-2 mb-2" 
+                style={{
+                  backgroundColor: '#1089ff',
+                  padding: '8px 15px',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem'
+                }}
+              >
                 {tag.name}
               </Badge>
             ))}
           </div>
         )}
-        <Form.Group className="mb-3">
-          <Form.Label>Select Booking Date</Form.Label>
+  
+        <Form.Group className="mb-4">
+          <Form.Label className="fw-bold">Select Activity Date</Form.Label>
           <Form.Control
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
             required
+            className="rounded-pill"
+            style={{ padding: '12px 20px' }}
           />
-          {activity.date && (
-            <Form.Text className="text-muted">
-              Note: This activity is scheduled for {formatDate(activity.date)}
-            </Form.Text>
-          )}
         </Form.Group>
-        <div className="d-flex gap-2 mt-3">
+  
+        <div className="d-flex gap-2">
           <Button
             variant="primary"
+            className="flex-grow-1 rounded-pill py-2"
             onClick={(e) => handleBooking(activity, "Activity", e)}
             disabled={bookingLoading && bookingItemId === activity._id}
+            style={{
+              backgroundColor: '#1089ff',
+              border: 'none',
+              transition: 'all 0.3s ease'
+            }}
           >
             {bookingLoading && bookingItemId === activity._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
@@ -635,89 +715,147 @@ const ViewEvents = () => {
             Book Now (${activity.price})
           </Button>
           <Button
-            variant="outline-secondary"
+            variant="light"
+            className="rounded-circle p-2"
             onClick={() => handleShare({ ...activity, type: "activities" })}
           >
-            <FaCopy className="me-2" />
-            Share
+            <FaCopy />
           </Button>
           <Button
-            variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...activity, type: "activities" })
-            }
+            variant="light"
+            className="rounded-circle p-2"
+            onClick={() => handleEmailShare({ ...activity, type: "activities" })}
           >
-            <FaEnvelope className="me-2" />
-            Email
+            <FaEnvelope />
           </Button>
         </div>
       </Card.Body>
     </Card>
   );
-
   const ItineraryCard = ({ itinerary }) => (
-    <Card className="mb-3 h-100">
-      <Card.Body>
-        <Card.Title>{itinerary.name}</Card.Title>
-        <Card.Text>
-          <strong>Language:</strong> {itinerary.language}
-        </Card.Text>
-        <Card.Text>
-          <strong>Price:</strong> ${itinerary.totalPrice}
-        </Card.Text>
+    <Card className="h-100 border-0 shadow-hover" 
+      style={{
+        borderRadius: '15px',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        backgroundColor: '#fff',
+        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+      }}>
+      <div 
+        className="card-img-top"
+        style={{
+          height: '200px',
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/services-3.jpg")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="p-4 text-white">
+          <h3 className="mb-0 fw-bold">{itinerary.name}</h3>
+          <span className="badge bg-info rounded-pill mt-2">
+            {itinerary.language}
+          </span>
+        </div>
+      </div>
+      <Card.Body className="p-4">
+        <div className="d-flex align-items-center mb-3">
+          <FaMoneyBill className="text-success me-2" />
+          <span><strong>Total Price:</strong> ${itinerary.totalPrice}</span>
+        </div>
+  
         {itinerary.activities?.length > 0 && (
-          <Card.Text>
-            <strong>Included Activities:</strong>
-            <br />
-            {itinerary.activities.map((act) => act.name).join(", ")}
-          </Card.Text>
-        )}
-        {itinerary.availableDates?.length > 0 && (
           <div className="mb-3">
-            <strong>Available Dates:</strong>
-            <div className="available-dates mt-2">
-              {itinerary.availableDates.map((dateObj, index) => (
-                <Badge bg="info" className="me-2 mb-2" key={index}>
-                  {formatDate(dateObj.date)}
-                  {dateObj.availableTimes?.length > 0 && (
-                    <span className="ms-1">
-                      ({dateObj.availableTimes.join(", ")})
-                    </span>
-                  )}
-                </Badge>
+            <strong className="d-block mb-2">Included Activities:</strong>
+            <div className="activity-chips">
+              {itinerary.activities.map((act, index) => (
+                <span 
+                  key={index}
+                  className="badge bg-light text-dark me-2 mb-2"
+                  style={{
+                    padding: '8px 15px',
+                    borderRadius: '20px',
+                    fontSize: '0.85rem',
+                    border: '1px solid #eee'
+                  }}
+                >
+                  {act.name}
+                </span>
               ))}
             </div>
           </div>
         )}
-        {itinerary.preferenceTags?.length > 0 && (
+  
+        {itinerary.availableDates?.length > 0 && (
           <div className="mb-3">
+            <strong className="d-block mb-2">Available Dates:</strong>
+            <div className="date-chips">
+              {itinerary.availableDates.map((dateObj, index) => (
+                <div 
+                  key={index}
+                  className="badge bg-light text-dark me-2 mb-2"
+                  style={{
+                    padding: '8px 15px',
+                    borderRadius: '20px',
+                    fontSize: '0.85rem',
+                    border: '1px solid #eee'
+                  }}
+                >
+                  <FaCalendar className="me-1" />
+                  {formatDate(dateObj.date)}
+                  {dateObj.availableTimes?.length > 0 && (
+                    <small className="ms-1 text-muted">
+                      ({dateObj.availableTimes.join(", ")})
+                    </small>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+  
+        {itinerary.preferenceTags?.length > 0 && (
+          <div className="mb-4">
             {itinerary.preferenceTags.map((tag) => (
-              <Badge bg="secondary" className="me-1" key={tag._id}>
+              <Badge 
+                key={tag._id}
+                className="me-2 mb-2" 
+                style={{
+                  backgroundColor: '#1089ff',
+                  padding: '8px 15px',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem'
+                }}
+              >
                 {tag.name}
               </Badge>
             ))}
           </div>
         )}
-        <Form.Group className="mb-3">
-          <Form.Label>Select Tour Date</Form.Label>
+  
+        <Form.Group className="mb-4">
+          <Form.Label className="fw-bold">Select Tour Date</Form.Label>
           <Form.Control
             type="date"
             value={bookingDate}
             onChange={(e) => setBookingDate(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
             required
+            className="rounded-pill"
+            style={{ padding: '12px 20px' }}
           />
-          {itinerary.availableDates?.length > 0 && (
-            <Form.Text className="text-muted">
-              Note: Please select from the available dates above
-            </Form.Text>
-          )}
         </Form.Group>
-        <div className="d-flex gap-2 mt-3">
+  
+        <div className="d-flex gap-2 flex-wrap">
           <Button
             variant="primary"
+            className="flex-grow-1 rounded-pill py-2"
             onClick={(e) => handleBooking(itinerary, "Itinerary", e)}
             disabled={bookingLoading && bookingItemId === itinerary._id}
+            style={{
+              backgroundColor: '#1089ff',
+              border: 'none',
+              transition: 'all 0.3s ease'
+            }}
           >
             {bookingLoading && bookingItemId === itinerary._id ? (
               <Spinner animation="border" size="sm" className="me-2" />
@@ -727,33 +865,30 @@ const ViewEvents = () => {
             Book Now (${itinerary.totalPrice})
           </Button>
           <Button
-            variant="outline-secondary"
+            variant="light"
+            className="rounded-circle p-2"
             onClick={() => handleShare({ ...itinerary, type: "itineraries" })}
           >
-            <FaCopy className="me-2" />
-            Share
+            <FaCopy />
           </Button>
           <Button
-            variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...itinerary, type: "itineraries" })
-            }
+            variant="light"
+            className="rounded-circle p-2"
+            onClick={() => handleEmailShare({ ...itinerary, type: "itineraries" })}
           >
-            <FaEnvelope className="me-2" />
-            Email
+            <FaEnvelope />
           </Button>
           <Button
-            variant="outline-secondary"
+            variant="light"
+            className="rounded-circle p-2"
             onClick={() => toggleComments(itinerary._id)}
           >
-            <FaComment />{" "}
-            {expandedComments[itinerary._id]
-              ? "Hide Comments"
-              : "Show Comments"}
+            <FaComment />
           </Button>
         </div>
+  
         <Collapse in={expandedComments[itinerary._id]}>
-          <div className="mt-3">
+          <div className="mt-4 pt-4 border-top">
             <ItineraryComment itineraryId={itinerary._id} />
           </div>
         </Collapse>
@@ -817,33 +952,138 @@ const LoyaltyInfo = () => (
   </div>
 );
 
-  return (
-    <Container className="mt-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Available Events</h1>
-        <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center">
-          <FaWallet className="me-2 text-primary" size={24} />
-          <div>
-            <h4 className="mb-0">Wallet Balance: ${userWallet}</h4>
-            <small className="text-muted">Available for bookings</small>
-          </div>
+return (
+  <>
+  <Navbar/>
+    {/* Hero Section */}
+    <div 
+      style={{
+        backgroundImage: 'url("/images/bg_1.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative',
+        padding: '8rem 0 4rem 0',
+        marginBottom: '2rem'
+      }}
+    >
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1
+        }}
+      ></div>
+      <Container style={{ position: 'relative', zIndex: 2 }}>
+        <div className="text-center text-white">
+          <p className="mb-4">
+            <span className="me-2">
+              <a href="/tourist" className="text-white text-decoration-none">
+                Home <FaChevronRight className="small mx-2" />
+              </a>
+            </span>
+            <span>
+              View Events <FaChevronRight className="small" />
+            </span>
+          </p>
+          <h1 className="display-4 mb-4">Available Events</h1>
         </div>
-      </div>
-      <div className="d-flex gap-3">
-        <LoyaltyInfo />
-      </div>
-      <div className="mb-4 p-3 bg-white rounded shadow-sm">
-        <Form.Control
-          type="text"
-          placeholder="Search by name, category, or tags"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="mb-3"
-        />
+      </Container>
+    </div>
 
+    {/* Main Content Container */}
+    <Container>
+      {/* Wallet and Loyalty Info Section */}
+      <div 
+        className="py-4 px-4 mb-5"
+        style={{
+          backgroundImage: 'url("/images/bg_2.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: '10px',
+          position: 'relative'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: '10px',
+            zIndex: 1
+          }}
+        ></div>
+        <Row className="position-relative" style={{ zIndex: 2 }}>
+          <Col md={6}>
+            <div className="d-flex align-items-center text-white">
+              <FaWallet className="me-3" size={40} />
+              <div>
+                <h3 className="mb-0">Wallet Balance: ${userWallet}</h3>
+                <p className="mb-0">Available for bookings</p>
+              </div>
+            </div>
+          </Col>
+          <Col md={6}>
+            <div className="d-flex align-items-center text-white">
+              {getBadgeIcon(touristLevel)}
+              <div>
+                <h3 className="mb-0">Level {touristLevel} - {loyaltyPoints} Points</h3>
+                <p className="mb-0">
+                  Earn {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"} points on purchases
+                </p>
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </div>
+
+      <Card className="shadow-sm mb-5 border-0" style={{ borderRadius: '15px' }}>
+  <Card.Body className="p-4">
+    <h4 className="text-primary mb-4">
+      <FaSearch className="me-2" />
+      Search Events
+    </h4>
+    <Row>
+      <Col md={8}>
+        <div className="position-relative">
+          <Form.Control
+            type="text"
+            placeholder="Search by name, category, or tags"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="mb-3 rounded-pill"
+            style={{
+              height: '55px',
+              paddingLeft: '50px',
+              border: '2px solid #eee'
+            }}
+          />
+          <FaSearch 
+            style={{
+              position: 'absolute',
+              left: '20px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#aaa'
+            }}
+          />
+        </div>
+      </Col>
+      <Col md={4}>
         <Form.Select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
+          className="rounded-pill"
+          style={{
+            height: '55px',
+            border: '2px solid #eee'
+          }}
         >
           <option value="">All Categories</option>
           {categories.map((category) => (
@@ -852,12 +1092,17 @@ const LoyaltyInfo = () => (
             </option>
           ))}
         </Form.Select>
-      </div>
+      </Col>
+    </Row>
+  </Card.Body>
+</Card>
 
       {/* Historical Places Section */}
       {filteredHistoricalPlaces.length > 0 && (
         <div className="mb-5">
-          <h2 className="mb-4">Historical Places</h2>
+          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
+            Historical Places
+          </h2>
           <Row>
             {filteredHistoricalPlaces.map((place) => (
               <Col md={4} key={place._id}>
@@ -871,7 +1116,9 @@ const LoyaltyInfo = () => (
       {/* Activities Section */}
       {filteredActivities.length > 0 && (
         <div className="mb-5">
-          <h2 className="mb-4">Activities</h2>
+          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
+            Activities
+          </h2>
           <Row>
             {filteredActivities.map((activity) => (
               <Col md={4} key={activity._id}>
@@ -885,7 +1132,9 @@ const LoyaltyInfo = () => (
       {/* Itineraries Section */}
       {filteredItineraries.length > 0 && (
         <div className="mb-5">
-          <h2 className="mb-4">Itineraries</h2>
+          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
+            Itineraries
+          </h2>
           <Row>
             {filteredItineraries.map((itinerary) => (
               <Col md={4} key={itinerary._id}>
@@ -896,6 +1145,7 @@ const LoyaltyInfo = () => (
         </div>
       )}
 
+      {/* No Results Message */}
       {filteredHistoricalPlaces.length === 0 &&
         filteredActivities.length === 0 &&
         filteredItineraries.length === 0 && (
@@ -906,7 +1156,8 @@ const LoyaltyInfo = () => (
           </div>
         )}
     </Container>
-  );
-};
+  </>
+);
+}
 
 export default ViewEvents;

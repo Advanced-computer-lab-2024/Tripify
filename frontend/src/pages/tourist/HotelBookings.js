@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Navbar from "./components/Navbar";
+
 import {
   Container,
   Card,
@@ -6,9 +8,9 @@ import {
   Row,
   Col,
   Spinner,
-  Badge,
+  Badge
 } from "react-bootstrap";
-import { jwtDecode } from "jwt-decode";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaHotel,
   FaUsers,
@@ -16,9 +18,13 @@ import {
   FaArrowLeft,
   FaCalendarAlt,
   FaMapMarkerAlt,
+  FaChevronRight,
+  FaInfoCircle,
+  FaCreditCard,
+  FaCheck
 } from "react-icons/fa";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const HotelBookings = () => {
   const navigate = useNavigate();
@@ -84,138 +90,257 @@ const HotelBookings = () => {
   }, []);
 
   return (
-    <Container className="py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Hotel Bookings</h2>
-        <Button
-          variant="outline-primary"
-          onClick={() => navigate("/tourist/book-hotel")}
-        >
-          <FaArrowLeft className="me-2" />
-          Back to Hotel Booking
-        </Button>
+    <>
+  <Navbar/>
+    <div className="hotel-bookings-page">
+      {/* Hero Section */}
+      <div 
+        style={{
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          padding: '8rem 0 4rem 0',
+          marginBottom: '2rem'
+        }}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1
+          }}
+        ></div>
+        <Container style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span className="me-2">
+                <Link to="/tourist" className="text-white text-decoration-none">
+                  Home <FaChevronRight className="small mx-2" />
+                </Link>
+              </span>
+              <span>
+                Hotel Bookings <FaChevronRight className="small" />
+              </span>
+            </p>
+            <h1 className="display-4 mb-0">My Hotel Bookings</h1>
+          </div>
+        </Container>
       </div>
 
-      {loading ? (
-        <div className="text-center mt-5">
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        </div>
-      ) : bookings.length === 0 ? (
-        <Card className="text-center p-5">
-          <Card.Body>
-            <h4>No hotel bookings found</h4>
-            <p>You haven't made any hotel bookings yet.</p>
-            <Button
-              variant="primary"
-              onClick={() => navigate("/tourist/book-hotel")}
-            >
-              Book a Hotel
-            </Button>
+      <Container className="py-5">
+        {/* Action Button */}
+        <Card 
+          className="shadow-sm mb-5" 
+          style={{ 
+            borderRadius: '15px',
+            border: 'none',
+            backgroundImage: 'url("/images/bg_2.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            position: 'relative'
+          }}
+        >
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              borderRadius: '15px',
+              zIndex: 1
+            }}
+          />
+          <Card.Body className="p-4 position-relative" style={{ zIndex: 2 }}>
+            <div className="d-flex justify-content-between align-items-center text-white">
+              <div className="d-flex align-items-center">
+                <FaHotel className="me-3" size={30} />
+                <h3 className="mb-0">Your Hotel Reservations</h3>
+              </div>
+              <Button
+                variant="light"
+                onClick={() => navigate("/tourist/book-hotel")}
+                className="rounded-pill px-4"
+              >
+                <FaArrowLeft className="me-2" />
+                Book New Hotel
+              </Button>
+            </div>
           </Card.Body>
         </Card>
-      ) : (
-        <div className="booking-list">
-          {bookings.map((booking) => (
-            <Card key={booking._id} className="mb-4">
-              <Card.Header className="d-flex justify-content-between align-items-center bg-primary text-white">
-                <div className="d-flex align-items-center">
-                  <FaHotel className="me-2" size={20} />
-                  <h5 className="mb-0">Hotel Booking</h5>
-                </div>
-                <Badge
-                  bg={booking.status === "confirmed" ? "success" : "secondary"}
-                  className="px-3 py-2"
+
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-3 text-muted">Loading your bookings...</p>
+          </div>
+        ) : bookings.length === 0 ? (
+          <Card 
+            className="text-center p-5 shadow-sm" 
+            style={{ 
+              borderRadius: '15px',
+              border: 'none'
+            }}
+          >
+            <Card.Body>
+              <FaInfoCircle size={48} className="text-muted mb-3" />
+              <h4>No Hotel Bookings Found</h4>
+              <p className="text-muted mb-4">You haven't made any hotel reservations yet.</p>
+              <Button
+                onClick={() => navigate("/tourist/book-hotel")}
+                className="rounded-pill px-4"
+                style={{
+                  backgroundColor: '#1089ff',
+                  border: 'none'
+                }}
+              >
+                <FaHotel className="me-2" />
+                Book Your First Hotel
+              </Button>
+            </Card.Body>
+          </Card>
+        ) : (
+          <Row className="g-4">
+            {bookings.map((booking) => (
+              <Col xs={12} key={booking._id}>
+                <Card 
+                  className="shadow-hover" 
+                  style={{
+                    borderRadius: '15px',
+                    border: 'none',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
+                  }}
                 >
-                  {booking.status.charAt(0).toUpperCase() +
-                    booking.status.slice(1)}
-                </Badge>
-              </Card.Header>
-
-              <Card.Body>
-                <h4 className="mb-4">{booking.hotelDetails.name}</h4>
-
-                <Row>
-                  <Col md={6}>
-                    <div className="mb-3 d-flex align-items-center">
-                      <FaCalendarAlt className="me-2 text-primary" />
-                      <div>
-                        <strong>Check-in:</strong>{" "}
-                        {formatDate(booking.checkInDate)}
-                      </div>
+                  <div 
+                    className="card-header d-flex justify-content-between align-items-center p-4"
+                    style={{
+                      background: 'linear-gradient(to right, #1089ff, #0056b3)',
+                      borderTopLeftRadius: '15px',
+                      borderTopRightRadius: '15px'
+                    }}
+                  >
+                    <div className="d-flex align-items-center text-white">
+                      <FaHotel className="me-2" size={20} />
+                      <h5 className="mb-0">{booking.hotelDetails.name}</h5>
                     </div>
-                    <div className="mb-3 d-flex align-items-center">
-                      <FaCalendarAlt className="me-2 text-primary" />
-                      <div>
-                        <strong>Check-out:</strong>{" "}
-                        {formatDate(booking.checkOutDate)}
-                      </div>
-                    </div>
-                    <div className="mb-3 d-flex align-items-center">
-                      <FaMapMarkerAlt className="me-2 text-primary" />
-                      <div>
-                        <strong>City Code:</strong>{" "}
-                        {booking.hotelDetails.cityCode}
-                      </div>
-                    </div>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="mb-3">
-                      <strong>Duration:</strong>{" "}
-                      {calculateDuration(
-                        booking.checkInDate,
-                        booking.checkOutDate
+                    <Badge 
+                      bg={booking.status === "confirmed" ? "success" : "secondary"}
+                      className="px-3 py-2 rounded-pill"
+                    >
+                      {booking.status === "confirmed" ? (
+                        <><FaCheck className="me-1" /> Confirmed</>
+                      ) : (
+                        booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
                       )}
-                    </div>
-                    <div className="mb-3 d-flex align-items-center">
-                      <FaUsers className="me-2 text-primary" />
-                      <div>
-                        <strong>Guests:</strong> {booking.numberOfGuests}
-                      </div>
-                    </div>
-                    <div className="mb-3 d-flex align-items-center">
-                      <FaBed className="me-2 text-primary" />
-                      <div>
-                        <strong>Rooms:</strong> {booking.numberOfRooms}
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <strong>Total Price:</strong>{" "}
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: booking.totalPrice.currency || "USD",
-                      }).format(booking.totalPrice.amount)}
-                    </div>
-                  </Col>
-                </Row>
+                    </Badge>
+                  </div>
 
-                {booking.guests && booking.guests[0] && (
-                  <div className="border-top pt-3 mt-3">
-                    <div className="mb-2">
-                      <strong>Primary Guest:</strong>{" "}
-                      {`${booking.guests[0].name.title} ${booking.guests[0].name.firstName} ${booking.guests[0].name.lastName}`}
-                    </div>
-                    {booking.guests[0].contact && (
-                      <div className="text-muted">
-                        <strong>Contact:</strong>{" "}
-                        {booking.guests[0].contact.email} |{" "}
-                        {booking.guests[0].contact.phone}
+                  <Card.Body className="p-4">
+                    <Row>
+                      <Col md={6}>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaCalendarAlt className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Check-in</div>
+                            <strong>{formatDate(booking.checkInDate)}</strong>
+                          </div>
+                        </div>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaCalendarAlt className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Check-out</div>
+                            <strong>{formatDate(booking.checkOutDate)}</strong>
+                          </div>
+                        </div>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaMapMarkerAlt className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Location</div>
+                            <strong>{booking.hotelDetails.cityCode}</strong>
+                          </div>
+                        </div>
+                      </Col>
+
+                      <Col md={6}>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaUsers className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Guests</div>
+                            <strong>{booking.numberOfGuests} persons</strong>
+                          </div>
+                        </div>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaBed className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Rooms</div>
+                            <strong>{booking.numberOfRooms} rooms</strong>
+                          </div>
+                        </div>
+                        <div className="mb-3 d-flex align-items-center">
+                          <FaCreditCard className="text-primary me-3" size={20} />
+                          <div>
+                            <div className="text-muted mb-1">Total Price</div>
+                            <strong>
+                              {new Intl.NumberFormat("en-US", {
+                                style: "currency",
+                                currency: booking.totalPrice.currency || "USD",
+                              }).format(booking.totalPrice.amount)}
+                            </strong>
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+
+                    {booking.guests && booking.guests[0] && (
+                      <div className="mt-4 p-4 bg-light rounded-3">
+                        <h6 className="text-primary mb-3">Primary Guest Details</h6>
+                        <Row>
+                          <Col md={6}>
+                            <div className="mb-2">
+                              <strong>Guest Name:</strong>{" "}
+                              {`${booking.guests[0].name.title} ${booking.guests[0].name.firstName} ${booking.guests[0].name.lastName}`}
+                            </div>
+                          </Col>
+                          {booking.guests[0].contact && (
+                            <Col md={6}>
+                              <div className="mb-2">
+                                <strong>Contact:</strong>{" "}
+                                {booking.guests[0].contact.email} | {booking.guests[0].contact.phone}
+                              </div>
+                            </Col>
+                          )}
+                        </Row>
                       </div>
                     )}
-                  </div>
-                )}
-              </Card.Body>
+                  </Card.Body>
 
-              <Card.Footer className="text-muted bg-light">
-                <small>Booking ID: {booking._id}</small>
-              </Card.Footer>
-            </Card>
-          ))}
-        </div>
-      )}
-    </Container>
+                  <Card.Footer 
+                    className="text-muted py-3 px-4"
+                    style={{
+                      backgroundColor: '#f8f9fa',
+                      borderBottomLeftRadius: '15px',
+                      borderBottomRightRadius: '15px',
+                      borderTop: '1px solid rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <small>Booking ID: {booking._id}</small>
+                  </Card.Footer>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Container>
+    </div>
+    </>
+
   );
 };
 
