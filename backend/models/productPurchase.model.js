@@ -1,4 +1,3 @@
-// models/productPurchase.model.js
 import mongoose from "mongoose";
 
 const productPurchaseSchema = new mongoose.Schema({
@@ -34,7 +33,7 @@ const productPurchaseSchema = new mongoose.Schema({
     type: Date,
     default: function () {
       const date = new Date();
-      date.setDate(date.getDate() + 3); // Add 3 days
+      date.setDate(date.getDate() + 3);
       return date;
     },
   },
@@ -58,7 +57,13 @@ const productPurchaseSchema = new mongoose.Schema({
     {
       status: {
         type: String,
-        enum: ["order_placed", "processing", "on_the_way", "delivered"],
+        enum: [
+          "order_placed",
+          "processing",
+          "on_the_way",
+          "delivered",
+          "cancelled",
+        ], // Added cancelled
       },
       timestamp: {
         type: Date,
@@ -69,19 +74,26 @@ const productPurchaseSchema = new mongoose.Schema({
   ],
 });
 
-// Add a pre-save hook to update tracking
+// Updated pre-save hook to handle cancelled status
 productPurchaseSchema.pre("save", function (next) {
   if (this.isNew) {
     this.trackingUpdates.push({
       status: "order_placed",
       message: "Order has been placed successfully",
+      timestamp: new Date(),
     });
   }
 
   if (this.isModified("status")) {
+    const message =
+      this.status === "cancelled"
+        ? "Order has been cancelled and refunded"
+        : `Order is ${this.status.replace("_", " ")}`;
+
     this.trackingUpdates.push({
       status: this.status,
-      message: `Order is ${this.status.replace("_", " ")}`,
+      message: message,
+      timestamp: new Date(),
     });
   }
 

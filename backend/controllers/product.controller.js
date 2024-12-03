@@ -574,3 +574,87 @@ export const getSellerSales = async (req, res) => {
     });
   }
 };
+
+// Add this to product.controller.js
+
+export const cancelOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { purchaseId } = req.params;
+    const purchase = await ProductPurchase.findById(purchaseId).populate(
+      "productId"
+    );
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase not found",
+      });
+    }
+
+    // Check if order is already cancelled or delivered
+    if (purchase.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already cancelled",
+      });
+    }
+
+    if (purchase.status === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot cancel a delivered order",
+      });
+    }
+
+    // Get the tourist
+    const tourist = await Tourist.findById(purchase.userId);
+    if (!tourist) {
+      return res.status(404).json({
+        success: false,
+        message: "Tourist not found",
+      });
+    }
+
+    // Update product quantity
+    const product = purchase.productId;
+    product.quantity += purchase.quantity;
+    await product.save({ session });
+
+    // Update tourist wallet with refund
+    tourist.wallet += purchase.totalPrice;
+    await tourist.save({ session });
+
+    // Update purchase status
+    purchase.status = "cancelled";
+    purchase.trackingUpdates.push({
+      status: "cancelled",
+      message: "Order has been cancelled and refunded",
+      timestamp: new Date(),
+    });
+    await purchase.save({ session });
+
+    await session.commitTransaction();
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      data: {
+        refundAmount: purchase.totalPrice,
+        newWalletBalance: tourist.wallet,
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Cancel order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to cancel order",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
+  }
+};
