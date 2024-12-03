@@ -4,6 +4,11 @@ import "react-modal-video/scss/modal-video.scss";
 import bgImage from "../assets/images/bg_5.jpg";
 
 const HeroSection = ({ username }) => {
+   // Check if the user is logged in
+   const isLoggedIn = () => {
+    return !!localStorage.getItem("token");
+  };
+  
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -20,21 +25,23 @@ const HeroSection = ({ username }) => {
       <div className="overlay active"></div>
 
       {/* Welcome Back Message */}
-      <div
-        style={{
-          position: "absolute",
-          top: "90px", // Adjust to align below the navbar
-          right: "170px", // Positioned to the right
-          zIndex: 10,
-          color: "#fff", // White text
-          fontSize: "18px", // Font size
-          fontWeight: "600", // Font weight
-        }}
-      >
-        <p style={{ margin: 0 }}>
-          Welcome back, <strong>{username}</strong>!
-        </p>
-      </div>
+      {isLoggedIn() && (
+        <div
+          style={{
+            position: "absolute",
+            top: "90px", // Adjust to align below the navbar
+            right: "170px", // Positioned to the right
+            zIndex: 10,
+            color: "#fff", // White text
+            fontSize: "18px", // Font size
+            fontWeight: "600", // Font weight
+          }}
+        >
+          <p style={{ margin: 0 }}>
+            Welcome back, <strong>{username}</strong>!
+          </p>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="container">

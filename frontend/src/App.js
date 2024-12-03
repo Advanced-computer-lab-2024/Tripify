@@ -70,7 +70,7 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={<AuthPage />}
+            element={<TouristHomePage />}
           />
           <Route
             path="/auth"

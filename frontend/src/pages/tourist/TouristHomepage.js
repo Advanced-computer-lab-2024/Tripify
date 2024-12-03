@@ -142,8 +142,8 @@ const TouristHomePage = () => {
    <TourDestinations/>
    <AboutSection/>
    <AboutUsSection/>
-   {/* <TestimonialSection/> */}
-   <BlogSection/>
+   <TestimonialSection/>
+   {/* <BlogSection/> */}
    <IntroSection/>
    <Footer/>
     {/* <Container className="py-5">

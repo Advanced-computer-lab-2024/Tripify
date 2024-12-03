@@ -1,7 +1,6 @@
 import React from "react";
 import { Container, Row, Col, Card, Carousel } from "react-bootstrap";
-import { motion } from "framer-motion";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaPlaneDeparture, FaCar } from 'react-icons/fa';
 import Navbar from "./components/Navbar";
 
@@ -110,6 +109,22 @@ const TouristAboutPage = () => {
       rating: 5
     }
 ];
+const navigate = useNavigate();
+
+  // Check if the user is logged in
+  const isLoggedIn = () => {
+    return !!localStorage.getItem("token");
+  };
+
+  // Handle navigation
+  const handleNavigation = (e, path) => {
+    e.preventDefault();
+    if (isLoggedIn()) {
+      navigate(path);
+    } else {
+      navigate("/login");
+    }
+  };
 
   return (
     <>
@@ -147,11 +162,15 @@ const TouristAboutPage = () => {
     <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
     <p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean. A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>
     <div className="d-flex gap-3">
-      <Link to="/tourist/book-flight" className="btn btn-primary px-4 py-3">
+      <Link to="/tourist/book-flight" 
+      className="btn btn-primary px-4 py-3"
+      onClick={(e) => handleNavigation(e, "/tourist/book-flight")}>
         <FaPlaneDeparture className="me-2" />
         Book a Flight
       </Link>
-      <Link to="/tourist/book-transportation" className="btn btn-primary px-4 py-3">
+      <Link to="/tourist/book-transportation"
+       className="btn btn-primary px-4 py-3"
+       onClick={(e) => handleNavigation(e, "/tourist/book-transportation")}>
         <FaCar className="me-2" />
         Book Transportation
       </Link>
@@ -262,11 +281,13 @@ const TouristAboutPage = () => {
   <h2 className="mb-4">Make Your Tour Memorable and Safe With Us</h2>
   <p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.</p>
   <div className="d-flex gap-3">
-    <Link to="/tourist/book-flight" className="btn btn-primary">
+    <Link to="/tourist/book-flight" className="btn btn-primary"
+    onClick={(e) => handleNavigation(e, "/tourist/book-flight")}>
       <FaPlaneDeparture className="me-2" />
       Book a Flight
     </Link>
-    <Link to="/tourist/book-transportation" className="btn btn-primary">
+    <Link to="/tourist/book-transportation" className="btn btn-primary"
+    onClick={(e) => handleNavigation(e, "/tourist/book-transportation")}>
       <FaCar className="me-2" />
       Book Transportation
     </Link>

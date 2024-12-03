@@ -3,21 +3,15 @@ import { FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu toggle
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992); // Check if it's mobile view
   const [dropdownOpen, setDropdownOpen] = useState(false); // State for dropdown toggle
 
-  // Handle scrolling and resizing
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
+  // Check if user is logged in
+  const loggedIn = !!localStorage.getItem("token"); // Check if token exists in localStorage
 
+  // Handle resizing
+  useEffect(() => {
     const handleResize = () => {
       const isMobile = window.innerWidth <= 992;
       setIsMobileView(isMobile);
@@ -26,11 +20,9 @@ const Navbar = () => {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
     };
   }, [menuOpen]);
@@ -45,14 +37,11 @@ const Navbar = () => {
 
   const defaultLinkColor = menuOpen || isMobileView
     ? { color: "#fff" } // White for mobile menu
-    : scrolled
-    ? { color: "#000" } // Black when scrolled
-    : { color: "#000" }; // Black for default state
+    : { color: "#000" }; // Black for desktop
 
   const logoStyle = {
     fontWeight: "700",
-    fontSize: "28px", // Larger font size for the logo
-    transition: "color 0.3s ease",
+    fontSize: "28px",
     ...defaultLinkColor,
   };
 
@@ -61,10 +50,7 @@ const Navbar = () => {
       className={`navbar navbar-expand-lg ${
         menuOpen || isMobileView ? "bg-dark" : "bg-white shadow-sm"
       } fixed-top`}
-      id="ftco-navbar"
-      style={{
-        transition: "background-color 0.3s ease",
-      }}
+      style={{ transition: "background-color 0.3s ease" }}
     >
       <div className="container">
         {/* Logo */}
@@ -76,16 +62,19 @@ const Navbar = () => {
         <button
           className="navbar-toggler"
           type="button"
-          aria-expanded={menuOpen} // Reflect the menu state
+          aria-expanded={menuOpen}
           aria-label="Toggle navigation"
-          onClick={() => setMenuOpen(!menuOpen)} // Toggle menu state
+          onClick={() => setMenuOpen(!menuOpen)}
           style={{
             border: "1px solid #fff",
-            color: menuOpen || isMobileView ? "#fff" : "#000", // Make text white for mobile view
-            transition: "color 0.3s ease",
+            color: menuOpen || isMobileView ? "#fff" : "#000",
           }}
         >
-          <span className="oi oi-menu" style={{ color: menuOpen || isMobileView ? "#fff" : "#000" }}></span> Menu
+          <span
+            className="oi oi-menu"
+            style={{ color: menuOpen || isMobileView ? "#fff" : "#000" }}
+          ></span>{" "}
+          Menu
         </button>
 
         {/* Navbar Links */}
@@ -95,89 +84,95 @@ const Navbar = () => {
         >
           <ul className="navbar-nav ml-auto">
             <li className="nav-item">
-              <Link
-                className="nav-link"
-                to="/tourist"
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
+              <Link className="nav-link" to="/" style={{ ...linkStyle, ...defaultLinkColor }}>
                 Home
               </Link>
             </li>
-            <li className="nav-item">
-              <Link
-                className="nav-link"
-                to="/about"
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
-                About
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link
-                className="nav-link"
-                to="/destination"
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
-                Events
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link
-                className="nav-link"
-                to="/tourist/products"
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
-                Products
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link
-                className="nav-link"
-                to="/tourist/view-bookings"
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
-                Bookings
-              </Link>
-            </li>
 
-            {/* Dropdown Menu for My Profile */}
-            <li
-              className={`nav-item dropdown ${
-                dropdownOpen ? "show" : ""
-              }`} // Toggle dropdown state
-              onMouseEnter={() => setDropdownOpen(true)} // Open on hover
-              onMouseLeave={() => setDropdownOpen(false)} // Close on mouse leave
-            >
-              <Link
-                className="nav-link dropdown-toggle d-flex align-items-center"
-                to="#"
-                id="navbarDropdown"
-                role="button"
-                aria-expanded={dropdownOpen}
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
-                <FaUser className="me-2" />
-                My Profile
-              </Link>
-              <div
-                className={`dropdown-menu dropdown-menu-right ${
-                  dropdownOpen ? "show" : ""
-                }`}
-                aria-labelledby="navbarDropdown"
-                style={{
-                  backgroundColor: "#fff",
-                  border: "1px solid rgba(0,0,0,0.1)",
-                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                <Link className="dropdown-item" to="/tourist/my-profile">
-                  View Profile
-                </Link>
-                <Link className="dropdown-item" to="/tourist/change-password">
-                  Change Password
-                </Link>
-              </div>
-            </li>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/about"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    About
+                  </Link>
+                </li>
+
+                
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/tourist/view-events"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    Events
+                  </Link>
+                </li>
+                {loggedIn ? (
+                  <>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/tourist/products"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    Products
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/tourist/view-bookings"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    Bookings
+                  </Link>
+                </li>
+                <li
+                  className={`nav-item dropdown ${dropdownOpen ? "show" : ""}`}
+                  onMouseEnter={() => setDropdownOpen(true)}
+                  onMouseLeave={() => setDropdownOpen(false)}
+                >
+                  <Link
+                    className="nav-link dropdown-toggle d-flex align-items-center"
+                    to="#"
+                    id="navbarDropdown"
+                    role="button"
+                    aria-expanded={dropdownOpen}
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    <FaUser className="me-2" />
+                    My Profile
+                  </Link>
+                  <div
+                    className={`dropdown-menu dropdown-menu-right ${
+                      dropdownOpen ? "show" : ""
+                    }`}
+                    aria-labelledby="navbarDropdown"
+                  >
+                    <Link className="dropdown-item" to="/tourist/my-profile">
+                      View Profile
+                    </Link>
+                    <Link className="dropdown-item" to="/tourist/change-password">
+                      Change Password
+                    </Link>
+                  </div>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/login"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    Login
+                  </Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
       </div>

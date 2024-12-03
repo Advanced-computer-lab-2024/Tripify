@@ -1,6 +1,28 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
+
+
 
 const SearchSection = () => {
+  const navigate = useNavigate();
+
+// Check if the user is logged in
+const isLoggedIn = () => {
+  return !!localStorage.getItem("token");
+};
+
+// Handle form submission
+const handleFormSubmit = (e, path) => {
+  e.preventDefault(); // Prevent default form submission
+  if (isLoggedIn()) {
+    // User is logged in, proceed to the respective search page
+    navigate(path);
+  } else {
+    // User is not logged in, redirect to login page
+    navigate("/login");
+  }
+};
   return (
     <section className="ftco-section ftco-no-pb ftco-no-pt">
       <div className="container">
@@ -62,7 +84,8 @@ const SearchSection = () => {
                       role="tabpanel"
                       aria-labelledby="v-pills-1-tab"
                     >
-                      <form action="/tourist/book-flight" className="search-property-1">
+                      <form action="/tourist/book-flight" className="search-property-1"
+                      onSubmit={(e) => handleFormSubmit(e, "/tourist/book-flight")}>
                         <div className="row no-gutters">
                           <div className="col-md d-flex">
                             <div className="form-group p-4 border-0">
@@ -143,7 +166,8 @@ const SearchSection = () => {
                       role="tabpanel"
                       aria-labelledby="v-pills-2-tab"
                     >
-                      <form action="/tourist/book-hotel" className="search-property-1">
+                      <form action="/tourist/book-hotel" className="search-property-1"
+                      onSubmit={(e) => handleFormSubmit(e, "/tourist/book-hotel")}>
                         <div className="row no-gutters">
                           <div className="col-md d-flex">
                             <div className="form-group p-4 border-0">
@@ -236,7 +260,11 @@ const SearchSection = () => {
                       role="tabpanel"
                       aria-labelledby="v-pills-3-tab"
                     >
-                      <form action="/tourist/book-transportation" className="search-property-1">
+                      <form action="/tourist/book-transportation" className="search-property-1"
+                      onSubmit={(e) =>
+                        handleFormSubmit(e, "/tourist/book-transportation")
+                      }
+                      >
                         <div className="row no-gutters">
                         <div className="col-md d-flex">
                             <div className="form-group p-4">

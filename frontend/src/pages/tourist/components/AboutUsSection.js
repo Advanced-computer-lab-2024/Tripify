@@ -28,8 +28,8 @@ const AboutUsSection = () => {
                       coast of the Semantics, a large language ocean.
                     </p>
                     <p>
-                      <a href="/tourist/filtered-itineraries" className="btn btn-primary">
-                        Book Your Itinerary
+                      <a href="/tourist/itinerary-filter" className="btn btn-primary">
+                        View Itineraries
                       </a>
                     </p>
                   </div>
