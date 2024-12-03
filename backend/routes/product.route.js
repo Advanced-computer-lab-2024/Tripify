@@ -13,6 +13,7 @@ import {
   toggleArchiveProduct,
   getArchivedProducts,
   getSellerSales,
+  cancelOrder,
 } from "../controllers/product.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -43,5 +44,6 @@ router.get("/archived", authMiddleware, getArchivedProducts);
 router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
 // Add this to product.route.js
 router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
+router.post("/purchases/:purchaseId/cancel", authMiddleware, cancelOrder);
 
 export default router;
