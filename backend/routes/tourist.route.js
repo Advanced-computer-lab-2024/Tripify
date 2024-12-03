@@ -14,6 +14,9 @@ import {
   changePassword,
   checkDeletionEligibility,
   deleteTouristAccount,
+  bookmarkEvent,
+  getSavedEvents,
+  removeBookmark
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -44,5 +47,9 @@ router.post("/rate-guide/:tourGuideId", authMiddleware, rateTourGuide);
 
 router.get("/check-deletion/:id", authMiddleware, checkDeletionEligibility);
 router.delete("/delete/:id", authMiddleware, deleteTouristAccount);
+
+router.post('/bookmark-event', authMiddleware, bookmarkEvent);
+router.get('/saved-events', authMiddleware, getSavedEvents);
+router.delete('/bookmark/:eventId', authMiddleware, removeBookmark);
 
 export default router;

@@ -10,17 +10,23 @@ import {
   FaExclamationCircle,
   FaUser,
   FaLock,
-} from "react-icons/fa";  // Add icons if needed
+  FaBookmark,
+} from "react-icons/fa";  
 
 const TouristHomePage = () => {
-  const username =
-    JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
+  const username = JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
 
   const menuItems = [
     {
       to: "/tourist/view-events",
       label: "View Events",
       icon: <FaMap />,
+      variant: "primary",
+    },
+    {
+      to: "/tourist/saved-events", // Moved to main services
+      label: "Saved Events",
+      icon: <FaBookmark />,
       variant: "primary",
     },
     {
@@ -77,6 +83,7 @@ const TouristHomePage = () => {
       icon: <FaMap />,
       variant: "primary",
     },
+    // Support items
     {
       to: "/tourist/change-password",
       label: "Change My Password",
@@ -94,15 +101,16 @@ const TouristHomePage = () => {
       label: "My Complaints",
       icon: <FaExclamationCircle />,
       variant: "primary",
-    },
+    }
   ];
 
-  // Group menu items by category
+  // Updated grouping to include saved events in Main Services
   const menuCategories = {
-    "Main Services": menuItems.slice(0, 10), // The first 10 items go in "Main Services"
-    Support: menuItems.slice(10), // The remaining items go in "Support"
+    "Main Services": menuItems.slice(0, 11), // First 11 items including saved events
+    "Support": menuItems.slice(11) // Remaining items
   };
 
+  // Rest of the component remains the same...
   return (
     <Container className="py-5">
       <Card className="shadow-sm">
@@ -127,7 +135,7 @@ const TouristHomePage = () => {
                         transition: "all 0.3s ease",
                         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                       }}
-                      aria-label={item.label}  // Improved accessibility
+                      aria-label={item.label}
                       onMouseOver={(e) => {
                         e.currentTarget.style.transform = "translateY(-2px)";
                         e.currentTarget.style.boxShadow =
@@ -146,7 +154,6 @@ const TouristHomePage = () => {
                 ))}
               </Row>
 
-              {/* Add Filter Historical Places button in the Main Services section */}
               {category === "Main Services" && (
                 <div className="text-center mt-4">
                   <Link to="/tourist/filter-historical-places">

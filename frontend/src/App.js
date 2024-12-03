@@ -49,6 +49,8 @@ import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
+import SavedEvents from './pages/tourist/SavedEvents';
+
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
 import AdminChangePassword from "./changePassword/AdminChangePassword";
@@ -95,6 +97,7 @@ function App() {
           <Route path="/tourist/complaints" element={<CreateComplaint />} />
           <Route path="/tourist/book-flight" element={<FlightBooking />} />
           <Route path="/tourist/book-hotel" element={<HotelBooking />} />
+          <Route path="/tourist/saved-events" element={<SavedEvents />} />
           <Route
             path="/tourist/hotel-bookings"
             element={<HotelBookings />}

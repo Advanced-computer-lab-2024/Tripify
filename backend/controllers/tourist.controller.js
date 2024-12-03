@@ -1,6 +1,7 @@
 // touristController.js
 import mongoose from "mongoose";
 import Tourist from "../models/tourist.model.js";
+import Event from "../models/event.model.js"; // Add this import
 import TourGuide from "../models/tourGuide.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -588,7 +589,161 @@ export const changePassword = async (req, res) => {
     });
   }
 };
-// Add these functions to tourist.controller.js
+
+
+// Update the bookmarkEvent function to handle different event types
+export const bookmarkEvent = async (req, res) => {
+  try {
+    const { eventId, eventType } = req.body;
+    const touristId = req.user._id;
+
+    // Validate eventId
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID format" });
+    }
+
+    // Find the tourist
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Initialize savedEvents array if it doesn't exist
+    if (!tourist.savedEvents) {
+      tourist.savedEvents = [];
+    }
+
+    // Check if event is already bookmarked
+    if (tourist.savedEvents.includes(eventId)) {
+      return res.status(400).json({ message: "Event already bookmarked" });
+    }
+
+    // Verify the event exists based on type
+    let event;
+    switch (eventType) {
+      case "HistoricalPlace":
+        event = await mongoose.model("HistoricalPlace").findById(eventId);
+        break;
+      case "Activity":
+        event = await mongoose.model("Activity").findById(eventId);
+        break;
+      case "Itinerary":
+        event = await mongoose.model("Itinerary").findById(eventId);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid event type" });
+    }
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Add event to savedEvents
+    tourist.savedEvents.push(eventId);
+    await tourist.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Event bookmarked successfully" 
+    });
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error bookmarking event", 
+      error: error.message 
+    });
+  }
+};
+
+// Update getSavedEvents to populate based on event type
+export const getSavedEvents = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+
+    // First, get the tourist with their saved event IDs
+    const tourist = await Tourist.findById(touristId).select('savedEvents');
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Get all saved events from different collections
+    const [historicalPlaces, activities, itineraries] = await Promise.all([
+      mongoose.model('HistoricalPlace').find({ _id: { $in: tourist.savedEvents } }),
+      mongoose.model('Activity').find({ _id: { $in: tourist.savedEvents } }),
+      mongoose.model('Itinerary').find({ _id: { $in: tourist.savedEvents } })
+    ]);
+
+    // Combine and format all events
+    const savedEvents = [
+      ...historicalPlaces.map(place => ({
+        ...place.toObject(),
+        eventType: 'HistoricalPlace'
+      })),
+      ...activities.map(activity => ({
+        ...activity.toObject(),
+        eventType: 'Activity'
+      })),
+      ...itineraries.map(itinerary => ({
+        ...itinerary.toObject(),
+        eventType: 'Itinerary'
+      }))
+    ];
+
+    res.status(200).json({ 
+      success: true,
+      savedEvents
+    });
+  } catch (error) {
+    console.error('Get saved events error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching saved events", 
+      error: error.message 
+    });
+  }
+};
+// Update removeBookmark with better error handling
+export const removeBookmark = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const touristId = req.user._id;
+
+    // Validate eventId
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID format" });
+    }
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Check if event exists in savedEvents
+    if (!tourist.savedEvents?.includes(eventId)) {
+      return res.status(404).json({ message: "Event not found in bookmarks" });
+    }
+
+    // Remove the event
+    tourist.savedEvents = tourist.savedEvents.filter(
+      event => event.toString() !== eventId
+    );
+    
+    await tourist.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Event bookmark removed successfully" 
+    });
+  } catch (error) {
+    console.error('Remove bookmark error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error removing bookmark", 
+      error: error.message 
+    });
+  }
+};
 
 // Check if tourist can delete their account
 export const checkDeletionEligibility = async (req, res) => {

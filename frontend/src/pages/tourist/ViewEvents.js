@@ -24,11 +24,16 @@ import {
   FaMedal,
   FaCrown,
   FaRegSmile,
+  FaBookmark,
+  FaRegBookmark,
+  FaMapMarkerAlt,
+  FaDollarSign,
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
 
 const ViewEvents = () => {
+  // State declarations
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
   const [activities, setActivities] = useState([]);
   const [itineraries, setItineraries] = useState([]);
@@ -45,10 +50,25 @@ const ViewEvents = () => {
   const [touristLevel, setTouristLevel] = useState(1);
   const [searchParams] = useSearchParams();
   const [sharedItem, setSharedItem] = useState(null);
+  const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
 
+  // Utility functions
   const getUserSpecificKey = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
+  };
+
+  const getUserId = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const decoded = jwtDecode(token);
+      return decoded._id;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
   };
 
   const fetchLoyaltyStatus = async () => {
@@ -74,6 +94,79 @@ const ViewEvents = () => {
     }
   };
 
+  // Bookmark-related functions
+  const BookmarkButton = ({ item, type }) => (
+    <Button
+      variant={bookmarkedEvents.includes(item._id) ? "primary" : "outline-primary"}
+      onClick={() => handleBookmark(item, type)}
+      disabled={bookmarkedEvents.includes(item._id)}
+      className="me-2"
+    >
+      {bookmarkedEvents.includes(item._id) ? (
+        <>
+          <FaBookmark className="me-2" />
+          Saved
+        </>
+      ) : (
+        <>
+          <FaRegBookmark className="me-2" />
+          Save
+        </>
+      )}
+    </Button>
+  );
+
+  const handleBookmark = async (event, type) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/tourist/bookmark-event', 
+        {
+          eventId: event._id,
+          eventType: type
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        setBookmarkedEvents(prev => [...prev, event._id]);
+        alert('Event bookmarked successfully!');
+      }
+    } catch (error) {
+      if (error.response?.data?.message === "Event already bookmarked") {
+        setBookmarkedEvents(prev => 
+          prev.includes(event._id) ? prev : [...prev, event._id]
+        );
+      } else {
+        console.error('Error bookmarking event:', error);
+        alert(error.response?.data?.message || 'Failed to bookmark event');
+      }
+    }
+  };
+
+  // Effect for fetching bookmarked events
+  useEffect(() => {
+    const fetchBookmarkedEvents = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/tourist/saved-events', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data.success && response.data.savedEvents) {
+          const bookmarkedIds = response.data.savedEvents.map(event => event._id);
+          setBookmarkedEvents(bookmarkedIds);
+        }
+      } catch (error) {
+        console.error('Error fetching bookmarked events:', error);
+        setBookmarkedEvents([]);
+      }
+    };
+
+    fetchBookmarkedEvents();
+  }, []);// Effect for shared items
   useEffect(() => {
     const itemType = searchParams.get("type");
     const itemId = searchParams.get("id");
@@ -145,6 +238,7 @@ const ViewEvents = () => {
     }
   };
 
+  // Main data fetching effect
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -250,20 +344,6 @@ const ViewEvents = () => {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
-
-  const getUserId = () => {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-
-    try {
-      const decoded = jwtDecode(token);
-      return decoded._id;
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
   const getItemPrice = (item, type) => {
     switch (type) {
       case "HistoricalPlace":
@@ -357,8 +437,7 @@ const ViewEvents = () => {
               JSON.stringify(deductResponse.data.newLevel)
             );
 
-            const touristData =
-              JSON.parse(localStorage.getItem("tourist")) || {};
+            const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
             localStorage.setItem(
               "tourist",
               JSON.stringify({
@@ -367,46 +446,37 @@ const ViewEvents = () => {
               })
             );
 
-            alert(
-              "Booking successful! Amount has been deducted from your wallet."
-            );
+            alert("Booking successful! Amount has been deducted from your wallet.");
             await fetchUserProfile();
             await fetchLoyaltyStatus();
+
+            // Handle email notification
             const user = JSON.parse(localStorage.getItem("user"));
-          const userEmail = user ? user.email : null;
+            const userEmail = user ? user.email : null;
 
-          if (userEmail) {
-            // Construct email content (a receipt)
-            const emailSubject = "Booking Confirmation - Your Receipt";
-            const emailMessage = `
-              <h3>Booking Confirmation</h3>
-              <p>Thank you for booking with us!</p>
-              <p><strong>Booking Details:</strong></p>
-              <p><strong>Event:</strong> ${item.name}</p>
-              <p><strong>Type:</strong> ${type}</p>
-              <p><strong>Date:</strong> ${formattedBookingDate.toDateString()}</p>
-              <p><strong>Cost:</strong> $${bookingCost}</p>
-              <p>Your wallet has been charged, and the booking is now confirmed.</p>
-              <p>If you have any questions or need further assistance, feel free to contact us.</p>
-            `;
+            if (userEmail) {
+              const emailMessage = `
+                <h3>Booking Confirmation</h3>
+                <p>Thank you for booking with us!</p>
+                <p><strong>Booking Details:</strong></p>
+                <p><strong>Event:</strong> ${item.name}</p>
+                <p><strong>Type:</strong> ${type}</p>
+                <p><strong>Date:</strong> ${formattedBookingDate.toDateString()}</p>
+                <p><strong>Cost:</strong> $${bookingCost}</p>
+                <p>Your wallet has been charged, and the booking is now confirmed.</p>
+                <p>If you have any questions or need further assistance, feel free to contact us.</p>
+              `;
 
-            // Send the email to the user
-            try {
-              await axios.post(
-                "http://localhost:5000/api/notify", 
-                {
+              try {
+                await axios.post("http://localhost:5000/api/notify", {
                   email: userEmail,
                   message: emailMessage,
-                }
-              );
-              console.log("Receipt email sent successfully!");
+                });
+                console.log("Receipt email sent successfully!");
+              } catch (emailError) {
+                console.error("Error sending receipt email:", emailError);
+              }
             }
-            catch (emailError) {
-              console.error("Error sending receipt email:", emailError);
-            }
-          } else {
-            console.error("User email not found in profile");
-          }
           }
         } catch (paymentError) {
           console.error("Payment error:", paymentError);
@@ -505,27 +575,61 @@ const ViewEvents = () => {
   };
 
   const LoyaltyInfo = () => (
-    <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
-      <div className="me-4">
-        {getBadgeIcon(touristLevel)}
-        <div>
-          <h4 className="mb-0">Level {touristLevel}</h4>
-          <small className="text-muted">Tourist Status</small>
+    <div className="bg-light p-4 rounded shadow-sm d-flex align-items-center justify-content-between mb-4 w-100">
+      <div className="d-flex align-items-center">
+        <div className="me-4 d-flex align-items-center">
+          {getBadgeIcon(touristLevel)}
+          <div>
+            <h4 className="mb-0">Level {touristLevel}</h4>
+            <small className="text-muted">Tourist Status</small>
+          </div>
+        </div>
+        <div className="border-start ps-4">
+          <h4 className="mb-0">{loyaltyPoints.toLocaleString()} Points</h4>
+          <small className="text-muted">
+            Earn{" "}
+            <span className="fw-bold">
+              {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}
+            </span>{" "}
+            points on purchases
+          </small>
         </div>
       </div>
-      <div>
-        <h4 className="mb-0">{loyaltyPoints} Points</h4>
-        <small className="text-muted">
-          Earn{" "}
-          {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}{" "}
-          points on purchases
-        </small>
+      <div className="d-flex align-items-center">
+        <div className="text-end">
+          {touristLevel < 3 && (
+            <>
+              <small className="text-muted d-block">Next Level</small>
+              <div className="fw-bold text-primary">
+                {touristLevel === 1 ? "Level 2 (100,000 points)" : "Level 3 (500,000 points)"}
+              </div>
+              <div className="progress mt-1" style={{ width: '200px', height: '6px' }}>
+                <div
+                  className="progress-bar bg-primary"
+                  role="progressbar"
+                  style={{
+                    width: `${(loyaltyPoints / (touristLevel === 1 ? 100000 : 500000)) * 100}%`
+                  }}
+                  aria-valuenow={(loyaltyPoints / (touristLevel === 1 ? 100000 : 500000)) * 100}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                />
+              </div>
+            </>
+          )}
+          {touristLevel === 3 && (
+            <div className="text-success">
+              <FaCrown className="me-2" />
+              Maximum Level Achieved
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 
   const HistoricalPlaceCard = ({ place }) => (
-    <Card className="mb-3 h-100">
+    <Card className="mb-3 h-100 shadow-sm">
       <Card.Body>
         <Card.Title>{place.name}</Card.Title>
         <Card.Text>{place.description}</Card.Text>
@@ -534,6 +638,7 @@ const ViewEvents = () => {
           <strong>Opening Hours:</strong> {place.openingHours}
         </Card.Text>
         <Card.Text>
+          <FaDollarSign className="me-2" />
           <strong>Price:</strong> ${getItemPrice(place, "HistoricalPlace")}
         </Card.Text>
         {place.tags?.length > 0 && (
@@ -556,6 +661,7 @@ const ViewEvents = () => {
           />
         </Form.Group>
         <div className="d-flex gap-2 mt-3">
+          <BookmarkButton item={place} type="HistoricalPlace" />
           <Button
             variant="primary"
             onClick={(e) => handleBooking(place, "HistoricalPlace", e)}
@@ -577,9 +683,7 @@ const ViewEvents = () => {
           </Button>
           <Button
             variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...place, type: "historicalplace" })
-            }
+            onClick={() => handleEmailShare({ ...place, type: "historicalplace" })}
           >
             <FaEnvelope className="me-2" />
             Email
@@ -590,7 +694,7 @@ const ViewEvents = () => {
   );
 
   const ActivityCard = ({ activity }) => (
-    <Card className="mb-3 h-100">
+    <Card className="mb-3 h-100 shadow-sm">
       <Card.Body>
         <Card.Title>{activity.name}</Card.Title>
         <Card.Text>{activity.description}</Card.Text>
@@ -604,12 +708,16 @@ const ViewEvents = () => {
           <strong>Category:</strong> {activity.category?.name || "No Category"}
         </Card.Text>
         <Card.Text>
+          <FaDollarSign className="me-2" />
           <strong>Price:</strong> ${activity.price}
         </Card.Text>
         {activity.location && (
           <Card.Text>
+            <FaMapMarkerAlt className="me-2" />
             <strong>Location:</strong>{" "}
-            {activity.location?.coordinates?.join(", ") || "No location"}
+            {typeof activity.location === 'object' && activity.location.coordinates ? 
+              activity.location.coordinates.join(", ") : 
+              (typeof activity.location === 'string' ? activity.location : "No location")}
           </Card.Text>
         )}
         {activity.tags?.length > 0 && (
@@ -637,6 +745,7 @@ const ViewEvents = () => {
           )}
         </Form.Group>
         <div className="d-flex gap-2 mt-3">
+          <BookmarkButton item={activity} type="Activity" />
           <Button
             variant="primary"
             onClick={(e) => handleBooking(activity, "Activity", e)}
@@ -658,9 +767,7 @@ const ViewEvents = () => {
           </Button>
           <Button
             variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...activity, type: "activities" })
-            }
+            onClick={() => handleEmailShare({ ...activity, type: "activities" })}
           >
             <FaEnvelope className="me-2" />
             Email
@@ -671,13 +778,14 @@ const ViewEvents = () => {
   );
 
   const ItineraryCard = ({ itinerary }) => (
-    <Card className="mb-3 h-100">
+    <Card className="mb-3 h-100 shadow-sm">
       <Card.Body>
         <Card.Title>{itinerary.name}</Card.Title>
         <Card.Text>
           <strong>Language:</strong> {itinerary.language}
         </Card.Text>
         <Card.Text>
+          <FaDollarSign className="me-2" />
           <strong>Price:</strong> ${itinerary.totalPrice}
         </Card.Text>
         {itinerary.activities?.length > 0 && (
@@ -729,6 +837,7 @@ const ViewEvents = () => {
           )}
         </Form.Group>
         <div className="d-flex gap-2 mt-3">
+          <BookmarkButton item={itinerary} type="Itinerary" />
           <Button
             variant="primary"
             onClick={(e) => handleBooking(itinerary, "Itinerary", e)}
@@ -750,9 +859,7 @@ const ViewEvents = () => {
           </Button>
           <Button
             variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...itinerary, type: "itineraries" })
-            }
+            onClick={() => handleEmailShare({ ...itinerary, type: "itineraries" })}
           >
             <FaEnvelope className="me-2" />
             Email
@@ -762,9 +869,7 @@ const ViewEvents = () => {
             onClick={() => toggleComments(itinerary._id)}
           >
             <FaComment />{" "}
-            {expandedComments[itinerary._id]
-              ? "Hide Comments"
-              : "Show Comments"}
+            {expandedComments[itinerary._id] ? "Hide Comments" : "Show Comments"}
           </Button>
         </div>
         <Collapse in={expandedComments[itinerary._id]}>
@@ -850,10 +955,8 @@ const ViewEvents = () => {
       </div>
 
       {sharedItem ? (
-        // Shared item view
         <div className="mt-4">{renderSharedContent()}</div>
       ) : (
-        // Regular full listing view
         <>
           <div className="mb-4 p-3 bg-white rounded shadow-sm">
             <Form.Control
@@ -877,7 +980,6 @@ const ViewEvents = () => {
             </Form.Select>
           </div>
 
-          {/* Historical Places Section */}
           {filteredHistoricalPlaces.length > 0 && (
             <div className="mb-5">
               <h2 className="mb-4">Historical Places</h2>
@@ -891,7 +993,6 @@ const ViewEvents = () => {
             </div>
           )}
 
-          {/* Activities Section */}
           {filteredActivities.length > 0 && (
             <div className="mb-5">
               <h2 className="mb-4">Activities</h2>
@@ -905,7 +1006,6 @@ const ViewEvents = () => {
             </div>
           )}
 
-          {/* Itineraries Section */}
           {filteredItineraries.length > 0 && (
             <div className="mb-5">
               <h2 className="mb-4">Itineraries</h2>
@@ -919,7 +1019,6 @@ const ViewEvents = () => {
             </div>
           )}
 
-          {/* No Results Message */}
           {filteredHistoricalPlaces.length === 0 &&
             filteredActivities.length === 0 &&
             filteredItineraries.length === 0 && (
