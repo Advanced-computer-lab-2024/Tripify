@@ -43,6 +43,7 @@ import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints";
 import HotelBooking from "./pages/tourist/HotelBooking";
+import DeliveryAddresses from './components/DeliveryAddresses';
 import TourGuideReviews from "./pages/reviews/TourGuideReviews";
 import EventReviews from "./pages/reviews/EventReviews";
 import ProductReviews from "./pages/reviews/ProductReviews";
@@ -116,6 +117,7 @@ function App() {
             path="/tourist/reviews/tour-guides"
             element={<RateTourGuides />}
           />
+          <Route path="/tourist/delivery-addresses" element={<DeliveryAddresses />} />
           <Route path="/tourist/reviews/events" element={<EventReviews />} />
           <Route
             path="/tourist/reviews/products"

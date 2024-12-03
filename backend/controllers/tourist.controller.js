@@ -552,6 +552,194 @@ export const rateTourGuide = async (req, res) => {
   }
 };
 
+
+// Add new delivery address
+export const addDeliveryAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const addressData = req.body;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // If this is the first address, make it default
+    if (tourist.deliveryAddresses.length === 0) {
+      addressData.isDefault = true;
+    }
+
+    // If this address is set as default, remove default from other addresses
+    if (addressData.isDefault) {
+      tourist.deliveryAddresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    tourist.deliveryAddresses.push(addressData);
+    await tourist.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Delivery address added successfully",
+      address: tourist.deliveryAddresses[tourist.deliveryAddresses.length - 1]
+    });
+  } catch (error) {
+    console.error("Add delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error adding delivery address",
+      error: error.message
+    });
+  }
+};
+
+// Get all delivery addresses
+export const getDeliveryAddresses = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const tourist = await Tourist.findById(touristId).select('deliveryAddresses');
+
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      addresses: tourist.deliveryAddresses
+    });
+  } catch (error) {
+    console.error("Get delivery addresses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching delivery addresses",
+      error: error.message
+    });
+  }
+};
+
+// Update a delivery address
+export const updateDeliveryAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+    const updateData = req.body;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const addressIndex = tourist.deliveryAddresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+
+    if (addressIndex === -1) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // If this address is being set as default, remove default from others
+    if (updateData.isDefault) {
+      tourist.deliveryAddresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    // Update the address
+    Object.assign(tourist.deliveryAddresses[addressIndex], updateData);
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Address updated successfully",
+      address: tourist.deliveryAddresses[addressIndex]
+    });
+  } catch (error) {
+    console.error("Update delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating delivery address",
+      error: error.message
+    });
+  }
+};
+
+// Delete a delivery address
+export const deleteDeliveryAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const addressIndex = tourist.deliveryAddresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+
+    if (addressIndex === -1) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // If deleting default address, make the first remaining address default
+    const wasDefault = tourist.deliveryAddresses[addressIndex].isDefault;
+    tourist.deliveryAddresses.splice(addressIndex, 1);
+
+    if (wasDefault && tourist.deliveryAddresses.length > 0) {
+      tourist.deliveryAddresses[0].isDefault = true;
+    }
+
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Address deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting delivery address",
+      error: error.message
+    });
+  }
+};
+
+// Set default delivery address
+export const setDefaultAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Remove default from all addresses and set new default
+    tourist.deliveryAddresses.forEach(addr => {
+      addr.isDefault = addr._id.toString() === addressId;
+    });
+
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Default address updated successfully"
+    });
+  } catch (error) {
+    console.error("Set default address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error setting default address",
+      error: error.message
+    });
+  }
+};
+
+
 // Example for tourist controller - apply similar fixes to other user controllers
 export const changePassword = async (req, res) => {
   try {

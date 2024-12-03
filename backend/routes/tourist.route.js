@@ -16,7 +16,12 @@ import {
   deleteTouristAccount,
   bookmarkEvent,
   getSavedEvents,
-  removeBookmark
+  removeBookmark,
+  addDeliveryAddress,
+  getDeliveryAddresses,
+  updateDeliveryAddress,
+  deleteDeliveryAddress,
+  setDefaultAddress
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -51,5 +56,12 @@ router.delete("/delete/:id", authMiddleware, deleteTouristAccount);
 router.post('/bookmark-event', authMiddleware, bookmarkEvent);
 router.get('/saved-events', authMiddleware, getSavedEvents);
 router.delete('/bookmark/:eventId', authMiddleware, removeBookmark);
+
+// Delivery address routes
+router.post('/address', authMiddleware, addDeliveryAddress);
+router.get('/addresses', authMiddleware, getDeliveryAddresses);
+router.put('/address/:addressId', authMiddleware, updateDeliveryAddress);
+router.delete('/address/:addressId', authMiddleware, deleteDeliveryAddress);
+router.patch('/address/:addressId/set-default', authMiddleware, setDefaultAddress);
 
 export default router;

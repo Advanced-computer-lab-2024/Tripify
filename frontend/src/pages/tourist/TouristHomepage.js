@@ -11,6 +11,7 @@ import {
   FaUser,
   FaLock,
   FaBookmark,
+  FaMapMarkerAlt
 } from "react-icons/fa";  
 
 const TouristHomePage = () => {
@@ -51,6 +52,12 @@ const TouristHomePage = () => {
       to: "/tourist/book-transportation",
       label: "Book Transportation",
       icon: <FaCar />,
+      variant: "primary",
+    },
+    {
+      to: "/tourist/delivery-addresses",
+      label: "Delivery Addresses",
+      icon: <FaMapMarkerAlt />,
       variant: "primary",
     },
     {
