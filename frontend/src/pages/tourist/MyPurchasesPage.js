@@ -19,56 +19,19 @@ import {
   FaCheckCircle,
   FaClock,
   FaArrowLeft,
+  FaTimesCircle,
+  FaWallet,
 } from "react-icons/fa";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = "http://localhost:5000/api";
-const calculateStatus = (purchaseDate) => {
-  const now = new Date();
-  const orderDate = new Date(purchaseDate);
-  const daysSinceOrder = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
-
-  if (daysSinceOrder >= 3) {
-    return "delivered";
-  } else if (daysSinceOrder >= 2) {
-    return "on_the_way";
-  } else {
-    return "processing";
-  }
-};
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "processing":
-      return "warning";
-    case "on_the_way":
-      return "info";
-    case "delivered":
-      return "success";
-    case "cancelled":
-      return "danger";
-    default:
-      return "secondary";
-  }
-};
-
-const getDeliveryProgress = (status) => {
-  switch (status) {
-    case "processing":
-      return 25;
-    case "on_the_way":
-      return 75;
-    case "delivered":
-      return 100;
-    default:
-      return 0;
-  }
-};
 
 export default function MyPurchasesPage() {
   const navigate = useNavigate();
+
+  // State variables
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,11 +41,191 @@ export default function MyPurchasesPage() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState(null);
 
-  useEffect(() => {
-    fetchPurchases();
-  }, []);
+  // Helper functions
+  const calculateStatus = (purchase) => {
+    if (purchase.status === "cancelled") {
+      return "cancelled";
+    }
 
+    const now = new Date();
+    const orderDate = new Date(purchase.purchaseDate);
+    const daysSinceOrder = Math.floor(
+      (now - orderDate) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysSinceOrder >= 3) {
+      return "delivered";
+    } else if (daysSinceOrder >= 2) {
+      return "on_the_way";
+    } else {
+      return "processing";
+    }
+  };
+
+  const getUserSpecificKey = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return `tourist_${user?.username}`;
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!token || !user) {
+        console.error("No token or user found");
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_URL}/tourist/profile/${user.username}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.tourist) {
+        setWalletBalance(response.data.tourist.wallet);
+        const userKey = getUserSpecificKey();
+        localStorage.setItem(
+          userKey,
+          JSON.stringify({
+            wallet: response.data.tourist.wallet,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
+  const initializeUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please login to access this page");
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+      await fetchUserProfile();
+    } catch (error) {
+      console.error("Token decode error:", error);
+      setError("Invalid session. Please login again.");
+    }
+  };
+  const handleCancelOrder = async (purchase) => {
+    setCancellingOrder(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/purchases/${purchase._id}/cancel`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        // Update the specific purchase's status in the state
+        setPurchases((prevPurchases) =>
+          prevPurchases.map((p) =>
+            p._id === purchase._id
+              ? {
+                  ...p,
+                  status: "cancelled",
+                  trackingUpdates: [
+                    ...p.trackingUpdates,
+                    {
+                      status: "cancelled",
+                      message: "Order has been cancelled and refunded",
+                      timestamp: new Date(),
+                    },
+                  ],
+                }
+              : p
+          )
+        );
+
+        setWalletBalance(response.data.data.newWalletBalance);
+        setCancelSuccess({
+          message: "Order cancelled successfully",
+          refundAmount: response.data.data.refundAmount,
+        });
+
+        // Refetch purchases to get updated data
+        await fetchPurchases();
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      setCancelSuccess({
+        error: error.response?.data?.message || "Failed to cancel order",
+      });
+    } finally {
+      setCancellingOrder(false);
+      setShowCancelModal(true);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "processing":
+        return "warning";
+      case "on_the_way":
+        return "info";
+      case "delivered":
+        return "success";
+      case "cancelled":
+        return "danger";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getDeliveryProgress = (status) => {
+    switch (status) {
+      case "processing":
+        return 25;
+      case "on_the_way":
+        return 75;
+      case "delivered":
+        return 100;
+      default:
+        return 0;
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "processing":
+        return <FaBox className="me-2" />;
+      case "on_the_way":
+        return <FaTruck className="me-2" />;
+      case "delivered":
+        return <FaCheckCircle className="me-2" />;
+      default:
+        return <FaClock className="me-2" />;
+    }
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Data fetching
   const fetchPurchases = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -102,14 +245,13 @@ export default function MyPurchasesPage() {
       );
 
       if (response.data.success) {
-        // Update each purchase with calculated status and tracking
         const updatedPurchases = response.data.data.map((purchase) => {
-          const status = calculateStatus(purchase.purchaseDate);
+          // Pass the whole purchase object to calculate status
+          const status = calculateStatus(purchase);
           const orderDate = new Date(purchase.purchaseDate);
           const estimatedDeliveryDate = new Date(orderDate);
-          estimatedDeliveryDate.setDate(orderDate.getDate() + 3); // Add 3 days
+          estimatedDeliveryDate.setDate(orderDate.getDate() + 3);
 
-          // Create tracking updates based on status
           const trackingUpdates = [];
 
           // Always add the initial processing status
@@ -141,6 +283,15 @@ export default function MyPurchasesPage() {
             });
           }
 
+          // If the order is cancelled, add the cancelled tracking update
+          if (status === "cancelled") {
+            trackingUpdates.push({
+              status: "cancelled",
+              message: "Order has been cancelled and refunded",
+              timestamp: purchase.updatedAt || new Date(),
+            });
+          }
+
           return {
             ...purchase,
             status,
@@ -162,29 +313,13 @@ export default function MyPurchasesPage() {
       setLoading(false);
     }
   };
-
-  // Add an effect to periodically update statuses
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setPurchases((currentPurchases) =>
-        currentPurchases.map((purchase) => ({
-          ...purchase,
-          status: calculateStatus(purchase.purchaseDate),
-        }))
-      );
-    }, 60000); // Update every minute
-
-    return () => clearInterval(intervalId);
-  }, []);
-
   const handleReviewSubmit = async () => {
     if (!rating || !selectedPurchase) return;
 
     setSubmittingReview(true);
     try {
       const token = localStorage.getItem("token");
-
-      const response = await axios.post(
+      await axios.post(
         `${API_URL}/products/purchases/${selectedPurchase._id}/review`,
         {
           rating,
@@ -223,86 +358,51 @@ export default function MyPurchasesPage() {
     }
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Effects
+  useEffect(() => {
+    initializeUser();
+    fetchPurchases();
+  }, []);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "processing":
-        return <FaBox className="me-2" />;
-      case "on_the_way":
-        return <FaTruck className="me-2" />;
-      case "delivered":
-        return <FaCheckCircle className="me-2" />;
-      default:
-        return <FaClock className="me-2" />;
-    }
-  };
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      const userKey = getUserSpecificKey();
+      if (e.key === userKey) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          if (newData && typeof newData.wallet !== "undefined") {
+            setWalletBalance(newData.wallet);
+          }
+        } catch (error) {
+          console.error("Error parsing storage data:", error);
+        }
+      }
+    };
 
-  const TrackingModal = () => (
-    <Modal
-      show={showTrackingModal}
-      onHide={() => setShowTrackingModal(false)}
-      size="lg"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Order Tracking</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {selectedPurchase && (
-          <div>
-            <div className="mb-4">
-              <h5>Order Details</h5>
-              <p className="mb-1">Order ID: {selectedPurchase._id}</p>
-              <p className="mb-1">Product: {selectedPurchase.productId.name}</p>
-              <p className="mb-1">Quantity: {selectedPurchase.quantity}</p>
-              <p className="mb-1">Total: ${selectedPurchase.totalPrice}</p>
-            </div>
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
-            <div className="mb-4">
-              <h5>Delivery Status</h5>
-              <ProgressBar
-                now={getDeliveryProgress(selectedPurchase.status)}
-                variant={getStatusColor(selectedPurchase.status)}
-                className="mb-3"
-              />
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setPurchases((currentPurchases) =>
+        currentPurchases.map((purchase) => ({
+          ...purchase,
+          // Only recalculate status if not cancelled
+          status:
+            purchase.status === "cancelled"
+              ? "cancelled"
+              : calculateStatus(purchase),
+        }))
+      );
+    }, 60000);
 
-              <div className="timeline">
-                {selectedPurchase.trackingUpdates?.map((update, index) => (
-                  <div key={index} className="d-flex mb-3">
-                    <div
-                      className={`me-3 text-${getStatusColor(update.status)}`}
-                    >
-                      {getStatusIcon(update.status)}
-                    </div>
-                    <div>
-                      <div className="fw-bold">{update.message}</div>
-                      <small className="text-muted">
-                        {formatDate(update.timestamp)}
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+    return () => clearInterval(intervalId);
+  }, []);
 
-            <div>
-              <h5>Estimated Delivery</h5>
-              <p>{formatDate(selectedPurchase.estimatedDeliveryDate)}</p>
-            </div>
-          </div>
-        )}
-      </Modal.Body>
-    </Modal>
-  );
-
+  // Loading and error states
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -324,6 +424,7 @@ export default function MyPurchasesPage() {
     );
   }
 
+  // Return statement remains the same as in your original code
   return (
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -334,6 +435,20 @@ export default function MyPurchasesPage() {
         </Button>
       </div>
 
+      {/* Wallet Balance Card */}
+      <Card className="bg-light mb-4">
+        <Card.Body>
+          <div className="d-flex align-items-center">
+            <FaWallet className="me-2 text-primary" size={24} />
+            <div>
+              <h5 className="mb-0">Wallet Balance</h5>
+              <h3 className="mb-0">${walletBalance.toFixed(2)}</h3>
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      {/* Purchases List */}
       {purchases.length === 0 ? (
         <Alert variant="info">You haven't made any purchases yet.</Alert>
       ) : (
@@ -369,7 +484,9 @@ export default function MyPurchasesPage() {
                     </small>
                   </Card.Text>
                   <Card.Text>Quantity: {purchase.quantity}</Card.Text>
-                  <Card.Text>Total: ${purchase.totalPrice}</Card.Text>
+                  <Card.Text>
+                    Total: ${purchase.totalPrice.toFixed(2)}
+                  </Card.Text>
 
                   <div className="d-grid gap-2">
                     <Button
@@ -395,6 +512,18 @@ export default function MyPurchasesPage() {
                       >
                         <FaStar className="me-2" />
                         Write Review
+                      </Button>
+                    )}
+
+                    {(purchase.status === "processing" ||
+                      purchase.status === "on_the_way") && (
+                      <Button
+                        variant="danger"
+                        onClick={() => handleCancelOrder(purchase)}
+                        disabled={cancellingOrder}
+                      >
+                        <FaTimesCircle className="me-2" />
+                        {cancellingOrder ? "Cancelling..." : "Cancel Order"}
                       </Button>
                     )}
                   </div>
@@ -489,7 +618,100 @@ export default function MyPurchasesPage() {
       </Modal>
 
       {/* Tracking Modal */}
-      <TrackingModal />
+      <Modal
+        show={showTrackingModal}
+        onHide={() => setShowTrackingModal(false)}
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Order Tracking</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPurchase && (
+            <div>
+              <div className="mb-4">
+                <h5>Order Details</h5>
+                <p className="mb-1">Order ID: {selectedPurchase._id}</p>
+                <p className="mb-1">
+                  Product: {selectedPurchase.productId.name}
+                </p>
+                <p className="mb-1">Quantity: {selectedPurchase.quantity}</p>
+                <p className="mb-1">
+                  Total: ${selectedPurchase.totalPrice.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <h5>Delivery Status</h5>
+                <ProgressBar
+                  now={getDeliveryProgress(selectedPurchase.status)}
+                  variant={getStatusColor(selectedPurchase.status)}
+                  className="mb-3"
+                />
+
+                <div className="timeline">
+                  {selectedPurchase.trackingUpdates?.map((update, index) => (
+                    <div key={index} className="d-flex mb-3">
+                      <div
+                        className={`me-3 text-${getStatusColor(update.status)}`}
+                      >
+                        {getStatusIcon(update.status)}
+                      </div>
+                      <div>
+                        <div className="fw-bold">{update.message}</div>
+                        <small className="text-muted">
+                          {formatDate(update.timestamp)}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h5>Estimated Delivery</h5>
+                <p>{formatDate(selectedPurchase.estimatedDeliveryDate)}</p>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
+      {/* Cancel Confirmation Modal */}
+      <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {cancelSuccess?.error ? "Cancel Order Failed" : "Order Cancelled"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {cancelSuccess?.error ? (
+            <Alert variant="danger">{cancelSuccess.error}</Alert>
+          ) : (
+            <>
+              <Alert variant="success">
+                <div className="mb-2">{cancelSuccess?.message}</div>
+                <div className="d-flex align-items-center">
+                  <FaWallet className="me-2" />
+                  <strong>
+                    Refund Amount: ${cancelSuccess?.refundAmount?.toFixed(2)}
+                  </strong>
+                </div>
+                <div className="mt-2">
+                  <strong>
+                    New Wallet Balance: ${walletBalance.toFixed(2)}
+                  </strong>
+                </div>
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCancelModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
