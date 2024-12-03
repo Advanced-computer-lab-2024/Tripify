@@ -65,6 +65,10 @@ const productPurchaseSchema = new mongoose.Schema({
           "cancelled",
         ], // Added cancelled
       },
+      promoCode: {
+        type: String,
+        default: null,
+      },
       timestamp: {
         type: Date,
         default: Date.now,
