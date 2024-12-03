@@ -23,12 +23,27 @@ const productPurchaseSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["completed", "cancelled"],
-    default: "completed",
+    enum: ["processing", "on_the_way", "delivered", "cancelled"],
+    default: "processing",
   },
   purchaseDate: {
     type: Date,
     default: Date.now,
+  },
+  estimatedDeliveryDate: {
+    type: Date,
+    default: function () {
+      const date = new Date();
+      date.setDate(date.getDate() + 3); // Add 3 days
+      return date;
+    },
+  },
+  deliveryAddress: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String,
   },
   review: {
     rating: {
@@ -39,6 +54,38 @@ const productPurchaseSchema = new mongoose.Schema({
     comment: String,
     date: Date,
   },
+  trackingUpdates: [
+    {
+      status: {
+        type: String,
+        enum: ["order_placed", "processing", "on_the_way", "delivered"],
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now,
+      },
+      message: String,
+    },
+  ],
+});
+
+// Add a pre-save hook to update tracking
+productPurchaseSchema.pre("save", function (next) {
+  if (this.isNew) {
+    this.trackingUpdates.push({
+      status: "order_placed",
+      message: "Order has been placed successfully",
+    });
+  }
+
+  if (this.isModified("status")) {
+    this.trackingUpdates.push({
+      status: this.status,
+      message: `Order is ${this.status.replace("_", " ")}`,
+    });
+  }
+
+  next();
 });
 
 const ProductPurchase = mongoose.model(
