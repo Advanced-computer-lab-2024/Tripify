@@ -28,6 +28,8 @@ import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
 import sendEmail from "./utils/sendEmail.js";
 import { checkAndSendBirthdayPromos } from './services/birthdayPromo.service.js';
+import { runBookingNotificationCheck} from './services/bookingReminder.js';
+import notificationRoutes from "./routes/notification.route.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,10 +60,12 @@ connectDB()
         `Server started at http://localhost:${process.env.PORT || 5000}`
       );
       // Run birthday check when server starts
-      await runBirthdayPromoCheck();
-      
-      // Optional: Check every hour while server is running
+       await runBirthdayPromoCheck();
+       await runBookingNotificationCheck();
+     
+      //Check every hour while server is running
       setInterval(runBirthdayPromoCheck, 1000 * 60 * 60);
+      setInterval(runBookingNotificationCheck, 1000 * 60 * 60);
     });
   })
   .catch((error) => {
@@ -92,6 +96,7 @@ app.use("/api/hotels", hotelRoutes);
 app.use("/api/bookings", bookingRoutes);
 
 app.use("/api/transportation", transportationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Tourist preferences routes
 const router = express.Router();

@@ -1,6 +1,6 @@
-import React from "react";
-import { Link } from "react-router-dom";  // Import Link from react-router-dom
-import { Container, Row, Col, Card, Button } from "react-bootstrap";  // For Bootstrap styling
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Container, Row, Col, Card, Button, Dropdown, Badge } from "react-bootstrap";
 import {
   FaPlane,
   FaHotel,
@@ -11,8 +11,203 @@ import {
   FaUser,
   FaLock,
   FaBookmark,
-  FaMapMarkerAlt
-} from "react-icons/fa";  
+  FaMapMarkerAlt,
+  FaBell,
+  FaEye,
+  FaCheck
+} from "react-icons/fa";
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
+import { format } from 'date-fns';
+
+const NotificationBell = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
+
+  const getUserInfo = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      const decoded = jwtDecode(token);
+      let userId = null;
+      if (decoded.tourist) {
+        userId = decoded.tourist._id;
+      } else if (decoded.user) {
+        userId = decoded.user._id;
+      } else if (decoded._id) {
+        userId = decoded._id;
+      }
+      return { userId, userType: 'Tourist' };
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const userInfo = getUserInfo();
+      if (!userInfo) return;
+
+      const response = await axios.get(`http://localhost:5000/api/notifications`, {
+        params: {
+          userId: userInfo.userId,
+          userType: userInfo.userType,
+          page: 1,
+          limit: 5 // Show only latest 5 notifications in dropdown
+        }
+      });
+
+      setNotifications(response.data.data);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const userInfo = getUserInfo();
+      if (!userInfo) return;
+
+      const response = await axios.get(`http://localhost:5000/api/notifications/unread/count`, {
+        params: {
+          userId: userInfo.userId,
+          userType: userInfo.userType
+        }
+      });
+
+      setUnreadCount(response.data.data.count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      const userInfo = getUserInfo();
+      await axios.patch(
+        `http://localhost:5000/api/notifications/${notificationId}/read`,
+        {},
+        {
+          params: { userId: userInfo.userId }
+        }
+      );
+      
+      // Update local state
+      setNotifications(notifications.map(notif =>
+        notif._id === notificationId ? { ...notif, isRead: true } : notif
+      ));
+      await fetchUnreadCount();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (show) {
+      fetchNotifications();
+    }
+  }, [show]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Set up polling for unread count
+    const interval = setInterval(fetchUnreadCount, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const CustomToggle = React.forwardRef(({ onClick }, ref) => (
+    <div
+      ref={ref}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick(e);
+      }}
+      style={{ cursor: 'pointer' }}
+      className="position-relative d-inline-block"
+    >
+      <FaBell size={24} className="text-primary" />
+      {unreadCount > 0 && (
+        <Badge 
+          bg="danger" 
+          className="position-absolute"
+          style={{ 
+            top: '-8px', 
+            right: '-8px',
+            borderRadius: '50%',
+            minWidth: '18px',
+            height: '18px',
+            padding: '2px',
+            fontSize: '0.75rem'
+          }}
+        >
+          {unreadCount}
+        </Badge>
+      )}
+    </div>
+  ));
+
+  return (
+    <Dropdown onToggle={(nextShow) => setShow(nextShow)}>
+      <Dropdown.Toggle as={CustomToggle} id="notification-dropdown" />
+
+      <Dropdown.Menu align="end" className="notification-dropdown" style={{ width: '350px', maxHeight: '500px', overflow: 'auto' }}>
+        <div className="px-3 py-2 d-flex justify-content-between align-items-center">
+          <h6 className="mb-0">Notifications</h6>
+          <Link to="/tourist/notifications" className="text-primary text-decoration-none">
+            <small>View All</small>
+          </Link>
+        </div>
+        <Dropdown.Divider />
+        
+        {loading ? (
+          <div className="text-center py-3">Loading...</div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-3 text-muted">No notifications</div>
+        ) : (
+          <>
+            {notifications.map(notification => (
+              <Dropdown.Item 
+                key={notification._id}
+                className={`px-3 py-2 border-bottom ${!notification.isRead ? 'bg-light' : ''}`}
+                onClick={() => notification.link && window.location.navigate(notification.link)}
+              >
+                <div className="d-flex justify-content-between align-items-start">
+                  <div className="pe-2">
+                    <div className="fw-bold">{notification.title}</div>
+                    <div className="small text-muted">{notification.message}</div>
+                    <div className="small text-muted">
+                      {format(new Date(notification.createdAt), 'PPp')}
+                    </div>
+                  </div>
+                  {!notification.isRead && (
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      className="py-0 px-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(notification._id);
+                      }}
+                    >
+                      <FaCheck size={12} />
+                    </Button>
+                  )}
+                </div>
+              </Dropdown.Item>
+            ))}
+          </>
+        )}
+      </Dropdown.Menu>
+    </Dropdown>
+  );
+};
+
 
 const TouristHomePage = () => {
   const username = JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
@@ -122,7 +317,11 @@ const TouristHomePage = () => {
     <Container className="py-5">
       <Card className="shadow-sm">
         <Card.Body>
-          <div className="text-center mb-4">
+          <div className="text-center mb-4 position-relative">
+            {/* Add NotificationBell to the top right */}
+            <div className="position-absolute" style={{ top: 0, right: 0, padding: '1rem' }}>
+              <NotificationBell />
+            </div>
             <h1 className="mb-3">Welcome to the Tourist Homepage</h1>
             <p className="text-muted">Welcome back, {username}!</p>
           </div>

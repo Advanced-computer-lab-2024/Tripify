@@ -1,6 +1,7 @@
 import sendEmail from '../utils/sendEmail.js';
 import PromoCode from '../models/promoCode.model.js';
 import Tourist from '../models/tourist.model.js';
+import Notification from '../models/notification.model.js';
 
 const generateBirthdayPromoCode = (userId) => {
   const prefix = 'BDAY';
@@ -39,11 +40,11 @@ export const checkAndSendBirthdayPromos = async () => {
 const createAndSendBirthdayPromo = async (user) => {
   try {
     console.log('Creating promo for user:', user);
-
     const code = generateBirthdayPromoCode(user._id);
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 7);
-
+    
+    // Create promo code
     const newPromoCode = new PromoCode({
       code,
       discount: 20,
@@ -53,9 +54,9 @@ const createAndSendBirthdayPromo = async (user) => {
       userId: user._id,
       type: 'BIRTHDAY'
     });
-
     await newPromoCode.save();
 
+    // Send email
     const subject = '🎉 Happy Birthday from Tripify!';
     const text = `Happy Birthday! Here's your special 20% discount code: ${code}. Valid until ${expiryDate.toLocaleDateString()}`;
     const html = `
@@ -71,9 +72,24 @@ const createAndSendBirthdayPromo = async (user) => {
         <p>Best regards,<br>The Tripify Team</p>
       </div>
     `;
-
     await sendEmail(user.email, subject, text, html);
-    
+
+    // Create in-app notification using the Notification model directly
+    const notification = new Notification({
+      recipient: {
+        userId: user._id,
+        userType: 'Tourist'
+      },
+      title: '🎉 Happy Birthday! Special Discount Inside',
+      message: `Happy Birthday! We've sent a special 20% discount code to your email. Code: ${code} (Valid until ${expiryDate.toLocaleDateString()})`,
+      type: 'SYSTEM_NOTIFICATION',
+      priority: 'high',
+      relatedId: newPromoCode._id,
+      relatedModel: 'PromoCode',
+      link: '/promotions'
+    });
+    await notification.save();
+
     return { success: true, user: user._id, promoCode: newPromoCode };
   } catch (error) {
     console.error(`Error creating birthday promo for user ${user._id}:`, error);
@@ -81,4 +97,4 @@ const createAndSendBirthdayPromo = async (user) => {
   }
 };
 
-// Add this debug route to your routes file
+

@@ -176,6 +176,71 @@ const ViewBookings = () => {
     }
   };
 
+
+
+  const checkAndSendNotifications = async (bookings) => {
+    const now = new Date();
+    
+    bookings.forEach(async (booking) => {
+      const bookingDate = new Date(booking.bookingDate);
+      const timeDifference = bookingDate - now;
+      const hoursUntilBooking = timeDifference / (1000 * 60 * 60);
+      
+      // Check if booking is approximately 48 hours away (between 47.5 and 48.5 hours)
+      // This prevents multiple notifications for the same booking
+      if (hoursUntilBooking >= 47.5 && hoursUntilBooking <= 48.5) {
+        try {
+          // Get user email from localStorage or your authentication system
+          const userData = JSON.parse(localStorage.getItem("tourist"));
+          const userEmail = userData.email;
+  
+          if (!userEmail) {
+            console.error("User email not found");
+            return;
+          }
+  
+          const formattedDate = new Date(booking.bookingDate).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+  
+          const message = `
+            Your upcoming ${booking.bookingType} is scheduled for ${formattedDate}.
+            
+            Details:
+            - Event: ${booking.itemId?.name || 'N/A'}
+            - Type: ${booking.bookingType}
+            - Booking ID: ${booking._id}
+            
+            Please make sure to arrive on time. If you need to cancel, please do so at least 48 hours before the event.
+          `;
+  
+          // Send notification email
+          const response = await axios.post(
+            "http://localhost:5000/api/notify",
+            {
+              email: userEmail,
+              message: message
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+  
+          if (response.data.success) {
+            console.log(`Notification sent for booking ${booking._id}`);
+          }
+        } catch (error) {
+          console.error("Error sending notification:", error);
+        }
+      }
+    });
+  };
   // Cancel booking
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) {
@@ -411,8 +476,17 @@ const ViewBookings = () => {
   };
 
   useEffect(() => {
-    fetchBookings();
-    const interval = setInterval(fetchBookings, 60000);
+    const fetchAndCheckBookings = async () => {
+      await fetchBookings();
+      // After fetching bookings, check for notifications
+      checkAndSendNotifications(bookings);
+    };
+  
+    fetchAndCheckBookings();
+    
+    // Set up periodic checks every hour instead of every minute
+    const interval = setInterval(fetchAndCheckBookings, 3600000); // 1 hour in milliseconds
+    
     return () => clearInterval(interval);
   }, []);
 
