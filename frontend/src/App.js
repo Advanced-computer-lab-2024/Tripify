@@ -52,6 +52,8 @@ import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
 import SavedEvents from './pages/tourist/SavedEvents';
 import NotificationsPage from "./pages/tourist/NotificationPage";
+import VacationGuide from './components/VacationGuide';
+
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -112,6 +114,7 @@ function App() {
           <Route path="/tourist/book-hotel" element={<HotelBooking />} />
           <Route path="/tourist/saved-events" element={<SavedEvents />} />
           <Route path="/tourist/notifications" element={<NotificationsPage />} />
+          <Route path="/tourist/guide" element={<VacationGuide />} />
           <Route
             path="/tourist/hotel-bookings"
             element={<HotelBookings />}

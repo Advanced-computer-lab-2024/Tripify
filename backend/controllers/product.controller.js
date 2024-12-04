@@ -4,6 +4,8 @@ import fs from "fs";
 import ProductPurchase from "../models/productPurchase.model.js";
 import Tourist from "../models/tourist.model.js";
 
+import PromoCode from "../models/promoCode.model.js";
+
 const exchangeRates = {
   EGP: 49.1,
   SAR: 3.75,
@@ -234,7 +236,7 @@ export const addReview = async (req, res) => {
 // In product.controller.js, modify the purchaseProduct function:
 export const purchaseProduct = async (req, res) => {
   try {
-    const { userId, productId, quantity } = req.body;
+    const { userId, productId, quantity, promoCode } = req.body; // Add promoCode to destructuring
 
     // Get product details
     const product = await Product.findById(productId);
@@ -259,8 +261,22 @@ export const purchaseProduct = async (req, res) => {
         .json({ success: false, message: "Tourist not found" });
     }
 
-    // Calculate total price
-    const totalPrice = product.price * quantity;
+    // Calculate initial total price
+    let totalPrice = product.price * quantity;
+
+    // Apply promo code if provided
+    if (promoCode) {
+      const promoCodeDoc = await PromoCode.findOne({ code: promoCode });
+      if (promoCodeDoc && promoCodeDoc.isValid()) {
+        // Calculate discount
+        const discount = (totalPrice * promoCodeDoc.discount) / 100;
+        totalPrice -= discount;
+
+        // Update promo code usage
+        promoCodeDoc.usedCount += 1;
+        await promoCodeDoc.save();
+      }
+    }
 
     // Check wallet balance
     if (tourist.wallet < totalPrice) {
@@ -275,11 +291,12 @@ export const purchaseProduct = async (req, res) => {
       productId,
       quantity,
       totalPrice,
+      promoCode: promoCode || null, // Store the used promo code
     });
 
     // Update product quantity and increment totalSales
     product.quantity -= quantity;
-    product.totalSales = (product.totalSales || 0) + quantity; // Add this line
+    product.totalSales = (product.totalSales || 0) + quantity;
     await product.save();
 
     // Update user wallet
@@ -297,6 +314,7 @@ export const purchaseProduct = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Purchase error:", error); // Add better error logging
     res.status(500).json({
       success: false,
       message: "Failed to complete purchase",
@@ -656,5 +674,94 @@ export const cancelOrder = async (req, res) => {
     });
   } finally {
     session.endSession();
+  }
+};
+
+export const validatePromoCode = async (req, res) => {
+  try {
+    const { code, userId, amount } = req.body;
+
+    if (!code || !userId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Find the promo code
+    const promoCode = await PromoCode.findOne({ code });
+
+    if (!promoCode) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid promo code",
+      });
+    }
+
+    // Check if promo code is active
+    if (!promoCode.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "This promo code is no longer active",
+      });
+    }
+
+    // Check expiry
+    const now = new Date();
+    if (promoCode.expiryDate < now) {
+      return res.status(400).json({
+        success: false,
+        message: "This promo code has expired",
+      });
+    }
+
+    // Check usage limit
+    if (promoCode.usedCount >= promoCode.usageLimit) {
+      return res.status(400).json({
+        success: false,
+        message: "This promo code has reached its usage limit",
+      });
+    }
+
+    // For birthday promos, verify it belongs to the user
+    if (promoCode.type === "BIRTHDAY") {
+      if (promoCode.userId.toString() !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: "This birthday promo code is not valid for your account",
+        });
+      }
+
+      // Verify it's within the user's birthday month
+      const tourist = await Tourist.findById(userId);
+      const birthday = new Date(tourist.dob);
+      const currentMonth = new Date().getMonth();
+
+      if (birthday.getMonth() !== currentMonth) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Birthday promo codes are only valid during your birthday month",
+        });
+      }
+    }
+
+    // Calculate discount
+    const discountAmount = (amount * promoCode.discount) / 100;
+
+    res.status(200).json({
+      success: true,
+      discount: promoCode.discount,
+      discountedAmount: discountAmount,
+      finalAmount: amount - discountAmount,
+      message: "Promo code applied successfully",
+    });
+  } catch (error) {
+    console.error("Promo code validation error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error validating promo code",
+      error: error.message,
+    });
   }
 };

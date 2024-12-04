@@ -23,6 +23,7 @@ import {
   FaTrash,
   FaPlus,
   FaMinus,
+  FaTag,
 } from "react-icons/fa";
 
 const API_URL = "http://localhost:5000/api";
@@ -44,6 +45,11 @@ function ProductTouristPage() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [processingPurchase, setProcessingPurchase] = useState(false);
+  // Add these new state variables at the top with your other states
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState("");
+  const [validatingPromo, setValidatingPromo] = useState(false);
 
   // New cart-related states
   const [cart, setCart] = useState([]);
@@ -55,6 +61,40 @@ function ProductTouristPage() {
     EGP: 49.1,
     SAR: 3.75,
     AED: 3.67,
+  };
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) return;
+
+    setValidatingPromo(true);
+    setPromoError("");
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/products/validate-promo`,
+        {
+          code: promoCode,
+          userId,
+          amount: getCartTotal(),
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      if (response.data.success) {
+        setAppliedPromo({
+          code: promoCode,
+          discount: response.data.discount,
+        });
+        setPromoCode("");
+      }
+    } catch (error) {
+      setPromoError(
+        error.response?.data?.message || "Failed to apply promo code"
+      );
+    } finally {
+      setValidatingPromo(false);
+    }
   };
 
   // Existing useEffects and functions
@@ -229,9 +269,15 @@ function ProductTouristPage() {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    const subtotal = cart.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+    if (appliedPromo) {
+      return subtotal - (subtotal * appliedPromo.discount) / 100;
+    }
+    return subtotal;
   };
-
   const handlePurchase = async () => {
     setProcessingPurchase(true);
     try {
@@ -625,54 +671,143 @@ function ProductTouristPage() {
               ))}
 
               <div className="border-top pt-3 mt-3">
-                <div className="d-flex justify-content-between mb-2">
-                  <span>Subtotal:</span>
-                  <span className="fw-bold">
-                    {currency}{" "}
-                    {(getCartTotal() * currencyRates[currency]).toFixed(2)}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between mb-3">
-                  <span>Wallet Balance:</span>
-                  <span
-                    className={`fw-bold ${
-                      userWallet >= getCartTotal()
-                        ? "text-success"
-                        : "text-danger"
-                    }`}
-                  >
-                    {currency}{" "}
-                    {(userWallet * currencyRates[currency]).toFixed(2)}
-                  </span>
-                </div>
-
-                {userWallet < getCartTotal() && (
-                  <Alert variant="danger" className="mb-3">
-                    Insufficient wallet balance
-                  </Alert>
-                )}
-
-                <Button
-                  variant="primary"
-                  className="w-100"
-                  disabled={
-                    cart.length === 0 ||
-                    processingPurchase ||
-                    userWallet < getCartTotal()
-                  }
-                  onClick={handlePurchase}
-                >
-                  {processingPurchase ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Processing...
-                    </>
+                {/* Promo Code Section */}
+                <div className="mb-3">
+                  <h6 className="mb-2">Promo Code</h6>
+                  {appliedPromo ? (
+                    <div className="d-flex align-items-center justify-content-between bg-light p-2 rounded">
+                      <div>
+                        <Badge bg="success" className="me-2">
+                          <FaTag className="me-1" />
+                          {appliedPromo.code}
+                        </Badge>
+                        <span className="text-success">
+                          {appliedPromo.discount}% OFF
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => setAppliedPromo(null)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   ) : (
-                    `Purchase (${currency} ${(
-                      getCartTotal() * currencyRates[currency]
-                    ).toFixed(2)})`
+                    <div className="d-flex gap-2">
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                      />
+                      <Button
+                        variant="outline-primary"
+                        onClick={handleApplyPromoCode}
+                        disabled={validatingPromo || !promoCode.trim()}
+                      >
+                        {validatingPromo ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : (
+                          "Apply"
+                        )}
+                      </Button>
+                    </div>
                   )}
-                </Button>
+                  {promoError && (
+                    <Alert variant="danger" className="mt-2 py-2">
+                      {promoError}
+                    </Alert>
+                  )}
+                </div>
+
+                {/* Order Summary */}
+                <div className="border-top pt-3">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>
+                      {currency}{" "}
+                      {(
+                        cart.reduce(
+                          (total, item) => total + item.price * item.quantity,
+                          0
+                        ) * currencyRates[currency]
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {appliedPromo && (
+                    <div className="d-flex justify-content-between mb-2 text-success">
+                      <span>Discount ({appliedPromo.discount}%):</span>
+                      <span>
+                        -{currency}{" "}
+                        {(
+                          ((cart.reduce(
+                            (total, item) => total + item.price * item.quantity,
+                            0
+                          ) *
+                            appliedPromo.discount) /
+                            100) *
+                          currencyRates[currency]
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="fw-bold">Final Total:</span>
+                    <span className="fw-bold">
+                      {currency}{" "}
+                      {(getCartTotal() * currencyRates[currency]).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="d-flex justify-content-between mb-3">
+                    <span>Wallet Balance:</span>
+                    <span
+                      className={`fw-bold ${
+                        userWallet >= getCartTotal()
+                          ? "text-success"
+                          : "text-danger"
+                      }`}
+                    >
+                      {currency}{" "}
+                      {(userWallet * currencyRates[currency]).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {userWallet < getCartTotal() && (
+                    <Alert variant="danger" className="mb-3">
+                      Insufficient wallet balance
+                    </Alert>
+                  )}
+
+                  <Button
+                    variant="primary"
+                    className="w-100"
+                    disabled={
+                      cart.length === 0 ||
+                      processingPurchase ||
+                      userWallet < getCartTotal()
+                    }
+                    onClick={handlePurchase}
+                  >
+                    {processingPurchase ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Processing...
+                      </>
+                    ) : (
+                      `Purchase (${currency} ${(
+                        getCartTotal() * currencyRates[currency]
+                      ).toFixed(2)})`
+                    )}
+                  </Button>
+                </div>
               </div>
             </>
           )}
