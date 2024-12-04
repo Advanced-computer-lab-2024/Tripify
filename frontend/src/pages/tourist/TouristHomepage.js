@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Dropdown, Badge } from "react-bootstrap";
 import {
   FaPlane,
@@ -13,113 +13,131 @@ import {
   FaBookmark,
   FaMapMarkerAlt,
   FaBell,
-  FaEye,
-  FaCheck
+  FaCheck,
+  FaQuestionCircle,
+  FaCompass
 } from "react-icons/fa";
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import { format } from 'date-fns';
+import VacationGuide from "../../components/VacationGuide";
+import GuideButton from "../../components/GuideButton";
 
-const NotificationBell = () => {
+// Custom hook for managing notifications
+const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(false);
 
-  const getUserInfo = () => {
+  const getUserInfo = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return null;
+    
     try {
       const decoded = jwtDecode(token);
-      let userId = null;
-      if (decoded.tourist) {
-        userId = decoded.tourist._id;
-      } else if (decoded.user) {
-        userId = decoded.user._id;
-      } else if (decoded._id) {
-        userId = decoded._id;
-      }
-      return { userId, userType: 'Tourist' };
+      const userId = decoded.tourist?._id || decoded.user?._id || decoded._id;
+      return userId ? { userId, userType: 'Tourist' } : null;
     } catch (error) {
       console.error('Error decoding token:', error);
       return null;
     }
-  };
+  }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
+    const userInfo = getUserInfo();
+    if (!userInfo) return;
+
     try {
       setLoading(true);
-      const userInfo = getUserInfo();
-      if (!userInfo) return;
-
       const response = await axios.get(`http://localhost:5000/api/notifications`, {
         params: {
           userId: userInfo.userId,
           userType: userInfo.userType,
           page: 1,
-          limit: 5 // Show only latest 5 notifications in dropdown
+          limit: 5
         }
       });
-
       setNotifications(response.data.data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [getUserInfo]);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
+    const userInfo = getUserInfo();
+    if (!userInfo) return;
+
     try {
-      const userInfo = getUserInfo();
-      if (!userInfo) return;
-
       const response = await axios.get(`http://localhost:5000/api/notifications/unread/count`, {
         params: {
           userId: userInfo.userId,
           userType: userInfo.userType
         }
       });
-
       setUnreadCount(response.data.data.count);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
-  };
+  }, [getUserInfo]);
 
   const markAsRead = async (notificationId) => {
+    const userInfo = getUserInfo();
+    if (!userInfo) return;
+
     try {
-      const userInfo = getUserInfo();
       await axios.patch(
         `http://localhost:5000/api/notifications/${notificationId}/read`,
         {},
-        {
-          params: { userId: userInfo.userId }
-        }
+        { params: { userId: userInfo.userId } }
       );
       
-      // Update local state
-      setNotifications(notifications.map(notif =>
-        notif._id === notificationId ? { ...notif, isRead: true } : notif
-      ));
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notif =>
+          notif._id === notificationId ? { ...notif, isRead: true } : notif
+        )
+      );
       await fetchUnreadCount();
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    fetchUnreadCount,
+    markAsRead
+  };
+};
+
+// NotificationBell Component
+const NotificationBell = () => {
+  const [show, setShow] = useState(false);
+  const navigate = useNavigate();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    fetchUnreadCount,
+    markAsRead
+  } = useNotifications();
+
   useEffect(() => {
     if (show) {
       fetchNotifications();
     }
-  }, [show]);
+  }, [show, fetchNotifications]);
 
   useEffect(() => {
     fetchUnreadCount();
-    // Set up polling for unread count
-    const interval = setInterval(fetchUnreadCount, 30000); // Check every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchUnreadCount]);
 
   const CustomToggle = React.forwardRef(({ onClick }, ref) => (
     <div
@@ -153,7 +171,7 @@ const NotificationBell = () => {
   ));
 
   return (
-    <Dropdown onToggle={(nextShow) => setShow(nextShow)}>
+    <Dropdown onToggle={setShow}>
       <Dropdown.Toggle as={CustomToggle} id="notification-dropdown" />
 
       <Dropdown.Menu align="end" className="notification-dropdown" style={{ width: '350px', maxHeight: '500px', overflow: 'auto' }}>
@@ -175,7 +193,7 @@ const NotificationBell = () => {
               <Dropdown.Item 
                 key={notification._id}
                 className={`px-3 py-2 border-bottom ${!notification.isRead ? 'bg-light' : ''}`}
-                onClick={() => notification.link && window.location.navigate(notification.link)}
+                onClick={() => notification.link && navigate(notification.link)}
               >
                 <div className="d-flex justify-content-between align-items-start">
                   <div className="pe-2">
@@ -207,172 +225,227 @@ const NotificationBell = () => {
     </Dropdown>
   );
 };
+// Styled Button Component for consistency
+const StyledMenuButton = ({ to, label, icon, variant, onClick, className = '' }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className={`btn btn-${variant} w-100 d-flex align-items-center justify-content-center p-3 ${className}`}
+    style={{
+      transition: "all 0.3s ease",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      borderRadius: "8px",
+      height: "100%",
+      minHeight: "100px",
+      flexDirection: "column",
+      gap: "10px"
+    }}
+    onMouseOver={(e) => {
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+    }}
+    onMouseOut={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+    }}
+  >
+    <div className="icon-container">{icon}</div>
+    <span className="text-center">{label}</span>
+  </Link>
+);
 
-
+// Main TouristHomePage Component
 const TouristHomePage = () => {
   const username = JSON.parse(localStorage.getItem("user"))?.username || "Tourist";
+  const [showGuide, setShowGuide] = useState(false);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
 
-  const menuItems = [
-    {
-      to: "/tourist/view-events",
-      label: "View Events",
-      icon: <FaMap />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/saved-events", // Moved to main services
-      label: "Saved Events",
-      icon: <FaBookmark />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/my-profile",
-      label: "My Profile",
-      icon: <FaUser />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/book-flight",
-      label: "Book a Flight",
-      icon: <FaPlane />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/book-hotel",
-      label: "Book a Hotel",
-      icon: <FaHotel />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/book-transportation",
-      label: "Book Transportation",
-      icon: <FaCar />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/delivery-addresses",
-      label: "Delivery Addresses",
-      icon: <FaMapMarkerAlt />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/itinerary-filter",
-      label: "Itinerary Filter",
-      icon: <FaMap />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/filtered-activities",
-      label: "Filtered Activities",
-      icon: <FaMap />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/products",
-      label: "View Products",
-      icon: <FaShoppingBag />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/purchases",
-      label: "My Purchases",
-      icon: <FaShoppingBag />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/view-bookings",
-      label: "View Bookings",
-      icon: <FaMap />,
-      variant: "primary",
-    },
-    // Support items
-    {
-      to: "/tourist/change-password",
-      label: "Change My Password",
-      icon: <FaLock />,
-      variant: "primary",
-    },
-    {
-      to: "/tourist/complaints",
-      label: "File a Complaint",
-      icon: <FaExclamationCircle />,
-      variant: "danger",
-    },
-    {
-      to: "/tourist/my-complaints",
-      label: "My Complaints",
-      icon: <FaExclamationCircle />,
-      variant: "primary",
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisited) {
+      setIsFirstVisit(true);
+      localStorage.setItem('hasVisitedBefore', 'true');
     }
-  ];
+  }, []);
 
-  // Updated grouping to include saved events in Main Services
   const menuCategories = {
-    "Main Services": menuItems.slice(0, 11), // First 11 items including saved events
-    "Support": menuItems.slice(11) // Remaining items
+    "Main Services": [
+      {
+        to: "/tourist/view-events",
+        label: "View Events",
+        icon: <FaMap size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/saved-events",
+        label: "Saved Events",
+        icon: <FaBookmark size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/my-profile",
+        label: "My Profile",
+        icon: <FaUser size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/book-flight",
+        label: "Book a Flight",
+        icon: <FaPlane size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/book-hotel",
+        label: "Book a Hotel",
+        icon: <FaHotel size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/book-transportation",
+        label: "Book Transportation",
+        icon: <FaCar size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/delivery-addresses",
+        label: "Delivery Addresses",
+        icon: <FaMapMarkerAlt size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/itinerary-filter",
+        label: "Itinerary Filter",
+        icon: <FaCompass size={24} />,
+        variant: "info",
+      },
+      {
+        to: "/tourist/filtered-activities",
+        label: "Filtered Activities",
+        icon: <FaMap size={24} />,
+        variant: "info",
+      },
+      {
+        to: "/tourist/products",
+        label: "View Products",
+        icon: <FaShoppingBag size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/purchases",
+        label: "My Purchases",
+        icon: <FaShoppingBag size={24} />,
+        variant: "primary",
+      }
+    ],
+    "Support & Settings": [
+      {
+        to: "/tourist/view-bookings",
+        label: "View Bookings",
+        icon: <FaMap size={24} />,
+        variant: "secondary",
+      },
+      {
+        to: "/tourist/change-password",
+        label: "Change Password",
+        icon: <FaLock size={24} />,
+        variant: "secondary",
+      },
+      {
+        to: "/tourist/complaints",
+        label: "File a Complaint",
+        icon: <FaExclamationCircle size={24} />,
+        variant: "danger",
+      },
+      {
+        to: "/tourist/my-complaints",
+        label: "My Complaints",
+        icon: <FaExclamationCircle size={24} />,
+        variant: "secondary",
+      }
+    ]
   };
 
-  // Rest of the component remains the same...
   return (
     <Container className="py-5">
       <Card className="shadow-sm">
         <Card.Body>
           <div className="text-center mb-4 position-relative">
-            {/* Add NotificationBell to the top right */}
-            <div className="position-absolute" style={{ top: 0, right: 0, padding: '1rem' }}>
+            {/* Top Bar with Notifications and Guide */}
+            <div className="d-flex justify-content-between align-items-center position-absolute w-100" 
+                 style={{ top: 0, left: 0, padding: '1rem' }}>
+              <GuideButton />
               <NotificationBell />
             </div>
-            <h1 className="mb-3">Welcome to the Tourist Homepage</h1>
-            <p className="text-muted">Welcome back, {username}!</p>
-          </div>
 
-          {Object.entries(menuCategories).map(([category, items]) => (
-            <div key={category} className="mb-4">
-              <h3 className="mb-3 text-primary border-bottom pb-2">
-                {category}
-              </h3>
-              <Row className="g-4 justify-content-center">
-                {items.map((item) => (
-                  <Col xs={12} sm={6} md={4} key={item.to}>
-                    <Link
-                      to={item.to}
-                      className={`btn btn-${item.variant} w-100 d-flex align-items-center justify-content-center gap-2 p-3`}
-                      style={{
-                        transition: "all 0.3s ease",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                      }}
-                      aria-label={item.label}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 8px rgba(0,0,0,0.2)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 2px 4px rgba(0,0,0,0.1)";
-                      }}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </Link>
-                  </Col>
-                ))}
-              </Row>
-
-              {category === "Main Services" && (
-                <div className="text-center mt-4">
-                  <Link to="/tourist/filter-historical-places">
-                    <Button variant="outline-primary" aria-label="Filter Historical Places">
-                      Filter Historical Places by Tags
-                    </Button>
-                  </Link>
-                </div>
-              )}
+            {/* Welcome Section */}
+            <div className="pt-5">
+              <h1 className="mb-3">Welcome to the Tourist Homepage</h1>
+              <p className="text-muted mb-4">Welcome back, {username}!</p>
+              
+              {/* Quick Start Guide Button */}
+              <Button 
+                variant="outline-primary"
+                className="d-flex align-items-center gap-2 mx-auto mb-4"
+                onClick={() => setShowGuide(true)}
+                style={{ maxWidth: 'fit-content' }}
+              >
+                <FaQuestionCircle size={20} />
+                <span>Start Quick Tour</span>
+              </Button>
             </div>
-          ))}
+
+            {/* Menu Categories */}
+            {Object.entries(menuCategories).map(([category, items]) => (
+              <div key={category} className="mb-5">
+                <h3 className="mb-4 text-primary border-bottom pb-2 d-flex align-items-center gap-2">
+                  {category === "Main Services" ? 
+                    <FaCompass size={24} /> : 
+                    <FaQuestionCircle size={24} />
+                  }
+                  {category}
+                </h3>
+                <Row className="g-4">
+                  {items.map((item) => (
+                    <Col key={item.to} xs={12} sm={6} md={4}>
+                      <StyledMenuButton {...item} />
+                    </Col>
+                  ))}
+                </Row>
+
+                {category === "Main Services" && (
+                  <div className="text-center mt-4">
+                    <Button
+                      as={Link}
+                      to="/tourist/filter-historical-places"
+                      variant="outline-primary"
+                      className="d-flex align-items-center gap-2 mx-auto"
+                      style={{ maxWidth: 'fit-content' }}
+                    >
+                      <FaMap size={20} />
+                      <span>Filter Historical Places by Tags</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </Card.Body>
       </Card>
+
+      {/* Vacation Guide Modal */}
+      <VacationGuide 
+        show={showGuide} 
+        onHide={() => setShowGuide(false)} 
+      />
+
+      {/* First Visit Guide */}
+      {isFirstVisit && (
+        <VacationGuide 
+          show={true} 
+          onHide={() => setIsFirstVisit(false)}
+          isFirstVisit={true}
+        />
+      )}
     </Container>
   );
 };
