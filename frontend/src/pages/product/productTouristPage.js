@@ -25,6 +25,7 @@ import {
   FaMinus,
   FaTag,
 } from "react-icons/fa";
+import PaymentSelection from "../../components/PaymentSelection";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -50,6 +51,7 @@ function ProductTouristPage() {
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
   const [validatingPromo, setValidatingPromo] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // New cart-related states
   const [cart, setCart] = useState([]);
@@ -278,40 +280,77 @@ function ProductTouristPage() {
     }
     return subtotal;
   };
-  const handlePurchase = async () => {
+  const handlePurchase = async (paymentMethod) => {
     setProcessingPurchase(true);
     try {
-      for (const item of cart) {
-        await axios.post(
-          `${API_URL}/products/purchase`,
-          {
-            userId,
-            productId: item._id,
-            quantity: item.quantity,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-              "Content-Type": "application/json",
-            },
+      switch (paymentMethod) {
+        case "wallet":
+          // Existing wallet payment logic
+          for (const item of cart) {
+            await axios.post(
+              `${API_URL}/products/purchase`,
+              {
+                userId,
+                productId: item._id,
+                quantity: item.quantity,
+                paymentMethod: "wallet", // Add payment method to API call
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
           }
-        );
+
+          const userKey = getUserSpecificKey();
+          const newBalance = userWallet - getCartTotal();
+
+          // Update localStorage with the new wallet balance
+          const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
+          localStorage.setItem(
+            userKey,
+            JSON.stringify({
+              ...touristData,
+              wallet: newBalance,
+            })
+          );
+
+          setUserWallet(newBalance);
+          break;
+
+        case "card":
+          // Handle Stripe payment
+          // You'll need to implement Stripe integration
+          alert("Stripe payment not yet implemented");
+          return;
+
+        case "cod":
+          // Handle cash on delivery
+          for (const item of cart) {
+            await axios.post(
+              `${API_URL}/products/purchase`,
+              {
+                userId,
+                productId: item._id,
+                quantity: item.quantity,
+                paymentMethod: "cod",
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+          }
+          break;
+
+        default:
+          throw new Error("Invalid payment method");
       }
 
-      const userKey = getUserSpecificKey();
-      const newBalance = userWallet - getCartTotal();
-
-      // Update localStorage with the new wallet balance
-      const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
-      localStorage.setItem(
-        userKey,
-        JSON.stringify({
-          ...touristData,
-          wallet: newBalance,
-        })
-      );
-
-      setUserWallet(newBalance);
       setCart([]);
       setShowCart(false);
       await fetchProducts();
@@ -592,6 +631,19 @@ function ProductTouristPage() {
           </Button>
         </Modal.Footer>
       </Modal>
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Select Payment Method</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <PaymentSelection
+            totalAmount={getCartTotal()}
+            walletBalance={userWallet}
+            onPaymentComplete={handlePurchase}
+            onPaymentError={(error) => alert(error)}
+          />
+        </Modal.Body>
+      </Modal>
 
       {/* Cart Offcanvas */}
       <Offcanvas
@@ -785,27 +837,11 @@ function ProductTouristPage() {
                   <Button
                     variant="primary"
                     className="w-100"
-                    disabled={
-                      cart.length === 0 ||
-                      processingPurchase ||
-                      userWallet < getCartTotal()
-                    }
-                    onClick={handlePurchase}
+                    disabled={cart.length === 0}
+                    onClick={() => setShowPaymentModal(true)}
                   >
-                    {processingPurchase ? (
-                      <>
-                        <Spinner
-                          animation="border"
-                          size="sm"
-                          className="me-2"
-                        />
-                        Processing...
-                      </>
-                    ) : (
-                      `Purchase (${currency} ${(
-                        getCartTotal() * currencyRates[currency]
-                      ).toFixed(2)})`
-                    )}
+                    Proceed to Checkout (${currency} $
+                    {(getCartTotal() * currencyRates[currency]).toFixed(2)})
                   </Button>
                 </div>
               </div>
