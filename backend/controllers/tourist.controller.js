@@ -1047,3 +1047,109 @@ export const deleteTouristAccount = async (req, res) => {
     session.endSession();
   }
 };
+
+
+
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const tourist = await Tourist.findOne({ email });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database, adding userType and userId
+    await Otp.create({
+      userId: tourist._id,  // The Tourist's ID
+      userType: 'Tourist',  // The user type (hardcoded as Tourist here)
+      otp,  // The OTP
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the Tourist to get their ID
+    const tourist = await Tourist.findOne({ email });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: tourist._id,
+      userType: 'Tourist',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const tourist = await TOurist.findOne({ email });
+    
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await Tourist.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: tourist._id,
+      userType: 'Tourist'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
+  }
+};

@@ -4,7 +4,9 @@ import Activity from "../models/activity.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-
+import fs from "fs";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
 dotenv.config();
 
 // Generate JWT Token
@@ -186,20 +188,31 @@ export const loginAdvertiser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    console.log('Login attempt for username/email:', username);
+    
     const advertiser = await Advertiser.findOne({
       $or: [{ username }, { email: username }],
     });
 
     if (!advertiser) {
+      console.log('No advertiser found for:', username);
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    const isMatch = await advertiser.comparePassword(password);
+    console.log('Found advertiser:', advertiser.email);
+    console.log('Stored hashed password:', advertiser.password);
+    console.log('Attempting to match with provided password');
+
+    const isMatch = await bcrypt.compare(password, advertiser.password);
+    console.log('Password match result:', isMatch);
+
     if (!isMatch) {
+      console.log('Password match failed');
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
     const token = generateToken(advertiser);
+    console.log('Login successful, token generated');
 
     res.status(200).json({
       message: "Login successful",
@@ -216,9 +229,14 @@ export const loginAdvertiser = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
+
 
 // Get Advertiser Profile (Protected Route)
 export const getAdvertiserByUsername = async (req, res) => {
@@ -420,5 +438,109 @@ export const getAdvertiserSalesReport = async (req, res) => {
       success: false,
       message: error.message || "Error fetching sales data",
     });
+  }
+};
+
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const advertiser = await Advertiser.findOne({ email });
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database, adding userType and userId
+    await Otp.create({
+      userId: advertiser._id,  // The advertiser's ID
+      userType: 'Advertiser',  // The user type (hardcoded as Advertiser here)
+      otp,  // The OTP
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the advertiser to get their ID
+    const advertiser = await Advertiser.findOne({ email });
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: advertiser._id,
+      userType: 'Advertiser',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const advertiser = await Advertiser.findOne({ email });
+    
+    if (!advertiser) {
+      return res.status(404).json({ message: "Advertiser not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await Advertiser.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: advertiser._id,
+      userType: 'Advertiser'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
   }
 };

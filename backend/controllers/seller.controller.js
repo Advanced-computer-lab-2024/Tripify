@@ -186,27 +186,7 @@ export const loginSeller = async (req, res) => {
 };
 
 // Reset Password for Seller
-export const resetPassword = async (req, res) => {
-  const { identifier, newPassword } = req.body;
 
-  try {
-    const seller = await Seller.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    });
-    if (!seller) {
-      return res.status(404).json({ message: "Seller not found" });
-    }
-
-    seller.password = await bcrypt.hash(newPassword, 10);
-    await seller.save();
-
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error resetting password", error: error.message });
-  }
-};
 
 // Change Password (Protected Route)
 export const changePassword = async (req, res) => {
@@ -331,5 +311,108 @@ export const deleteSellerAccount = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting seller account", error: error.message });
+  }
+};
+
+
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const seller = await Seller.findOne({ email });
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database
+    await Otp.create({
+      userId: seller._id,
+      userType: 'Seller',
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the seller to get their ID
+    const seller = await Seller.findOne({ email });
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: seller._id,
+      userType: 'Seller',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const seller = await Seller.findOne({ email });
+    
+    if (!seller) {
+      return res.status(404).json({ message: "Seller not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await Seller.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: seller._id,
+      userType: 'Seller'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
   }
 };

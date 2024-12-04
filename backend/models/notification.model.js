@@ -39,6 +39,7 @@ const notificationSchema = new mongoose.Schema({
       'AD_APPROVAL',
       'SYSTEM_NOTIFICATION',
        'BIRTHDAY_PROMO',
+       'Flag_Activity',
     ]
   },
   relatedId: {
@@ -47,7 +48,7 @@ const notificationSchema = new mongoose.Schema({
   },
   relatedModel: {
     type: String,
-    enum: ['Booking', 'Payment', 'Review', 'Tour', 'Advertisement','PromoCode', null]
+    enum: ['Booking', 'Payment', 'Review', 'Tour', 'Advertisement','PromoCode','Activity', null]
   },
   isRead: {
     type: Boolean,

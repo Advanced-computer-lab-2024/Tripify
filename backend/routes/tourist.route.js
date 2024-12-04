@@ -21,7 +21,11 @@ import {
   getDeliveryAddresses,
   updateDeliveryAddress,
   deleteDeliveryAddress,
-  setDefaultAddress
+  setDefaultAddress,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
+  
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -36,6 +40,11 @@ router.get("/", getAllTourists);
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
 router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
+
+
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 
 router.put("/change-password", authMiddleware, changePassword);
 // Loyalty routes

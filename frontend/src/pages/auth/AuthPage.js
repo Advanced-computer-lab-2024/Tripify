@@ -14,6 +14,7 @@ import {
   Image,
 } from "react-bootstrap";
 import axios from "axios";
+import {Link} from "react-router-dom";
 
 const AuthPage = () => {
   const [activeTab, setActiveTab] = useState("login");
@@ -175,53 +176,29 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
+  
     try {
       const role = roles.find((r) => r.value === selectedRole);
-      const endpoint =
-        role.value === "governor" ? "toursimGovernor" : role.endpoint;
-
-      console.log("Selected Role:", role);
-      console.log("Using endpoint:", endpoint);
-
-      // Log the raw login data received from form
-      console.log("Raw login data:", loginData);
-
+      const endpoint = role.value === "governor" ? "toursimGovernor" : role.endpoint;
+  
+      // Create the login payload
       const loginPayload = {
-        email: loginData.username.includes("@")
-          ? loginData.username
-          : undefined,
-        username: !loginData.username.includes("@")
-          ? loginData.username
-          : undefined,
-        password: loginData.password,
+        username: loginData.username, // Send the username/email as-is
+        password: loginData.password
       };
-
-      // Log the cleaned payload being sent to server
-      console.log("Sending login payload:", loginPayload);
-      console.log(
-        "Request URL:",
-        `http://localhost:5000/api/${endpoint}/login`
-      );
-
+  
+      // Remove the previous conditional logic and let the backend handle the validation
+  
       const response = await axios.post(
         `http://localhost:5000/api/${endpoint}/login`,
         loginPayload
       );
-
-      console.log("Server response:", response.data);
-
+  
       if (response.data.token) {
-        console.log("Token received, saving to localStorage");
         localStorage.setItem("token", response.data.token);
-
         const userData = response.data.governor || response.data[role.value];
-        console.log("User data to be saved:", userData);
-
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("userRole", role.value);
-
-        console.log("Navigating to:", `/${role.value}`);
         navigate(`/${role.value}`);
       }
     } catch (err) {
@@ -231,7 +208,7 @@ const AuthPage = () => {
         data: err.response?.data,
         error: err.message,
       });
-
+  
       const errorMessage =
         err.response?.data?.message ||
         "Login failed. Please check your credentials.";
@@ -805,55 +782,63 @@ const AuthPage = () => {
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
-
               {activeTab === "login" ? (
-                <Form onSubmit={handleLogin}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Username or Email</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="username"
-                      value={loginData.username}
-                      onChange={handleLoginChange}
-                      required
-                    />
-                  </Form.Group>
+  <Form onSubmit={handleLogin}>
+    <Form.Group className="mb-3">
+  <Form.Label>Username or Email</Form.Label>
+  <Form.Control
+    type="text"
+    name="username"
+    placeholder="Enter username or email"
+    value={loginData.username}
+    onChange={handleLoginChange}
+    required
+  />
+</Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="password"
-                      value={loginData.password}
-                      onChange={handleLoginChange}
-                      required
-                    />
-                  </Form.Group>
+    <Form.Group className="mb-3">
+      <Form.Label>Password</Form.Label>
+      <Form.Control
+        type="password"
+        name="password"
+        value={loginData.password}
+        onChange={handleLoginChange}
+        required
+      />
+      <div className="d-flex justify-content-end mt-2">
+        <Link 
+          to={`/${selectedRole}/forgot-password`} 
+          className="text-primary text-decoration-none"
+        >
+          Forgot Password?
+        </Link>
+      </div>
+    </Form.Group>
 
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        Logging in...
-                      </>
-                    ) : (
-                      "Login"
-                    )}
-                  </Button>
-                </Form>
-              ) : (
+    <Button
+      variant="primary"
+      type="submit"
+      className="w-100"
+      disabled={loading}
+    >
+      {loading ? (
+        <>
+          <Spinner
+            as="span"
+            animation="border"
+            size="sm"
+            role="status"
+            aria-hidden="true"
+            className="me-2"
+          />
+          Logging in...
+        </>
+      ) : (
+        "Login"
+      )}
+    </Button>
+  </Form>
+) : (
                 <Form onSubmit={handleRegister}>
                   <Form.Group className="mb-3">
                     <Form.Label>Username</Form.Label>

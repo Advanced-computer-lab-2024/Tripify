@@ -68,6 +68,13 @@ import SellerSalesReport from "./pages/seller/SellerSalesReport";
 import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
 import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
+import ForgetPasswordAdvertiser from "./pages/advertiser/ForgetPasswordAdvertiser";
+import ForgetPasswordGovernor from "./pages/tourismGovernor/ForgetPasswordGovernor";
+import ForgetPasswordAdmin from "./pages/admin/ForgetPasswordAdmin";
+import ForgetPasswordTourGuide from "./pages/tourguide/ForgetPasswordTourGuide";
+import ForgetPasswordSeller from "./pages/seller/ForgetPasswordSeller";
+import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
+
 
 function App() {
   return (
@@ -82,6 +89,10 @@ function App() {
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
+          <Route
+            path="/tourist/forgot-password"
+            element={<ForgetPasswordTourist />}
+          />
           <Route
             path="/tourist/my-complaints"
             element={<TouristComplaints />}
@@ -142,6 +153,10 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
+            <Route
+            path="/tourguide/forgot-password"
+            element={<ForgetPasswordTourGuide />}
+          />
           <Route
             path="/tourguide/sales-report"
             element={<TourGuideSalesReport />}
@@ -152,6 +167,10 @@ function App() {
           <Route
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
+          />
+            <Route
+            path="/admin/forgot-password"
+            element={<ForgetPasswordAdmin />}
           />
           <Route path="/admin/promo-codes" element={<PromoCodeManager />} />
           <Route
@@ -184,6 +203,7 @@ function App() {
             path="/advertiser/activities"
             element={<AdvertiserActivities />}
           />
+          <Route path="/advertiser/forgot-password" element={<ForgetPasswordAdvertiser />} />
           <Route
             path="/advertiser/create-transportation"
             element={<CreateTransportationListing />}
@@ -207,6 +227,11 @@ function App() {
             path="/governor/my-places"
             element={<GovernorCreatedPlaces />}
           />
+          <Route
+            path="/governor/forgot-password"
+            element={<ForgetPasswordGovernor />}
+          />
+
           <Route path="/governor/tag-management" element={<TagManagement />} />
           <Route
             path="/governor/change-password"
@@ -219,6 +244,10 @@ function App() {
           <Route
             path="/seller/change-password"
             element={<SellerChangePassword />}
+          />
+          <Route
+            path="/seller/forgot-password"
+            element={<ForgetPasswordSeller />}
           />
           <Route path="/seller/sales-report" element={<SellerSalesReport />} />
           {/* Registration Routes */}

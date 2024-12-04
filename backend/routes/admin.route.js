@@ -21,7 +21,12 @@ import {
   getActivitySales,
   getProductSales,
   getHistoricalPlaceSales,
-  getUserStats, // Import the new controller function
+  getUserStats, 
+  sendPasswordResetOtp,
+  resetPassword,
+  verifyPasswordResetOtp,
+  
+  // Import the new controller function
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminAuthMiddleware } from "../middleware/adminAuth.middleware.js";
@@ -90,5 +95,8 @@ router.get(
   adminAuthMiddleware,
   getUserStats // Adding the new controller function for user stats
 );
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 
 export default router;

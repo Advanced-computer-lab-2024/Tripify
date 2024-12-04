@@ -9,6 +9,9 @@ import {
   getProfileByToken,
   getTourGuideItineraries,
   changePassword,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
 } from "../controllers/tourGuide.controller.js"; // Removed 'upload' from here
 
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -41,4 +44,8 @@ router.put("/change-password", authMiddleware, changePassword);
 // Delete account
 router.delete("/delete/:id", authMiddleware, deleteTourGuide);
 
+
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 export default router;

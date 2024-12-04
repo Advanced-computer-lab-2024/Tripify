@@ -10,6 +10,9 @@ import {
   getAdvertiserActivities,
   changePassword,
   getAdvertiserSalesReport,
+  sendPasswordResetOtp,
+  resetPassword,
+  verifyPasswordResetOtp,
 } from "../controllers/advertiser.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
@@ -40,7 +43,9 @@ router.put("/change-password", authMiddleware, changePassword);
 
 // Activities route
 router.get("/activities/my", authMiddleware, getAdvertiserActivities);
-
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 // ID-based routes
 router.get("/:id", authMiddleware, getAdvertiserById);
 router.delete("/:id", authMiddleware, deleteAdvertiser);
@@ -65,5 +70,8 @@ router.use((error, req, res, next) => {
   }
   next();
 });
+
+
+
 
 export default router;

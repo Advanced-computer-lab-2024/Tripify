@@ -13,6 +13,10 @@ import {
   updateHistoricalPlace,
   deleteHistoricalPlace,
   changePassword,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
+  
 } from "../controllers/tourismGovernor.controller.js";
 
 const router = express.Router();
@@ -42,6 +46,9 @@ router.post("/places", authMiddleware, createHistoricalPlace);
 router.put("/places/:id", authMiddleware, updateHistoricalPlace);
 router.delete("/places/:id", authMiddleware, deleteHistoricalPlace);
 
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 // console.log("Tourism governor routes configured");
 
 export default router;
