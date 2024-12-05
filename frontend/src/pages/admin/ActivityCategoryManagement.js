@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import AdminNavbar from "./AdminNavbar";
 
 const API_URL = "http://localhost:5000/api/activities/category";
 
@@ -94,7 +95,9 @@ const ActivityCategoryManagement = () => {
   }
 
   return (
-    <div className="container mt-5">
+    <>
+    <AdminNavbar/>
+    <div className="container" style={{marginTop:"100px"}}>
       <h2 className="mb-4">Activity Category Management</h2>
       <form onSubmit={handleSubmit} className="mb-4">
         <div className="input-group">
@@ -157,6 +160,7 @@ const ActivityCategoryManagement = () => {
         ))}
       </ul>
     </div>
+    </>
   );
 };
 

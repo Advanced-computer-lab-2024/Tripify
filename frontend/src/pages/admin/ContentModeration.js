@@ -9,6 +9,7 @@ import {
   Form,
 } from "react-bootstrap";
 import axios from "axios";
+import AdminNavbar from "./AdminNavbar";
 
 const ContentModeration = () => {
   const [content, setContent] = useState({ activities: [], itineraries: [] });
@@ -69,7 +70,9 @@ const ContentModeration = () => {
   if (error) return <div className="alert alert-danger mt-5">{error}</div>;
 
   return (
-    <Container className="mt-5">
+    <>
+    <AdminNavbar/>
+    <Container style={{marginTop:"100px"}}>
       <h2 className="mb-4">Content Moderation</h2>
 
       <Form.Check
@@ -134,6 +137,7 @@ const ContentModeration = () => {
         ))}
       </Row>
     </Container>
+    </>
   );
 };
 

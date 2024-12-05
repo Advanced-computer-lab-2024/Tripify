@@ -10,7 +10,9 @@ import {
   Form,
   Button,
   Modal,
+  Navbar,
 } from "react-bootstrap";
+import AdminNavbar from "./AdminNavbar";
 
 const API_URL = "http://localhost:5000/api/complaints";
 
@@ -130,7 +132,9 @@ const Complaints = () => {
   }
 
   return (
-    <Container className="mt-5">
+    <>
+    <AdminNavbar/>
+    <Container style={{marginTop:"100px"}}>
       <h2>Complaints</h2>
       <div className="mb-3">
         {/* Sort Button */}
@@ -312,6 +316,7 @@ const Complaints = () => {
         )}
       </Modal>
     </Container>
+    </>
   );
 };
 

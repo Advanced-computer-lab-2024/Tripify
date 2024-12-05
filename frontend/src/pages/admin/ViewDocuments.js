@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Image, Badge, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
 import axios from 'axios';
+import AdminNavbar from './AdminNavbar';
 
 const AdminVerificationDashboard = () => {
   const [loading, setLoading] = useState(false);
@@ -218,7 +219,9 @@ const AdminVerificationDashboard = () => {
   );
 
   return (
-    <Container fluid className="mt-4">
+    <>
+    <AdminNavbar/>
+    <Container style={{marginTop:"100px"}}>
       <Row>
         <Col>
           <Card>
@@ -255,6 +258,7 @@ const AdminVerificationDashboard = () => {
 
       {renderDocumentModal()}
     </Container>
+    </>
   );
 };
 

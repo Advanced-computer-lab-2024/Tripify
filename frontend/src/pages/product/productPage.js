@@ -10,6 +10,7 @@ import {
   Modal,
   ListGroup,
 } from "react-bootstrap";
+import AdminNavbar from "../admin/AdminNavbar";
 
 const API_URL = "http://localhost:5000/api"; // Adjust this to your backend URL
 
@@ -153,8 +154,10 @@ function ProductPage() {
   };
 
   return (
+    <>
+    <AdminNavbar/>
     <Container>
-      <h1 className="my-4">Product Catalog</h1>
+      <h1  style={{marginTop:"100px"}}>Product Catalog</h1>
 
       <Row className="mb-3">
         <Col md={3}>
@@ -482,6 +485,7 @@ function ProductPage() {
         </Modal.Body>
       </Modal>
     </Container>
+    </>
   );
 }
 

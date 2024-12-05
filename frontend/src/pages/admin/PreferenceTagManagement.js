@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import AdminNavbar from "./AdminNavbar";
 
 const API_URL = "http://localhost:5000/api/preference-tags";
 
@@ -85,7 +86,9 @@ const PreferenceTagManagement = () => {
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Card>
+    <>
+    <AdminNavbar/>
+    <Card style={{marginTop:"100px"}}>
       <CardContent>
         <Typography variant="h5" component="div" gutterBottom>
           Preference Tag Management
@@ -141,6 +144,7 @@ const PreferenceTagManagement = () => {
         </List>
       </CardContent>
     </Card>
+    </>
   );
 };
 

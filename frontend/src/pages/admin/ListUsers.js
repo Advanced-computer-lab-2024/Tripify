@@ -3,6 +3,7 @@ import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Trash } from 'react-bootstrap-icons';
 import { jwtDecode } from "jwt-decode";
+import AdminNavbar from './AdminNavbar';
 
 const ListUsers = () => {
     const [users, setUsers] = useState([]);
@@ -94,7 +95,10 @@ const ListUsers = () => {
     }
 
     return (
-        <div className="container mt-5">
+        <>
+        <AdminNavbar/>
+        
+        <div className="container" style={{marginTop:"100px"}}>
             <h1 className="text-center mb-4">All Users</h1>
             {users.length === 0 ? (
                 <div className="alert alert-info text-center">
@@ -140,6 +144,7 @@ const ListUsers = () => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 
