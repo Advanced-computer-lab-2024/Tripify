@@ -26,6 +26,7 @@ import {
   FaTag,
 } from "react-icons/fa";
 import PaymentSelection from "../../components/PaymentSelection";
+import StripeWrapper from "../../components/StripeWrapper";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -280,83 +281,107 @@ function ProductTouristPage() {
     }
     return subtotal;
   };
-  const handlePurchase = async (paymentMethod) => {
+  const handlePurchase = async (paymentMethod, paymentIntent) => {
     setProcessingPurchase(true);
     try {
-      switch (paymentMethod) {
-        case "wallet":
-          // Existing wallet payment logic
-          for (const item of cart) {
-            await axios.post(
-              `${API_URL}/products/purchase`,
-              {
-                userId,
-                productId: item._id,
-                quantity: item.quantity,
-                paymentMethod: "wallet", // Add payment method to API call
+      if (paymentMethod === "card") {
+        // Handle Stripe card payment
+        for (const item of cart) {
+          await axios.post(
+            `${API_URL}/products/purchase`,
+            {
+              userId,
+              productId: item._id,
+              quantity: item.quantity,
+              paymentMethod: "card",
+              stripePaymentId: paymentIntent.id,
+              promoCode: appliedPromo?.code, // Include promo code if applied
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-          }
-
-          const userKey = getUserSpecificKey();
-          const newBalance = userWallet - getCartTotal();
-
-          // Update localStorage with the new wallet balance
-          const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
-          localStorage.setItem(
-            userKey,
-            JSON.stringify({
-              ...touristData,
-              wallet: newBalance,
-            })
+            }
           );
+        }
+      } else if (paymentMethod === "wallet") {
+        // Handle wallet payment
+        if (userWallet < getCartTotal()) {
+          throw new Error("Insufficient wallet balance");
+        }
 
-          setUserWallet(newBalance);
-          break;
-
-        case "card":
-          // Handle Stripe payment
-          // You'll need to implement Stripe integration
-          alert("Stripe payment not yet implemented");
-          return;
-
-        case "cod":
-          // Handle cash on delivery
-          for (const item of cart) {
-            await axios.post(
-              `${API_URL}/products/purchase`,
-              {
-                userId,
-                productId: item._id,
-                quantity: item.quantity,
-                paymentMethod: "cod",
+        for (const item of cart) {
+          await axios.post(
+            `${API_URL}/products/purchase`,
+            {
+              userId,
+              productId: item._id,
+              quantity: item.quantity,
+              paymentMethod: "wallet",
+              promoCode: appliedPromo?.code,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-          }
-          break;
+            }
+          );
+        }
 
-        default:
-          throw new Error("Invalid payment method");
+        // Update wallet balance
+        const newBalance = userWallet - getCartTotal();
+        setUserWallet(newBalance);
+
+        // Update localStorage
+        const userKey = getUserSpecificKey();
+        const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
+        localStorage.setItem(
+          userKey,
+          JSON.stringify({
+            ...touristData,
+            wallet: newBalance,
+          })
+        );
+      } else if (paymentMethod === "cod") {
+        // Handle cash on delivery
+        for (const item of cart) {
+          await axios.post(
+            `${API_URL}/products/purchase`,
+            {
+              userId,
+              productId: item._id,
+              quantity: item.quantity,
+              paymentMethod: "cod",
+              promoCode: appliedPromo?.code,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+        }
+      } else {
+        throw new Error("Invalid payment method");
       }
 
+      // Clear cart and close modal on successful purchase
       setCart([]);
       setShowCart(false);
+      setShowPaymentModal(false);
+      setAppliedPromo(null);
+
+      // Refresh products to update stock
       await fetchProducts();
+
       alert("Purchase successful!");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to complete purchase");
+      console.error("Purchase error:", error);
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to complete purchase"
+      );
     } finally {
       setProcessingPurchase(false);
     }
@@ -636,12 +661,15 @@ function ProductTouristPage() {
           <Modal.Title>Select Payment Method</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <PaymentSelection
-            totalAmount={getCartTotal()}
-            walletBalance={userWallet}
-            onPaymentComplete={handlePurchase}
-            onPaymentError={(error) => alert(error)}
-          />
+          <StripeWrapper>
+            <PaymentSelection
+              totalAmount={getCartTotal()}
+              walletBalance={userWallet}
+              onPaymentComplete={handlePurchase}
+              onPaymentError={(error) => alert(error)}
+              selectedCurrency={currency}
+            />
+          </StripeWrapper>
         </Modal.Body>
       </Modal>
 

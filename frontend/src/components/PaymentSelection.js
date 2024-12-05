@@ -1,20 +1,68 @@
+// src/components/PaymentSelection.js
 import React, { useState } from "react";
 import { Form, Button, Alert, Spinner } from "react-bootstrap";
 import { FaWallet, FaCreditCard, FaTruck } from "react-icons/fa";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 const PaymentSelection = ({
   totalAmount,
   walletBalance,
   onPaymentComplete,
   onPaymentError,
+  selectedCurrency = "USD",
 }) => {
   const [selectedMethod, setSelectedMethod] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+  const stripe = useStripe();
+  const elements = useElements();
 
   const handlePaymentMethodSelect = (method) => {
     setSelectedMethod(method);
     setError("");
+  };
+
+  const handleStripePayment = async () => {
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/stripe/create-payment-intent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            amount: totalAmount,
+            currency: selectedCurrency.toLowerCase(),
+          }),
+        }
+      );
+
+      const { clientSecret } = await response.json();
+
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+        },
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      await onPaymentComplete("card", result.paymentIntent);
+    } catch (err) {
+      setError(err.message);
+      onPaymentError(err.message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePaymentSubmit = async () => {
@@ -28,10 +76,6 @@ const PaymentSelection = ({
             throw new Error("Insufficient wallet balance");
           }
           await onPaymentComplete("wallet");
-          break;
-
-        case "card":
-          await onPaymentComplete("card");
           break;
 
         case "cod":
@@ -113,6 +157,41 @@ const PaymentSelection = ({
                 </div>
               }
             />
+            {selectedMethod === "card" && (
+              <div className="mt-3">
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#424770",
+                        "::placeholder": {
+                          color: "#aab7c4",
+                        },
+                      },
+                      invalid: {
+                        color: "#9e2146",
+                      },
+                    },
+                  }}
+                />
+                <Button
+                  variant="primary"
+                  className="w-100 mt-3"
+                  disabled={!stripe || isProcessing}
+                  onClick={handleStripePayment}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Pay ${selectedCurrency} ${totalAmount.toFixed(2)}`
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Cash on Delivery Option */}
@@ -144,30 +223,32 @@ const PaymentSelection = ({
           </div>
         </div>
 
-        <div className="d-grid">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handlePaymentSubmit}
-            disabled={isProcessing || !selectedMethod}
-          >
-            {isProcessing ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                  className="me-2"
-                />
-                Processing...
-              </>
-            ) : (
-              `Pay $${totalAmount.toFixed(2)}`
-            )}
-          </Button>
-        </div>
+        {selectedMethod !== "card" && (
+          <div className="d-grid">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handlePaymentSubmit}
+              disabled={isProcessing || !selectedMethod}
+            >
+              {isProcessing ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Processing...
+                </>
+              ) : (
+                `Pay ${selectedCurrency} ${totalAmount.toFixed(2)}`
+              )}
+            </Button>
+          </div>
+        )}
       </Form>
     </div>
   );

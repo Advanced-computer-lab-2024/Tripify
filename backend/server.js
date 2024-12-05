@@ -27,10 +27,10 @@ import hotelRoutes from "./routes/hotel.route.js";
 import bookingRoutes from "./routes/booking.route.js";
 import transportationRoutes from "./routes/transportation.route.js";
 import sendEmail from "./utils/sendEmail.js";
-import { checkAndSendBirthdayPromos } from './services/birthdayPromo.service.js';
-import { runBookingNotificationCheck} from './services/bookingReminder.js';
+import { checkAndSendBirthdayPromos } from "./services/birthdayPromo.service.js";
+import { runBookingNotificationCheck } from "./services/bookingReminder.js";
 import notificationRoutes from "./routes/notification.route.js";
-
+import stripeRoutes from "./routes/stripe.route.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,12 +43,12 @@ app.use(express.json());
 app.use(cors());
 
 const runBirthdayPromoCheck = async () => {
-  console.log('Checking for birthdays on server start...');
+  console.log("Checking for birthdays on server start...");
   try {
     const results = await checkAndSendBirthdayPromos();
-    console.log('Birthday promo check completed:', results);
+    console.log("Birthday promo check completed:", results);
   } catch (error) {
-    console.error('Birthday promo check failed:', error);
+    console.error("Birthday promo check failed:", error);
   }
 };
 
@@ -60,9 +60,9 @@ connectDB()
         `Server started at http://localhost:${process.env.PORT || 5000}`
       );
       // Run birthday check when server starts
-       await runBirthdayPromoCheck();
-       await runBookingNotificationCheck();
-     
+      await runBirthdayPromoCheck();
+      await runBookingNotificationCheck();
+
       //Check every hour while server is running
       setInterval(runBirthdayPromoCheck, 1000 * 60 * 60);
       setInterval(runBookingNotificationCheck, 1000 * 60 * 60);
@@ -97,6 +97,7 @@ app.use("/api/bookings", bookingRoutes);
 
 app.use("/api/transportation", transportationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/stripe", stripeRoutes);
 
 // Tourist preferences routes
 const router = express.Router();
@@ -148,9 +149,6 @@ router.get("/preferences/:userId", async (req, res) => {
 
 // Attach preferences routes to the application
 app.use("/api/tourist", router);
-
-
-
 
 app.post("/api/notify", async (req, res) => {
   const { email, message } = req.body;

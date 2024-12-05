@@ -43,17 +43,16 @@ import BookTransportation from "./pages/tourist/BookTransportation";
 import ManageTransportations from "./pages/advertiser/ManageTransportations";
 import TouristComplaints from "./pages/tourist/TouristComplaints";
 import HotelBooking from "./pages/tourist/HotelBooking";
-import DeliveryAddresses from './components/DeliveryAddresses';
+import DeliveryAddresses from "./components/DeliveryAddresses";
 import TourGuideReviews from "./pages/reviews/TourGuideReviews";
 import EventReviews from "./pages/reviews/EventReviews";
 import ProductReviews from "./pages/reviews/ProductReviews";
 import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
-import SavedEvents from './pages/tourist/SavedEvents';
+import SavedEvents from "./pages/tourist/SavedEvents";
 import NotificationsPage from "./pages/tourist/NotificationPage";
-import VacationGuide from './components/VacationGuide';
-
+import VacationGuide from "./components/VacationGuide";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -76,7 +75,6 @@ import ForgetPasswordAdmin from "./pages/admin/ForgetPasswordAdmin";
 import ForgetPasswordTourGuide from "./pages/tourguide/ForgetPasswordTourGuide";
 import ForgetPasswordSeller from "./pages/seller/ForgetPasswordSeller";
 import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
-
 
 function App() {
   return (
@@ -113,7 +111,10 @@ function App() {
           <Route path="/tourist/book-flight" element={<FlightBooking />} />
           <Route path="/tourist/book-hotel" element={<HotelBooking />} />
           <Route path="/tourist/saved-events" element={<SavedEvents />} />
-          <Route path="/tourist/notifications" element={<NotificationsPage />} />
+          <Route
+            path="/tourist/notifications"
+            element={<NotificationsPage />}
+          />
           <Route path="/tourist/guide" element={<VacationGuide />} />
           <Route
             path="/tourist/hotel-bookings"
@@ -133,7 +134,10 @@ function App() {
             path="/tourist/reviews/tour-guides"
             element={<RateTourGuides />}
           />
-          <Route path="/tourist/delivery-addresses" element={<DeliveryAddresses />} />
+          <Route
+            path="/tourist/delivery-addresses"
+            element={<DeliveryAddresses />}
+          />
           <Route path="/tourist/reviews/events" element={<EventReviews />} />
           <Route
             path="/tourist/reviews/products"
@@ -156,7 +160,7 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
-            <Route
+          <Route
             path="/tourguide/forgot-password"
             element={<ForgetPasswordTourGuide />}
           />
@@ -171,7 +175,7 @@ function App() {
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
           />
-            <Route
+          <Route
             path="/admin/forgot-password"
             element={<ForgetPasswordAdmin />}
           />
@@ -206,7 +210,10 @@ function App() {
             path="/advertiser/activities"
             element={<AdvertiserActivities />}
           />
-          <Route path="/advertiser/forgot-password" element={<ForgetPasswordAdvertiser />} />
+          <Route
+            path="/advertiser/forgot-password"
+            element={<ForgetPasswordAdvertiser />}
+          />
           <Route
             path="/advertiser/create-transportation"
             element={<CreateTransportationListing />}
@@ -234,7 +241,6 @@ function App() {
             path="/governor/forgot-password"
             element={<ForgetPasswordGovernor />}
           />
-
           <Route path="/governor/tag-management" element={<TagManagement />} />
           <Route
             path="/governor/change-password"
