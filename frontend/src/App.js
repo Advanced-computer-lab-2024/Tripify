@@ -53,7 +53,7 @@ import HotelBookings from "./pages/tourist/HotelBookings";
 import SavedEvents from "./pages/tourist/SavedEvents";
 import NotificationsPage from "./pages/tourist/NotificationPage";
 import VacationGuide from "./components/VacationGuide";
-import WishlistPage from './pages/tourist/WishlistPage';
+import WishlistPage from "./pages/tourist/WishlistPage";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -76,6 +76,7 @@ import ForgetPasswordAdmin from "./pages/admin/ForgetPasswordAdmin";
 import ForgetPasswordTourGuide from "./pages/tourguide/ForgetPasswordTourGuide";
 import ForgetPasswordSeller from "./pages/seller/ForgetPasswordSeller";
 import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
+import FlightBookings from "./pages/tourist/FlightBookings";
 
 function App() {
   return (
@@ -131,6 +132,7 @@ function App() {
             path="/tourist/change-password"
             element={<TouristChangePassword />}
           />
+          <Route path="/tourist/flight-bookings" element={<FlightBookings />} />
           {/* Review System Routes */}
           <Route
             path="/tourist/reviews/tour-guides"

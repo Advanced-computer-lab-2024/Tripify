@@ -1,78 +1,92 @@
-import React, { useState, useCallback } from 'react';
-import { 
-  Container, 
-  Card, 
-  Form, 
-  Button, 
-  Row, 
-  Col, 
-  InputGroup, 
+import React, { useState, useCallback } from "react";
+import {
+  Container,
+  Card,
+  Form,
+  Button,
+  Row,
+  Col,
+  InputGroup,
   Alert,
-  Spinner
-} from 'react-bootstrap';
-import { FaPlaneDeparture, FaCalendarAlt, FaUsers } from 'react-icons/fa';
-import axios from 'axios';
-import FlightCard from './FlightCard';
-import BookingModal from './BookingModal';
+  Spinner,
+} from "react-bootstrap";
+import {
+  FaPlaneDeparture,
+  FaCalendarAlt,
+  FaUsers,
+  FaPlane,
+} from "react-icons/fa";
+import axios from "axios";
+import FlightCard from "./FlightCard";
+import BookingModal from "./BookingModal";
+import { useNavigate } from "react-router-dom";
 
 const FlightBooking = () => {
+  const navigate = useNavigate();
+
   // Search states
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchParams, setSearchParams] = useState({
-    origin: '',
-    destination: '',
-    departureDate: '',
-    adults: 1
+    origin: "",
+    destination: "",
+    departureDate: "",
+    adults: 1,
   });
-  
+
   // Booking states
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState(null);
 
   // Utility functions
   const formatPrice = useCallback((price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: price.currency
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: price.currency,
     }).format(price.total);
   }, []);
 
   const formatDuration = useCallback((duration) => {
-    if (!duration) return 'N/A';
-    if (typeof duration === 'string' && duration.includes('PT')) {
-      return duration.replace('PT', '').toLowerCase();
+    if (!duration) return "N/A";
+    if (typeof duration === "string" && duration.includes("PT")) {
+      return duration.replace("PT", "").toLowerCase();
     }
-    if (typeof duration === 'number') {
+    if (typeof duration === "number") {
       const hours = Math.floor(duration / 60);
       const minutes = duration % 60;
       return `${hours}h ${minutes}m`;
     }
-    return 'N/A';
+    return "N/A";
   }, []);
 
   // Handlers
-  const handleSearch = useCallback(async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await axios.post('http://localhost:5000/api/flights/search', searchParams);
-      if (response.data.errors) {
-        throw new Error(response.data.errors[0].detail);
+  const handleSearch = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/flights/search",
+          searchParams
+        );
+        if (response.data.errors) {
+          throw new Error(response.data.errors[0].detail);
+        }
+        setFlights(response.data.data || []);
+        if (response.data.data?.length === 0) {
+          setError("No flights found for these criteria");
+        }
+      } catch (err) {
+        setError(err.response?.data?.error?.[0]?.detail || err.message);
+      } finally {
+        setLoading(false);
       }
-      setFlights(response.data.data || []);
-      if (response.data.data?.length === 0) {
-        setError('No flights found for these criteria');
-      }
-    } catch (err) {
-      setError(err.response?.data?.error?.[0]?.detail || err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchParams]);
+    },
+    [searchParams]
+  );
 
   const handleBookingClick = useCallback((flight) => {
     setSelectedFlight(flight);
@@ -81,6 +95,16 @@ const FlightBooking = () => {
 
   return (
     <Container className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Book a Flight</h2>
+        <Button
+          variant="outline-primary"
+          onClick={() => navigate("/tourist/flight-bookings")}
+        >
+          <FaPlane className="me-2" />
+          View My Flight Bookings
+        </Button>
+      </div>
       {/* Search Form */}
       <Card className="mb-4 shadow-sm">
         <Card.Header className="bg-primary text-white">
@@ -98,10 +122,12 @@ const FlightBooking = () => {
                   <Form.Control
                     placeholder="Origin (e.g., JFK)"
                     value={searchParams.origin}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      origin: e.target.value.toUpperCase()
-                    }))}
+                    onChange={(e) =>
+                      setSearchParams((prev) => ({
+                        ...prev,
+                        origin: e.target.value.toUpperCase(),
+                      }))
+                    }
                     required
                     maxLength="3"
                   />
@@ -117,10 +143,12 @@ const FlightBooking = () => {
                   <Form.Control
                     placeholder="Destination (e.g., LAX)"
                     value={searchParams.destination}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      destination: e.target.value.toUpperCase()
-                    }))}
+                    onChange={(e) =>
+                      setSearchParams((prev) => ({
+                        ...prev,
+                        destination: e.target.value.toUpperCase(),
+                      }))
+                    }
                     required
                     maxLength="3"
                   />
@@ -136,12 +164,14 @@ const FlightBooking = () => {
                   <Form.Control
                     type="date"
                     value={searchParams.departureDate}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      departureDate: e.target.value
-                    }))}
+                    onChange={(e) =>
+                      setSearchParams((prev) => ({
+                        ...prev,
+                        departureDate: e.target.value,
+                      }))
+                    }
                     required
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toISOString().split("T")[0]}
                   />
                 </InputGroup>
               </Col>
@@ -157,10 +187,12 @@ const FlightBooking = () => {
                     min="1"
                     max="9"
                     value={searchParams.adults}
-                    onChange={(e) => setSearchParams(prev => ({
-                      ...prev,
-                      adults: parseInt(e.target.value)
-                    }))}
+                    onChange={(e) =>
+                      setSearchParams((prev) => ({
+                        ...prev,
+                        adults: parseInt(e.target.value),
+                      }))
+                    }
                     required
                   />
                 </InputGroup>
@@ -168,9 +200,9 @@ const FlightBooking = () => {
 
               {/* Search Button */}
               <Col xs={12}>
-                <Button 
-                  type="submit" 
-                  variant="primary" 
+                <Button
+                  type="submit"
+                  variant="primary"
                   className="w-100"
                   disabled={loading}
                 >
@@ -187,7 +219,7 @@ const FlightBooking = () => {
                       Searching...
                     </>
                   ) : (
-                    'Search Flights'
+                    "Search Flights"
                   )}
                 </Button>
               </Col>
