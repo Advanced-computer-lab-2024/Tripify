@@ -31,6 +31,8 @@ import { checkAndSendBirthdayPromos } from "./services/birthdayPromo.service.js"
 import { runBookingNotificationCheck } from "./services/bookingReminder.js";
 import notificationRoutes from "./routes/notification.route.js";
 import stripeRoutes from "./routes/stripe.route.js";
+import wishlistRoutes from './routes/wishlist.route.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -98,6 +100,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/transportation", transportationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stripe", stripeRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Tourist preferences routes
 const router = express.Router();

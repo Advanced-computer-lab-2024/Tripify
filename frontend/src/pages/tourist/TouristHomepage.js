@@ -15,7 +15,8 @@ import {
   FaBell,
   FaCheck,
   FaQuestionCircle,
-  FaCompass
+  FaCompass,
+  FaHeart
 } from "react-icons/fa";
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
@@ -328,6 +329,12 @@ const TouristHomePage = () => {
         to: "/tourist/products",
         label: "View Products",
         icon: <FaShoppingBag size={24} />,
+        variant: "primary",
+      },
+      {
+        to: "/tourist/wishlist",
+        label: "My Wishlist",
+        icon: <FaHeart size={24} />,
         variant: "primary",
       },
       {

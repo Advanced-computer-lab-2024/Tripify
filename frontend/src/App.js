@@ -53,6 +53,7 @@ import HotelBookings from "./pages/tourist/HotelBookings";
 import SavedEvents from "./pages/tourist/SavedEvents";
 import NotificationsPage from "./pages/tourist/NotificationPage";
 import VacationGuide from "./components/VacationGuide";
+import WishlistPage from './pages/tourist/WishlistPage';
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -105,6 +106,7 @@ function App() {
             path="/tourist/filtered-activities"
             element={<FilteredActivities />}
           />
+          <Route path="/tourist/wishlist" element={<WishlistPage />} />
           <Route path="/tourist/products" element={<ProductTouristPage />} />
           <Route path="/tourist/purchases" element={<MyPurchasesPage />} />
           <Route path="/tourist/complaints" element={<CreateComplaint />} />

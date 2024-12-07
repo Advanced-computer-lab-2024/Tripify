@@ -24,6 +24,7 @@ import {
   FaPlus,
   FaMinus,
   FaTag,
+  FaHeart
 } from "react-icons/fa";
 import PaymentSelection from "../../components/PaymentSelection";
 import StripeWrapper from "../../components/StripeWrapper";
@@ -53,6 +54,7 @@ function ProductTouristPage() {
   const [promoError, setPromoError] = useState("");
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [wishlist, setWishlist] = useState([]);
 
   // New cart-related states
   const [cart, setCart] = useState([]);
@@ -104,7 +106,11 @@ function ProductTouristPage() {
   useEffect(() => {
     initializeUser();
     fetchProducts();
-  }, []);
+    if (userId) {
+      fetchWishlist();
+    }
+  }, [userId]);
+
 
   useEffect(() => {
     filterProducts();
@@ -115,6 +121,42 @@ function ProductTouristPage() {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
   };
+
+  const fetchWishlist = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/wishlist/${userId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setWishlist(response.data.wishlist?.products || []);
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+    }
+  };
+
+  const toggleWishlist = async (product) => {
+    try {
+      const isInWishlist = wishlist.some(item => item.productId?._id === product._id);
+      
+      if (isInWishlist) {
+        await axios.delete(`${API_URL}/wishlist/${userId}/product/${product._id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+      } else {
+        await axios.post(`${API_URL}/wishlist/add`, {
+          userId,
+          productId: product._id,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+      }
+
+      await fetchWishlist(); // Refresh wishlist
+    } catch (error) {
+      console.error("Error updating wishlist:", error);
+      alert(error.response?.data?.message || "Failed to update wishlist");
+    }
+  };
+
 
   const fetchUserProfile = async () => {
     try {
@@ -547,25 +589,31 @@ function ProductTouristPage() {
         {filteredProducts.map((product) => (
           <Col key={product._id}>
             <Card className="h-100">
-              {product.productImage && product.productImage[0] && (
-                <Card.Img
-                  variant="top"
-                  src={product.productImage[0].path}
-                  style={{ height: "200px", objectFit: "cover" }}
-                />
-              )}
+              <div className="position-relative">
+                {product.productImage && product.productImage[0] && (
+                  <Card.Img
+                    variant="top"
+                    src={product.productImage[0].path}
+                    style={{ height: "200px", objectFit: "cover" }}
+                  />
+                )}
+                <Button
+                  variant={wishlist.some(item => item.productId?._id === product._id) ? "danger" : "outline-danger"}
+                  className="position-absolute top-0 end-0 m-2"
+                  onClick={() => toggleWishlist(product)}
+                >
+                  <FaHeart />
+                </Button>
+              </div>
               <Card.Body>
                 <Card.Title>{product.name}</Card.Title>
                 <Card.Text>{product.description}</Card.Text>
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5 className="mb-0">
-                    {currency}{" "}
-                    {(product.price * currencyRates[currency]).toFixed(2)}
+                    {currency} {(product.price * currencyRates[currency]).toFixed(2)}
                   </h5>
                   <Badge bg={product.quantity > 0 ? "success" : "danger"}>
-                    {product.quantity > 0
-                      ? `In Stock: ${product.quantity}`
-                      : "Out of Stock"}
+                    {product.quantity > 0 ? `In Stock: ${product.quantity}` : "Out of Stock"}
                   </Badge>
                 </div>
                 <div className="d-flex gap-2">
