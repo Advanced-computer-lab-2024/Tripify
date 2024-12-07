@@ -908,203 +908,288 @@ const ViewEvents = () => {
       </Card>
     );
   };
-  const ActivityCard = ({ activity }) => (
-    <Card className="mb-3 h-100 shadow-sm">
-      <Card.Body>
-        <Card.Title>{activity.name}</Card.Title>
-        <Card.Text>{activity.description}</Card.Text>
-        {activity.date && (
-          <Card.Text className="text-primary">
-            <FaCalendar className="me-2" />
-            <strong>Event Date:</strong> {formatDate(activity.date)}
-          </Card.Text>
-        )}
-        <Card.Text>
-          <strong>Category:</strong> {activity.category?.name || "No Category"}
-        </Card.Text>
-        <Card.Text>
-          <FaDollarSign className="me-2" />
-          <strong>Price:</strong> ${activity.price}
-        </Card.Text>
-        {activity.location && (
-          <Card.Text>
-            <FaMapMarkerAlt className="me-2" />
-            <strong>Location:</strong>{" "}
-            {typeof activity.location === "object" &&
-            activity.location.coordinates
-              ? activity.location.coordinates.join(", ")
-              : typeof activity.location === "string"
-              ? activity.location
-              : "No location"}
-          </Card.Text>
-        )}
-        {activity.tags?.length > 0 && (
-          <div className="mb-3">
-            {activity.tags.map((tag) => (
-              <Badge bg="secondary" className="me-1" key={tag._id}>
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-        <Form.Group className="mb-3">
-          <Form.Label>Select Booking Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            required
-          />
-          {activity.date && (
-            <Form.Text className="text-muted">
-              Note: This activity is scheduled for {formatDate(activity.date)}
-            </Form.Text>
-          )}
-        </Form.Group>
-        <div className="d-flex gap-2 mt-3">
-          <BookmarkButton item={activity} type="Activity" />
-          <Button
-            variant="primary"
-            onClick={(e) => handleBooking(activity, "Activity", e)}
-            disabled={bookingLoading && bookingItemId === activity._id}
-          >
-            {bookingLoading && bookingItemId === activity._id ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <FaCalendarCheck className="me-2" />
-            )}
-            Book Now (${activity.price})
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() => handleShare({ ...activity, type: "activities" })}
-          >
-            <FaCopy className="me-2" />
-            Share
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...activity, type: "activities" })
-            }
-          >
-            <FaEnvelope className="me-2" />
-            Email
-          </Button>
-        </div>
-      </Card.Body>
-    </Card>
-  );
+  const ActivityCard = ({
+    activity,
+    onBooking,
+    bookingDate,
+    setBookingDate,
+  }) => {
+    const [discountedPrice, setDiscountedPrice] = useState(null);
+    const [activePromoCode, setActivePromoCode] = useState(null);
 
-  const ItineraryCard = ({ itinerary }) => (
-    <Card className="mb-3 h-100 shadow-sm">
-      <Card.Body>
-        <Card.Title>{itinerary.name}</Card.Title>
-        <Card.Text>
-          <strong>Language:</strong> {itinerary.language}
-        </Card.Text>
-        <Card.Text>
-          <FaDollarSign className="me-2" />
-          <strong>Price:</strong> ${itinerary.totalPrice}
-        </Card.Text>
-        {itinerary.activities?.length > 0 && (
+    return (
+      <Card className="mb-3 h-100 shadow-sm">
+        <Card.Body>
+          <Card.Title>{activity.name}</Card.Title>
+          <Card.Text>{activity.description}</Card.Text>
+          {activity.date && (
+            <Card.Text className="text-primary">
+              <FaCalendar className="me-2" />
+              <strong>Event Date:</strong> {formatDate(activity.date)}
+            </Card.Text>
+          )}
           <Card.Text>
-            <strong>Included Activities:</strong>
-            <br />
-            {itinerary.activities.map((act) => act.name).join(", ")}
+            <strong>Category:</strong>{" "}
+            {activity.category?.name || "No Category"}
           </Card.Text>
-        )}
-        {itinerary.availableDates?.length > 0 && (
-          <div className="mb-3">
-            <strong>Available Dates:</strong>
-            <div className="available-dates mt-2">
-              {itinerary.availableDates.map((dateObj, index) => (
-                <Badge bg="info" className="me-2 mb-2" key={index}>
-                  {formatDate(dateObj.date)}
-                  {dateObj.availableTimes?.length > 0 && (
-                    <span className="ms-1">
-                      ({dateObj.availableTimes.join(", ")})
-                    </span>
-                  )}
+          <Card.Text>
+            <FaDollarSign className="me-2" />
+            <strong>Price:</strong> ${activity.price}
+          </Card.Text>
+          {activity.location && (
+            <Card.Text>
+              <FaMapMarkerAlt className="me-2" />
+              <strong>Location:</strong>{" "}
+              {typeof activity.location === "object" &&
+              activity.location.coordinates
+                ? activity.location.coordinates.join(", ")
+                : typeof activity.location === "string"
+                ? activity.location
+                : "No location"}
+            </Card.Text>
+          )}
+          {activity.tags?.length > 0 && (
+            <div className="mb-3">
+              {activity.tags.map((tag) => (
+                <Badge bg="secondary" className="me-1" key={tag._id}>
+                  {tag.name}
                 </Badge>
               ))}
             </div>
-          </div>
-        )}
-        {itinerary.preferenceTags?.length > 0 && (
-          <div className="mb-3">
-            {itinerary.preferenceTags.map((tag) => (
-              <Badge bg="secondary" className="me-1" key={tag._id}>
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-        <Form.Group className="mb-3">
-          <Form.Label>Select Tour Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            required
-          />
-          {itinerary.availableDates?.length > 0 && (
-            <Form.Text className="text-muted">
-              Note: Please select from the available dates above
-            </Form.Text>
           )}
-        </Form.Group>
-        <div className="d-flex gap-2 mt-3">
-          <BookmarkButton item={itinerary} type="Itinerary" />
-          <Button
-            variant="primary"
-            onClick={(e) => handleBooking(itinerary, "Itinerary", e)}
-            disabled={bookingLoading && bookingItemId === itinerary._id}
-          >
-            {bookingLoading && bookingItemId === itinerary._id ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <FaCalendarCheck className="me-2" />
-            )}
-            Book Now (${itinerary.totalPrice})
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() => handleShare({ ...itinerary, type: "itineraries" })}
-          >
-            <FaCopy className="me-2" />
-            Share
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() =>
-              handleEmailShare({ ...itinerary, type: "itineraries" })
-            }
-          >
-            <FaEnvelope className="me-2" />
-            Email
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() => toggleComments(itinerary._id)}
-          >
-            <FaComment />{" "}
-            {expandedComments[itinerary._id]
-              ? "Hide Comments"
-              : "Show Comments"}
-          </Button>
-        </div>
-        <Collapse in={expandedComments[itinerary._id]}>
-          <div className="mt-3">
-            <ItineraryComment itineraryId={itinerary._id} />
-          </div>
-        </Collapse>
-      </Card.Body>
-    </Card>
-  );
 
+          <PromoCodeInput
+            basePrice={getItemPrice(activity, "Activity")}
+            onPromoApplied={(discount, code) => {
+              if (discount > 0) {
+                const basePrice = getItemPrice(activity, "Activity");
+                setDiscountedPrice(basePrice - (basePrice * discount) / 100);
+                setActivePromoCode(code);
+              } else {
+                setDiscountedPrice(null);
+                setActivePromoCode(null);
+              }
+            }}
+          />
+
+          <Form.Group className="mb-3">
+            <Form.Label>Select Booking Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+            {activity.date && (
+              <Form.Text className="text-muted">
+                Note: This activity is scheduled for {formatDate(activity.date)}
+              </Form.Text>
+            )}
+          </Form.Group>
+          <div className="d-flex gap-2 mt-3">
+            <BookmarkButton item={activity} type="Activity" />
+            <Button
+              variant="primary"
+              onClick={(e) =>
+                onBooking(
+                  activity,
+                  "Activity",
+                  e,
+                  activePromoCode,
+                  discountedPrice
+                )
+              }
+              disabled={!bookingDate}
+            >
+              {bookingLoading && bookingItemId === activity._id ? (
+                <Spinner animation="border" size="sm" className="me-2" />
+              ) : (
+                <FaCalendarCheck className="me-2" />
+              )}
+              Book Now{" "}
+              {discountedPrice ? (
+                <>
+                  <span className="text-decoration-line-through">
+                    ${getItemPrice(activity, "Activity")}
+                  </span>{" "}
+                  ${discountedPrice.toFixed(2)}
+                </>
+              ) : (
+                `$${getItemPrice(activity, "Activity")}`
+              )}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => handleShare({ ...activity, type: "activities" })}
+            >
+              <FaCopy className="me-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() =>
+                handleEmailShare({ ...activity, type: "activities" })
+              }
+            >
+              <FaEnvelope className="me-2" />
+              Email
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+    );
+  };
+  const ItineraryCard = ({
+    itinerary,
+    onBooking,
+    bookingDate,
+    setBookingDate,
+  }) => {
+    const [discountedPrice, setDiscountedPrice] = useState(null);
+    const [activePromoCode, setActivePromoCode] = useState(null);
+
+    return (
+      <Card className="mb-3 h-100 shadow-sm">
+        <Card.Body>
+          <Card.Title>{itinerary.name}</Card.Title>
+          <Card.Text>
+            <strong>Language:</strong> {itinerary.language}
+          </Card.Text>
+          <Card.Text>
+            <FaDollarSign className="me-2" />
+            <strong>Price:</strong> ${itinerary.totalPrice}
+          </Card.Text>
+          {itinerary.activities?.length > 0 && (
+            <Card.Text>
+              <strong>Included Activities:</strong>
+              <br />
+              {itinerary.activities.map((act) => act.name).join(", ")}
+            </Card.Text>
+          )}
+          {itinerary.availableDates?.length > 0 && (
+            <div className="mb-3">
+              <strong>Available Dates:</strong>
+              <div className="available-dates mt-2">
+                {itinerary.availableDates.map((dateObj, index) => (
+                  <Badge bg="info" className="me-2 mb-2" key={index}>
+                    {formatDate(dateObj.date)}
+                    {dateObj.availableTimes?.length > 0 && (
+                      <span className="ms-1">
+                        ({dateObj.availableTimes.join(", ")})
+                      </span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {itinerary.preferenceTags?.length > 0 && (
+            <div className="mb-3">
+              {itinerary.preferenceTags.map((tag) => (
+                <Badge bg="secondary" className="me-1" key={tag._id}>
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <PromoCodeInput
+            basePrice={getItemPrice(itinerary, "Itinerary")}
+            onPromoApplied={(discount, code) => {
+              if (discount > 0) {
+                const basePrice = getItemPrice(itinerary, "Itinerary");
+                setDiscountedPrice(basePrice - (basePrice * discount) / 100);
+                setActivePromoCode(code);
+              } else {
+                setDiscountedPrice(null);
+                setActivePromoCode(null);
+              }
+            }}
+          />
+
+          <Form.Group className="mb-3">
+            <Form.Label>Select Tour Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+            {itinerary.availableDates?.length > 0 && (
+              <Form.Text className="text-muted">
+                Note: Please select from the available dates above
+              </Form.Text>
+            )}
+          </Form.Group>
+          <div className="d-flex gap-2 mt-3">
+            <BookmarkButton item={itinerary} type="Itinerary" />
+            <Button
+              variant="primary"
+              onClick={(e) =>
+                onBooking(
+                  itinerary,
+                  "Itinerary",
+                  e,
+                  activePromoCode,
+                  discountedPrice
+                )
+              }
+              disabled={!bookingDate}
+            >
+              {bookingLoading && bookingItemId === itinerary._id ? (
+                <Spinner animation="border" size="sm" className="me-2" />
+              ) : (
+                <FaCalendarCheck className="me-2" />
+              )}
+              Book Now{" "}
+              {discountedPrice ? (
+                <>
+                  <span className="text-decoration-line-through">
+                    ${getItemPrice(itinerary, "Itinerary")}
+                  </span>{" "}
+                  ${discountedPrice.toFixed(2)}
+                </>
+              ) : (
+                `$${getItemPrice(itinerary, "Itinerary")}`
+              )}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => handleShare({ ...itinerary, type: "itineraries" })}
+            >
+              <FaCopy className="me-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() =>
+                handleEmailShare({ ...itinerary, type: "itineraries" })
+              }
+            >
+              <FaEnvelope className="me-2" />
+              Email
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => toggleComments(itinerary._id)}
+            >
+              <FaComment />{" "}
+              {expandedComments[itinerary._id]
+                ? "Hide Comments"
+                : "Show Comments"}
+            </Button>
+          </div>
+          <Collapse in={expandedComments[itinerary._id]}>
+            <div className="mt-3">
+              <ItineraryComment itineraryId={itinerary._id} />
+            </div>
+          </Collapse>
+        </Card.Body>
+      </Card>
+    );
+  };
   const renderSharedContent = () => {
     if (!sharedItem) return null;
 
@@ -1133,7 +1218,12 @@ const ViewEvents = () => {
         return (
           <Row>
             <Col md={12}>
-              <ItineraryCard itinerary={data} />
+              <ItineraryCard
+                itinerary={data}
+                onBooking={handleBooking}
+                bookingDate={bookingDate}
+                setBookingDate={setBookingDate}
+              />
             </Col>
           </Row>
         );
@@ -1231,7 +1321,12 @@ const ViewEvents = () => {
               <Row>
                 {filteredActivities.map((activity) => (
                   <Col md={4} key={activity._id}>
-                    <ActivityCard activity={activity} />
+                    <ActivityCard
+                      activity={activity}
+                      onBooking={handleBooking}
+                      bookingDate={bookingDate}
+                      setBookingDate={setBookingDate}
+                    />
                   </Col>
                 ))}
               </Row>
@@ -1244,7 +1339,12 @@ const ViewEvents = () => {
               <Row>
                 {filteredItineraries.map((itinerary) => (
                   <Col md={4} key={itinerary._id}>
-                    <ItineraryCard itinerary={itinerary} />
+                    <ItineraryCard
+                      itinerary={itinerary}
+                      onBooking={handleBooking}
+                      bookingDate={bookingDate}
+                      setBookingDate={setBookingDate}
+                    />
                   </Col>
                 ))}
               </Row>
