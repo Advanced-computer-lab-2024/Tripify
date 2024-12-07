@@ -54,6 +54,7 @@ import SavedEvents from "./pages/tourist/SavedEvents";
 import NotificationsPage from "./pages/tourist/NotificationPage";
 import VacationGuide from "./components/VacationGuide";
 import WishlistPage from "./pages/tourist/WishlistPage";
+import FilterHistoricalPlaces from './pages/tourist/FilterHistoricalPlaces';
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -91,6 +92,7 @@ function App() {
           <Route path="/tourist/register" element={<TouristRegister />} />
           <Route path="/tourist/view-events" element={<ViewEvents />} />
           <Route path="/tourist/my-profile" element={<MyProfile />} />
+          <Route path="/tourist/filter-historical-places" element={<FilterHistoricalPlaces />} />
           <Route
             path="/tourist/forgot-password"
             element={<ForgetPasswordTourist />}
