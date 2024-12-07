@@ -29,11 +29,13 @@ import {
   FaMapMarkerAlt,
   FaDollarSign,
   FaTag,
+  FaBell,
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
 import EventPaymentModal from "./EventPaymentModal";
 import StripeWrapper from "../../components/StripeWrapper";
+import { requestEventNotification } from "../../pages/tourist/eventNotificationService";
 
 const ViewEvents = () => {
   // State declarations
@@ -60,6 +62,51 @@ const ViewEvents = () => {
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  const NotifyMeButton = ({ item, type }) => {
+    const [isRequested, setIsRequested] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleNotifyRequest = async () => {
+      try {
+        setIsLoading(true);
+        const userId = getUserId();
+        await requestEventNotification(item._id, type, userId);
+        setIsRequested(true);
+        alert(
+          "You will be notified when this event starts accepting bookings!"
+        );
+      } catch (error) {
+        console.error("Error requesting notification:", error);
+        alert("Failed to set up notification. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return (
+      <Button
+        variant={isRequested ? "success" : "outline-primary"}
+        onClick={handleNotifyRequest}
+        disabled={isLoading || isRequested}
+        className="me-2"
+      >
+        {isLoading ? (
+          <Spinner animation="border" size="sm" />
+        ) : isRequested ? (
+          <>
+            <FaBell className="me-2" />
+            Notification Set
+          </>
+        ) : (
+          <>
+            <FaBell className="me-2" />
+            Notify Me
+          </>
+        )}
+      </Button>
+    );
+  };
 
   const handleApplyPromoCode = async (itemPrice) => {
     if (!promoCode.trim()) return;
@@ -786,6 +833,8 @@ const ViewEvents = () => {
             />
           </Form.Group>
           <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={place} type="HistoricalPlace" />
+            <BookmarkButton item={place} type="HistoricalPlace" />
             <BookmarkButton item={place} type="HistoricalPlace" />
             <Button
               variant="primary"
@@ -914,6 +963,8 @@ const ViewEvents = () => {
             )}
           </Form.Group>
           <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={activity} type="Activity" />
+            <BookmarkButton item={activity} type="Activity" />
             <BookmarkButton item={activity} type="Activity" />
             <Button
               variant="primary"
@@ -1050,6 +1101,8 @@ const ViewEvents = () => {
             )}
           </Form.Group>
           <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={itinerary} type="Itinerary" />
+            <BookmarkButton item={itinerary} type="Itinerary" />
             <BookmarkButton item={itinerary} type="Itinerary" />
             <Button
               variant="primary"
