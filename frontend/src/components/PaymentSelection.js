@@ -10,6 +10,7 @@ const PaymentSelection = ({
   onPaymentComplete,
   onPaymentError,
   selectedCurrency = "USD",
+  disableCOD = false,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -195,32 +196,34 @@ const PaymentSelection = ({
           </div>
 
           {/* Cash on Delivery Option */}
-          <div
-            className={`payment-option p-3 mb-3 border rounded cursor-pointer ${
-              selectedMethod === "cod" ? "border-primary bg-light" : ""
-            }`}
-            onClick={() => handlePaymentMethodSelect("cod")}
-            style={{ cursor: "pointer" }}
-          >
-            <Form.Check
-              type="radio"
-              id="cod-payment"
-              name="payment-method"
-              checked={selectedMethod === "cod"}
-              onChange={() => handlePaymentMethodSelect("cod")}
-              label={
-                <div className="d-flex align-items-center ms-2">
-                  <FaTruck className="me-2" size={20} />
-                  <div>
-                    <div className="fw-bold">Cash on Delivery</div>
-                    <small className="text-muted">
-                      Pay when you receive the order
-                    </small>
+          {!disableCOD && (
+            <div
+              className={`payment-option p-3 mb-3 border rounded cursor-pointer ${
+                selectedMethod === "cod" ? "border-primary bg-light" : ""
+              }`}
+              onClick={() => handlePaymentMethodSelect("cod")}
+              style={{ cursor: "pointer" }}
+            >
+              <Form.Check
+                type="radio"
+                id="cod-payment"
+                name="payment-method"
+                checked={selectedMethod === "cod"}
+                onChange={() => handlePaymentMethodSelect("cod")}
+                label={
+                  <div className="d-flex align-items-center ms-2">
+                    <FaTruck className="me-2" size={20} />
+                    <div>
+                      <div className="fw-bold">Cash on Delivery</div>
+                      <small className="text-muted">
+                        Pay when you receive the order
+                      </small>
+                    </div>
                   </div>
-                </div>
-              }
-            />
-          </div>
+                }
+              />
+            </div>
+          )}
         </div>
 
         {selectedMethod !== "card" && (

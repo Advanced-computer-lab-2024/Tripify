@@ -32,6 +32,8 @@ import {
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
+import EventPaymentModal from "./EventPaymentModal";
+import StripeWrapper from "../../components/StripeWrapper";
 
 const ViewEvents = () => {
   // State declarations
@@ -56,6 +58,8 @@ const ViewEvents = () => {
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
   const [validatingPromo, setValidatingPromo] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const handleApplyPromoCode = async (itemPrice) => {
     if (!promoCode.trim()) return;
@@ -414,43 +418,25 @@ const ViewEvents = () => {
     }
     return basePrice;
   };
-  const handleBooking = async (item, type, e, promoCode, discountedPrice) => {
+  const handleBooking = (item, type, e, promoCode, discountedPrice) => {
     e.preventDefault();
-
-    if (bookingLoading) return;
-
-    const userId = getUserId();
-    if (!userId) {
-      alert("Please log in to book");
-      return;
-    }
 
     if (!bookingDate) {
       alert("Please select a date");
       return;
     }
 
-    const basePrice = getItemPrice(item, type);
-    let appliedDiscount = 0;
-    const finalPrice = discountedPrice || getItemPrice(item, type);
-
-    if (promoCode) {
-      const discount = await handleApplyPromoCode(basePrice);
-      if (discount > 0) {
-        appliedDiscount = discount;
-        finalPrice = getItemPrice(item, type, discount);
-      }
-    }
-
-    if (userWallet < finalPrice) {
-      alert(
-        `Insufficient funds in your wallet. Required: $${finalPrice}, Available: $${userWallet}`
-      );
-      return;
-    }
-
-    setBookingItemId(item._id);
-    setBookingLoading(true);
+    setSelectedEvent({
+      item,
+      type,
+      promoCode,
+      finalPrice: discountedPrice || getItemPrice(item, type),
+    });
+    setShowPaymentModal(true);
+  };
+  const handlePaymentComplete = async (paymentMethod, paymentIntent) => {
+    const { item, type, promoCode, finalPrice } = selectedEvent;
+    const userId = getUserId();
 
     try {
       const formattedBookingDate = new Date(bookingDate);
@@ -461,7 +447,9 @@ const ViewEvents = () => {
         bookingType: type,
         itemId: item._id,
         bookingDate: formattedBookingDate.toISOString(),
-        promoCode: promoCode, // Use the passed promoCode
+        promoCode,
+        paymentMethod,
+        paymentIntentId: paymentIntent?.id,
       };
 
       if (type === "Itinerary") {
@@ -479,7 +467,7 @@ const ViewEvents = () => {
       );
 
       if (bookingResponse.data.success) {
-        try {
+        if (paymentMethod === "wallet") {
           const deductResponse = await axios.post(
             `http://localhost:5000/api/tourist/wallet/deduct/${userId}`,
             {
@@ -493,83 +481,21 @@ const ViewEvents = () => {
             }
           );
 
-          if (deductResponse.data.success) {
-            setUserWallet(deductResponse.data.currentBalance);
-            setLoyaltyPoints(deductResponse.data.totalPoints);
-            setTouristLevel(deductResponse.data.newLevel);
-            localStorage.setItem(
-              "loyaltyPoints",
-              JSON.stringify(deductResponse.data.totalPoints)
-            );
-            localStorage.setItem(
-              "touristLevel",
-              JSON.stringify(deductResponse.data.newLevel)
-            );
-
-            const touristData =
-              JSON.parse(localStorage.getItem("tourist")) || {};
-            localStorage.setItem(
-              "tourist",
-              JSON.stringify({
-                ...touristData,
-                wallet: deductResponse.data.currentBalance,
-              })
-            );
-
-            alert(
-              "Booking successful! Amount has been deducted from your wallet."
-            );
-            await fetchUserProfile();
-            await fetchLoyaltyStatus();
-
-            // Handle email notification
-            const user = JSON.parse(localStorage.getItem("user"));
-            const userEmail = user ? user.email : null;
-
-            if (userEmail) {
-              const emailMessage = `
-  <h3>Booking Confirmation</h3>
-  <p>Thank you for booking with us!</p>
-  <p><strong>Booking Details:</strong></p>
-  <p><strong>Event:</strong> ${item.name}</p>
-  <p><strong>Type:</strong> ${type}</p>
-  <p><strong>Date:</strong> ${formattedBookingDate.toDateString()}</p>
-  <p><strong>Original Price:</strong> $${getItemPrice(item, type)}</p>
-  ${promoCode ? `<p><strong>Promo Code Applied:</strong> ${promoCode}</p>` : ""}
-  <p><strong>Final Price:</strong> $${finalPrice}</p>
-  <p>Your wallet has been charged, and the booking is now confirmed.</p>
-  <p>If you have any questions or need further assistance, feel free to contact us.</p>
-`;
-
-              try {
-                await axios.post("http://localhost:5000/api/notify", {
-                  email: userEmail,
-                  message: emailMessage,
-                });
-                console.log("Receipt email sent successfully!");
-              } catch (emailError) {
-                console.error("Error sending receipt email:", emailError);
-              }
-            }
-          }
-        } catch (paymentError) {
-          console.error("Payment error:", paymentError);
-          await cancelBooking(bookingResponse.data.data._id);
-          alert(
-            paymentError.response?.data?.message ||
-              "Payment failed. Booking has been cancelled."
-          );
+          setUserWallet(deductResponse.data.currentBalance);
+          updateWalletStorage(deductResponse.data.currentBalance);
         }
+
+        alert("Booking successful!");
+        await fetchUserProfile();
+        await fetchLoyaltyStatus();
+        setShowPaymentModal(false);
+        setSelectedEvent(null);
+        setBookingDate("");
       }
     } catch (error) {
-      console.error("Booking error:", error);
-      alert(error.response?.data?.message || "Error creating booking");
-    } finally {
-      setBookingLoading(false);
-      setBookingItemId(null);
-      setBookingDate("");
-      setPromoCode("");
-      setAppliedPromo(null);
+      throw new Error(
+        error.response?.data?.message || "Failed to complete booking"
+      );
     }
   };
 
@@ -1362,6 +1288,20 @@ const ViewEvents = () => {
             )}
         </>
       )}
+      <StripeWrapper>
+        <EventPaymentModal
+          show={showPaymentModal}
+          onHide={() => setShowPaymentModal(false)}
+          totalAmount={selectedEvent?.finalPrice || 0}
+          walletBalance={userWallet}
+          onPaymentComplete={handlePaymentComplete}
+          eventDetails={{
+            name: selectedEvent?.item?.name,
+            type: selectedEvent?.type,
+          }}
+          appliedPromoCode={selectedEvent?.promoCode}
+        />
+      </StripeWrapper>
     </Container>
   );
 };
