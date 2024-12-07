@@ -58,7 +58,7 @@ const PasswordChangeForm = () => {
         tourguide: "tourguide",
         advertiser: "advertiser",
         seller: "seller",
-        governor: "tourismGovernor",
+        governor: "toursimGovernor",
       };
 
       const endpoint = roleEndpoints[userRole];
