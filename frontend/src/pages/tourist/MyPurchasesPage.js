@@ -457,7 +457,9 @@ export default function MyPurchasesPage() {
             <Col md={6} lg={4} key={purchase._id} className="mb-4">
               <Card className="h-100 shadow-sm">
                 <Card.Body>
-                  <Card.Title>{purchase.productId.name}</Card.Title>
+                  <Card.Title>
+                    {purchase.productId?.name || "Unknown Product"}
+                  </Card.Title>
                   <div className="mb-3">
                     <Badge
                       bg={getStatusColor(purchase.status)}
