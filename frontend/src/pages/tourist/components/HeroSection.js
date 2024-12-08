@@ -52,7 +52,7 @@ const HeroSection = ({ username }) => {
           {/* Text Section */}
           <div className="col-md-7 ftco-animate">
             <div className="slider-text">
-              <span className="subheading">Welcome to Pacific</span>
+              <span className="subheading">Welcome to Tripify</span>
               <h1 className="mb-4">Discover Your Favorite Place with Us</h1>
               <p className="caps">
                 Travel to any corner of the world, without going around in
