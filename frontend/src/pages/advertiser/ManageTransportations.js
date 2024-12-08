@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate, Link } from "react-router-dom";
+import AdvertiserNavbar from './AdvertiserNavbar';
 
 const ManageTransportations = () => {
   const navigate = useNavigate();
@@ -90,112 +91,115 @@ const ManageTransportations = () => {
   }
 
   return (
-    <Container className="mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Transportation Listings</h2>
-        <Link to="/advertiser/create-transportation">
-          <Button variant="primary">Add New Transportation</Button>
-        </Link>
-      </div>
-
-      {error && (
-        <Alert variant="danger" onClose={() => setError("")} dismissible>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert variant="success" onClose={() => setSuccess("")} dismissible>
-          {success}
-        </Alert>
-      )}
-
-      {transportations.length === 0 ? (
-        <div className="text-center mt-5">
-          <Alert variant="info">
-            You haven't created any transportation listings yet.
-          </Alert>
+    <>
+      <AdvertiserNavbar />
+      <Container className="mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2>My Transportation Listings</h2>
           <Link to="/advertiser/create-transportation">
-            <Button variant="primary" className="mt-3">
-              Create Your First Transportation Listing
-            </Button>
+            <Button variant="primary">Add New Transportation</Button>
           </Link>
         </div>
-      ) : (
-        <Row>
-          {transportations.map((transport) => (
-            <Col md={6} lg={4} key={transport._id} className="mb-4">
-              <Card>
-                <Card.Body>
-                  <Card.Title>
-                    {transport.vehicleType} - {transport.model}
-                  </Card.Title>
-                  <Card.Text>
-                    <div className="mb-2">
-                      <strong>Status:</strong>{" "}
-                      <Badge
-                        bg={
-                          transport.status === "available"
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {transport.status}
-                      </Badge>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Capacity:</strong> {transport.capacity} passengers
-                    </div>
-                    <div className="mb-2">
-                      <strong>Price:</strong> ${transport.price}/day
-                    </div>
-                    <div className="mb-2">
-                      <strong>Pickup:</strong> {transport.pickupLocation}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Dropoff:</strong> {transport.dropoffLocation}
-                    </div>
-                  </Card.Text>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleDeleteClick(transport)}
-                  >
-                    Delete
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete this transportation listing?
-          {selectedTransportation && (
-            <div className="mt-2 p-2 bg-light rounded">
-              <strong>
-                {selectedTransportation.vehicleType} -{" "}
-                {selectedTransportation.model}
-              </strong>
-              <br />
-              Price: ${selectedTransportation.price}/day
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteConfirm}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+        {error && (
+          <Alert variant="danger" onClose={() => setError("")} dismissible>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert variant="success" onClose={() => setSuccess("")} dismissible>
+            {success}
+          </Alert>
+        )}
+
+        {transportations.length === 0 ? (
+          <div className="text-center mt-5">
+            <Alert variant="info">
+              You haven't created any transportation listings yet.
+            </Alert>
+            <Link to="/advertiser/create-transportation">
+              <Button variant="primary" className="mt-3">
+                Create Your First Transportation Listing
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <Row>
+            {transportations.map((transport) => (
+              <Col md={6} lg={4} key={transport._id} className="mb-4">
+                <Card>
+                  <Card.Body>
+                    <Card.Title>
+                      {transport.vehicleType} - {transport.model}
+                    </Card.Title>
+                    <Card.Text>
+                      <div className="mb-2">
+                        <strong>Status:</strong>{" "}
+                        <Badge
+                          bg={
+                            transport.status === "available"
+                              ? "success"
+                              : "warning"
+                          }
+                        >
+                          {transport.status}
+                        </Badge>
+                      </div>
+                      <div className="mb-2">
+                        <strong>Capacity:</strong> {transport.capacity} passengers
+                      </div>
+                      <div className="mb-2">
+                        <strong>Price:</strong> ${transport.price}/day
+                      </div>
+                      <div className="mb-2">
+                        <strong>Pickup:</strong> {transport.pickupLocation}
+                      </div>
+                      <div className="mb-2">
+                        <strong>Dropoff:</strong> {transport.dropoffLocation}
+                      </div>
+                    </Card.Text>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteClick(transport)}
+                    >
+                      Delete
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Confirm Deletion</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            Are you sure you want to delete this transportation listing?
+            {selectedTransportation && (
+              <div className="mt-2 p-2 bg-light rounded">
+                <strong>
+                  {selectedTransportation.vehicleType} -{" "}
+                  {selectedTransportation.model}
+                </strong>
+                <br />
+                Price: ${selectedTransportation.price}/day
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </Container>
+    </>
   );
 };
 

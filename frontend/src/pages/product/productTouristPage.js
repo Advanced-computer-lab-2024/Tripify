@@ -11,7 +11,8 @@ import {
   Modal,
   ListGroup,
   Spinner,
-  Badge
+  Badge,
+  Alert
 } from "react-bootstrap";
 import { Link } from 'react-router-dom';
 import {
@@ -24,7 +25,11 @@ import {
   FaUser,
   FaGlobe,
   FaComments,
-  FaBox
+  FaBox,
+  FaWallet,              // Added
+  FaShoppingCart,        // Added
+  FaTimes,              // Added
+  FaExclamationTriangle // Added
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
@@ -42,6 +47,10 @@ const ProductTouristPage = () => {
   const [currency, setCurrency] = useState("USD");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userWallet, setUserWallet] = useState(0);
+const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+const [purchaseQuantity, setPurchaseQuantity] = useState(1);
+const [processingPurchase, setProcessingPurchase] = useState(false);
 
   const currencyRates = {
     USD: 1,
@@ -88,6 +97,30 @@ const ProductTouristPage = () => {
       setLoading(false);
     }
   };
+  const fetchUserWallet = async (userId) => {
+    try {
+      const touristData = JSON.parse(localStorage.getItem("tourist"));
+      if (touristData?.wallet !== undefined) {
+        setUserWallet(touristData.wallet);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+    }
+  };
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded._id || decoded.user?._id;
+        fetchUserWallet(userId);
+      } catch (error) {
+        console.error("Token decode error:", error);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   const filterProducts = () => {
     let filtered = products;
@@ -121,6 +154,59 @@ const ProductTouristPage = () => {
     }
 
     setFilteredProducts(filtered);
+  };
+  const handlePurchase = async () => {
+    if (!selectedProduct) return;
+  
+    setProcessingPurchase(true);
+    try {
+      const token = localStorage.getItem("token");
+      const decoded = jwtDecode(token);
+      const userId = decoded._id || decoded.user?._id;
+  
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+  
+      const purchaseResponse = await axios.post(
+        `${API_URL}/products/purchase`,
+        {
+          userId,
+          productId: selectedProduct._id,
+          quantity: purchaseQuantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (purchaseResponse.data.success) {
+        const touristData = JSON.parse(localStorage.getItem("tourist")) || {};
+        const newBalance = purchaseResponse.data.data.newBalance;
+  
+        localStorage.setItem(
+          "tourist",
+          JSON.stringify({
+            ...touristData,
+            wallet: newBalance,
+          })
+        );
+  
+        setUserWallet(newBalance);
+        setShowPurchaseModal(false);
+        await fetchProducts();
+        alert("Purchase successful!");
+      }
+    } catch (error) {
+      console.error("Purchase error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to complete purchase";
+      alert(errorMessage);
+    } finally {
+      setProcessingPurchase(false);
+    }
   };
 
   const handleAddReview = async (event) => {
@@ -233,7 +319,52 @@ const ProductTouristPage = () => {
             <h1 className="display-4 mb-0">Explore Products</h1>
           </div>
         </Container>
+        
       </div>
+      {/* Wallet Balance Display */}
+<Container className="mb-4">
+  <Card className="shadow-sm border-0 rounded-3">
+    <Card.Body className="p-4">
+      <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex align-items-center">
+          <div 
+            className="icon-circle me-3"
+            style={{
+              backgroundColor: '#1089ff',
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
+            }}
+          >
+            <FaWallet size={24} />
+          </div>
+          <div>
+            <h4 className="mb-0">Wallet Balance</h4>
+            <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+          </div>
+        </div>
+        <Form.Select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="rounded-pill"
+          style={{
+            width: 'auto',
+            border: '2px solid #eee'
+          }}
+        >
+          <option value="USD">USD</option>
+          <option value="EGP">EGP</option>
+          <option value="SAR">SAR</option>
+          <option value="AED">AED</option>
+        </Form.Select>
+      </div>
+    </Card.Body>
+  </Card>
+</Container>
 
       <Container className="py-5">
         {/* Filter Card */}
@@ -446,10 +577,30 @@ const ProductTouristPage = () => {
                             border: 'none',
                             padding: '0.75rem'
                           }}
+                          
                         >
+
                           <FaComments className="me-2" />
                           Add Review
                         </Button>
+                        <Button
+  variant="primary"
+  className="w-100 rounded-pill mb-2"
+  disabled={product.quantity === 0}
+  onClick={() => {
+    setSelectedProduct(product);
+    setPurchaseQuantity(1);
+    setShowPurchaseModal(true);
+  }}
+  style={{
+    backgroundColor: '#1089ff',
+    border: 'none',
+    padding: '0.75rem'
+  }}
+>
+  <FaShoppingCart className="me-2" />
+  Purchase
+</Button>
                       </Card.Body>
 
                       <Card.Footer 
@@ -575,6 +726,108 @@ const ProductTouristPage = () => {
             </Form>
           </Modal.Body>
         </Modal>
+        {/* Purchase Modal */}
+<Modal
+  show={showPurchaseModal}
+  onHide={() => setShowPurchaseModal(false)}
+  centered
+>
+  <Modal.Header closeButton>
+    <Modal.Title>
+      <FaShoppingCart className="me-2" />
+      Purchase Product
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {selectedProduct && (
+      <>
+        <h5>{selectedProduct.name}</h5>
+        <Form.Group className="mb-3">
+          <Form.Label>Quantity</Form.Label>
+          <Form.Control
+            type="number"
+            min="1"
+            max={selectedProduct.quantity}
+            value={purchaseQuantity}
+            onChange={(e) =>
+              setPurchaseQuantity(
+                Math.min(
+                  selectedProduct.quantity,
+                  Math.max(1, parseInt(e.target.value) || 1)
+                )
+              )
+            }
+            className="rounded-pill"
+            style={{
+              padding: '0.75rem 1.25rem',
+              border: '2px solid #eee'
+            }}
+          />
+        </Form.Group>
+        <div className="d-flex justify-content-between mb-3">
+          <span>Total Price:</span>
+          <strong>
+            {currency} {convertPrice(selectedProduct.price * purchaseQuantity)}
+          </strong>
+        </div>
+        <div className="d-flex justify-content-between mb-3">
+          <span>Your Balance:</span>
+          <strong
+            className={
+              userWallet >= selectedProduct.price * purchaseQuantity
+                ? "text-success"
+                : "text-danger"
+            }
+          >
+            ${userWallet.toFixed(2)}
+          </strong>
+        </div>
+        {userWallet < selectedProduct.price * purchaseQuantity && (
+          <Alert variant="danger">
+            <FaExclamationTriangle className="me-2" />
+            Insufficient wallet balance
+          </Alert>
+        )}
+      </>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button
+      variant="light"
+      onClick={() => setShowPurchaseModal(false)}
+      className="rounded-pill"
+    >
+      <FaTimes className="me-2" />
+      Cancel
+    </Button>
+    <Button
+      variant="primary"
+      onClick={handlePurchase}
+      disabled={
+        !selectedProduct ||
+        processingPurchase ||
+        userWallet < selectedProduct.price * purchaseQuantity
+      }
+      className="rounded-pill"
+      style={{
+        backgroundColor: '#1089ff',
+        border: 'none'
+      }}
+    >
+      {processingPurchase ? (
+        <>
+          <Spinner animation="border" size="sm" className="me-2" />
+          Processing...
+        </>
+      ) : (
+        <>
+          <FaShoppingCart className="me-2" />
+          Confirm Purchase
+        </>
+      )}
+    </Button>
+  </Modal.Footer>
+</Modal>
       </div>
       </>
 

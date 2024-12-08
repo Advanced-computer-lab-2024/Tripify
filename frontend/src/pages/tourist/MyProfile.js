@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "./components/Navbar";
-
 import {
   Container,
   Row,
@@ -534,8 +532,6 @@ const MyProfile = () => {
   }
 
   return (
-    <>
-  <Navbar/>
     <div className="profile-page">
       {/* Hero Section */}
       <div 
@@ -1044,8 +1040,6 @@ const MyProfile = () => {
     </Card>
   </Container>
   </div>
-      </>
-
   );
 }
 
