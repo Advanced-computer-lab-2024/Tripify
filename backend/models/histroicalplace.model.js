@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Ticket Price Schema
 const ticketPriceSchema = new mongoose.Schema({
   type: {
     type: String,
@@ -9,11 +10,11 @@ const ticketPriceSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true,
+    min: [0, 'Price must be a positive number'], // Ensures price is non-negative
   },
 });
 
-
-
+// Historical Place Schema
 const historicalPlaceSchema = new mongoose.Schema(
   {
     name: {
@@ -36,7 +37,15 @@ const historicalPlaceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    ticketPrices: [ticketPriceSchema],
+    ticketPrices: {
+      type: [ticketPriceSchema],
+      validate: {
+        validator: function (v) {
+          return v && v.length > 0; // Ensures there is at least one ticket price
+        },
+        message: "At least one ticket price is required",
+      },
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -45,21 +54,23 @@ const historicalPlaceSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Tag",
+        required: true, // Ensure tags are provided for each historical place
       },
     ],
-    createdBy:{
-      type:mongoose.Schema.Types.ObjectId,
-      ref:"TourismGovernor",
-    }
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TourismGovernor",
+      required: true, // Ensures the creator is mandatory
+    },
   },
   { timestamps: true }
 );
 
+// Add indexes for faster querying on `tags` and `createdBy`
+historicalPlaceSchema.index({ tags: 1 });
+historicalPlaceSchema.index({ createdBy: 1 });
 
-
-const HistoricalPlace = mongoose.model(
-  "HistoricalPlace",
-  historicalPlaceSchema
-);
+// Create and export the HistoricalPlace model
+const HistoricalPlace = mongoose.model("HistoricalPlace", historicalPlaceSchema);
 
 export default HistoricalPlace;

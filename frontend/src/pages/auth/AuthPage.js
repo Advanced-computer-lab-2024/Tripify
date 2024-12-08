@@ -14,6 +14,7 @@ import {
   Image,
 } from "react-bootstrap";
 import axios from "axios";
+import {Link} from "react-router-dom";
 
 const AuthPage = () => {
   const [activeTab, setActiveTab] = useState("login");
@@ -54,15 +55,15 @@ const AuthPage = () => {
     certificate: null,
   });
   // Add near other state declarations
-const [sellerFiles, setSellerFiles] = useState({
-  businessLicense: null,
-  identificationDocument: null,
-});
-// Add near other state declarations
-const [advertiserFiles, setAdvertiserFiles] = useState({
-  businessLicense: null,
-  identificationDocument: null,
-});
+  const [sellerFiles, setSellerFiles] = useState({
+    businessLicense: null,
+    identificationDocument: null,
+  });
+  // Add near other state declarations
+  const [advertiserFiles, setAdvertiserFiles] = useState({
+    businessLicense: null,
+    identificationDocument: null,
+  });
 
   const [filePreviews, setFilePreviews] = useState({
     identificationDocument: null,
@@ -78,10 +79,10 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
     {
       value: "governor",
       label: "Tourism Governor",
-      endpoint: "tourismGovernor",
+      // Fix: Update endpoint to match server route name
+      endpoint: "toursimGovernor",
     },
   ];
-
   const handleLoginChange = (e) => {
     setLoginData({
       ...loginData,
@@ -98,59 +99,68 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
 
   const handleFileChange = (e) => {
     const { name, files: fileList } = e.target;
-     
+
     if (fileList && fileList[0]) {
       // Allow both images and PDFs for seller and advertiser files
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-       
-      if (selectedRole === 'seller') {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "application/pdf",
+      ];
+
+      if (selectedRole === "seller") {
         if (!allowedTypes.includes(fileList[0].type)) {
           setError(`Please upload an image or PDF file for ${name}`);
           return;
         }
         // Update seller files
-        setSellerFiles(prev => ({
+        setSellerFiles((prev) => ({
           ...prev,
-          [name]: fileList[0]
+          [name]: fileList[0],
         }));
-      } else if (selectedRole === 'tourguide') {
+      } else if (selectedRole === "tourguide") {
         // Tour guide only accepts images
-        if (!fileList[0].type.startsWith('image/')) {
-          setError(`Please upload an image file for ${name === 'identificationDocument' ? 'ID' : 'Certificate'}`);
+        if (!fileList[0].type.startsWith("image/")) {
+          setError(
+            `Please upload an image file for ${
+              name === "identificationDocument" ? "ID" : "Certificate"
+            }`
+          );
           return;
         }
         // Update tour guide files
-        setTourGuideFiles(prev => ({
+        setTourGuideFiles((prev) => ({
           ...prev,
-          [name]: fileList[0]
+          [name]: fileList[0],
         }));
-      } else if (selectedRole === 'advertiser') {
+      } else if (selectedRole === "advertiser") {
         if (!allowedTypes.includes(fileList[0].type)) {
           setError(`Please upload an image or PDF file for ${name}`);
           return;
         }
         // Update advertiser files
-        setAdvertiserFiles(prev => ({
+        setAdvertiserFiles((prev) => ({
           ...prev,
-          [name]: fileList[0]
+          [name]: fileList[0],
         }));
       }
-   
+
       // Create preview for images only
-      if (fileList[0].type.startsWith('image/')) {
+      if (fileList[0].type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setFilePreviews(prev => ({
+          setFilePreviews((prev) => ({
             ...prev,
-            [name]: reader.result
+            [name]: reader.result,
           }));
         };
         reader.readAsDataURL(fileList[0]);
       } else {
         // For PDFs, remove the preview
-        setFilePreviews(prev => ({
+        setFilePreviews((prev) => ({
           ...prev,
-          [name]: null
+          [name]: null,
         }));
       }
     }
@@ -166,48 +176,62 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
     e.preventDefault();
     setLoading(true);
     setError("");
-
+  
     try {
       const role = roles.find((r) => r.value === selectedRole);
+      const endpoint = role.value === "governor" ? "toursimGovernor" : role.endpoint;
+  
+      // Create the login payload
+      const loginPayload = {
+        username: loginData.username, // Send the username/email as-is
+        password: loginData.password
+      };
+  
+      // Remove the previous conditional logic and let the backend handle the validation
+  
       const response = await axios.post(
-        `http://localhost:5000/api/${role.endpoint}/login`,
-        loginData
+        `http://localhost:5000/api/${endpoint}/login`,
+        loginPayload
       );
-
+  
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify(response.data[role.value] || response.data.tourist)
-        );
+        const userData = response.data.governor || response.data[role.value];
+        localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("userRole", role.value);
         navigate(`/${role.value}`);
       }
     } catch (err) {
-      setError(
+      console.error("Login error details:", {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        error: err.message,
+      });
+  
+      const errorMessage =
         err.response?.data?.message ||
-          "Login failed. Please check your credentials."
-      );
+        "Login failed. Please check your credentials.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
   const handleRegister = async (e) => {
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-  
+
     setLoading(true);
     setError("");
-  
+
     try {
       const role = roles.find((r) => r.value === selectedRole);
       const registrationData = { ...registerData };
       delete registrationData.confirmPassword;
-  
+
       // Add validation for tourist registration
       if (selectedRole === "tourist" && registerData.dob) {
         const today = new Date();
@@ -217,118 +241,142 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
           throw new Error("You must be 18 or older to register");
         }
       }
-  
+
       // Handle tour guide registration with files
       if (selectedRole === "tourguide") {
-        if (!tourGuideFiles.identificationDocument || !tourGuideFiles.certificate) {
-          throw new Error("Both ID document and certificate images are required");
+        if (
+          !tourGuideFiles.identificationDocument ||
+          !tourGuideFiles.certificate
+        ) {
+          throw new Error(
+            "Both ID document and certificate images are required"
+          );
         }
-  
+
         const formDataToSend = new FormData();
-        
+
         // Append text data
-        Object.keys(registrationData).forEach(key => {
+        Object.keys(registrationData).forEach((key) => {
           formDataToSend.append(key, registrationData[key]);
         });
-  
+
         // Append files
-        Object.keys(tourGuideFiles).forEach(key => {
+        Object.keys(tourGuideFiles).forEach((key) => {
           if (tourGuideFiles[key]) {
             formDataToSend.append(key, tourGuideFiles[key]);
           }
         });
-  
+
         const response = await axios.post(
           `http://localhost:5000/api/${role.endpoint}/register`,
           formDataToSend,
           {
             headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
-  
+
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem(
+            "user",
+            JSON.stringify(response.data[role.value])
+          );
           localStorage.setItem("userRole", role.value);
           navigate(`/${role.value}`);
         }
-      } 
+      }
       // Handle seller registration with files
       else if (selectedRole === "seller") {
-        if (!sellerFiles.businessLicense || !sellerFiles.identificationDocument) {
-          throw new Error("Both business license and identification document are required");
+        if (
+          !sellerFiles.businessLicense ||
+          !sellerFiles.identificationDocument
+        ) {
+          throw new Error(
+            "Both business license and identification document are required"
+          );
         }
-  
+
         const formDataToSend = new FormData();
-        
+
         // Append text data
-        Object.keys(registrationData).forEach(key => {
+        Object.keys(registrationData).forEach((key) => {
           if (registrationData[key]) {
             formDataToSend.append(key, registrationData[key]);
           }
         });
-  
+
         // Append files
-        Object.keys(sellerFiles).forEach(key => {
+        Object.keys(sellerFiles).forEach((key) => {
           if (sellerFiles[key]) {
             formDataToSend.append(key, sellerFiles[key]);
           }
         });
-  
+
         const response = await axios.post(
           `http://localhost:5000/api/${role.endpoint}/register`,
           formDataToSend,
           {
             headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
-  
+
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem(
+            "user",
+            JSON.stringify(response.data[role.value])
+          );
           localStorage.setItem("userRole", role.value);
           navigate(`/${role.value}`);
         }
       }
       // Handle advertiser registration with files
       else if (selectedRole === "advertiser") {
-        if (!advertiserFiles.businessLicense || !advertiserFiles.identificationDocument) {
-          throw new Error("Both business license and identification document are required");
+        if (
+          !advertiserFiles.businessLicense ||
+          !advertiserFiles.identificationDocument
+        ) {
+          throw new Error(
+            "Both business license and identification document are required"
+          );
         }
-  
+
         const formDataToSend = new FormData();
-        
+
         // Append text data
-        Object.keys(registrationData).forEach(key => {
+        Object.keys(registrationData).forEach((key) => {
           if (registrationData[key]) {
             formDataToSend.append(key, registrationData[key]);
           }
         });
-  
+
         // Append files
-        Object.keys(advertiserFiles).forEach(key => {
+        Object.keys(advertiserFiles).forEach((key) => {
           if (advertiserFiles[key]) {
             formDataToSend.append(key, advertiserFiles[key]);
           }
         });
-  
+
         const response = await axios.post(
           `http://localhost:5000/api/${role.endpoint}/register`,
           formDataToSend,
           {
             headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
-  
+
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem(
+            "user",
+            JSON.stringify(response.data[role.value])
+          );
           localStorage.setItem("userRole", role.value);
           navigate(`/${role.value}`);
         }
@@ -339,17 +387,22 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
           `http://localhost:5000/api/${role.endpoint}/register`,
           registrationData
         );
-  
+
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data[role.value]));
+          localStorage.setItem(
+            "user",
+            JSON.stringify(response.data[role.value])
+          );
           localStorage.setItem("userRole", role.value);
           navigate(`/${role.value}`);
         }
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "Registration failed. Please try again."
+        err.response?.data?.message ||
+          err.message ||
+          "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -359,90 +412,94 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
   const renderRoleSpecificFields = () => {
     switch (selectedRole) {
       case "seller":
-  return (
-    <Row>
-      <Col md={12}>
-        <Form.Group className="mb-3">
-          <Form.Label>Name</Form.Label>
-          <Form.Control
-            type="text"
-            name="name"
-            value={registerData.name}
-            onChange={handleRegisterChange}
-          />
-        </Form.Group>
+        return (
+          <Row>
+            <Col md={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={registerData.name}
+                  onChange={handleRegisterChange}
+                />
+              </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Description</Form.Label>
-          <Form.Control
-            as="textarea"
-            name="description"
-            value={registerData.description}
-            onChange={handleRegisterChange}
-            rows={3}
-          />
-        </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  name="description"
+                  value={registerData.description}
+                  onChange={handleRegisterChange}
+                  rows={3}
+                />
+              </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Mobile Number*</Form.Label>
-          <Form.Control
-            type="tel"
-            name="mobileNumber"
-            value={registerData.mobileNumber}
-            onChange={handleRegisterChange}
-            required
-          />
-        </Form.Group>
-        
-        <Card className="mb-3">
-          <Card.Header className="bg-light">Required Documents</Card.Header>
-          <Card.Body>
-            <Form.Group className="mb-4">
-              <Form.Label>Business License (Image or PDF)*</Form.Label>
-              <Form.Control
-                type="file"
-                name="businessLicense"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-              />
-              {filePreviews.businessLicense && (
-                <div className="mt-2">
-                  <Image
-                    src={filePreviews.businessLicense}
-                    alt="Business License Preview"
-                    thumbnail
-                    style={{ maxWidth: '200px' }}
-                  />
-                </div>
-              )}
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Mobile Number*</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="mobileNumber"
+                  value={registerData.mobileNumber}
+                  onChange={handleRegisterChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-4">
-              <Form.Label>Identification Document (Image or PDF)*</Form.Label>
-              <Form.Control
-                type="file"
-                name="identificationDocument"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-              />
-              {filePreviews.identificationDocument && (
-                <div className="mt-2">
-                  <Image
-                    src={filePreviews.identificationDocument}
-                    alt="ID Preview"
-                    thumbnail
-                    style={{ maxWidth: '200px' }}
-                  />
-                </div>
-              )}
-            </Form.Group>
-          </Card.Body>
-        </Card>
-      </Col>
-    </Row>
-  );
+              <Card className="mb-3">
+                <Card.Header className="bg-light">
+                  Required Documents
+                </Card.Header>
+                <Card.Body>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Business License (Image or PDF)*</Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="businessLicense"
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      required
+                    />
+                    {filePreviews.businessLicense && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.businessLicense}
+                          alt="Business License Preview"
+                          thumbnail
+                          style={{ maxWidth: "200px" }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+
+                  <Form.Group className="mb-4">
+                    <Form.Label>
+                      Identification Document (Image or PDF)*
+                    </Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="identificationDocument"
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      required
+                    />
+                    {filePreviews.identificationDocument && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.identificationDocument}
+                          alt="ID Preview"
+                          thumbnail
+                          style={{ maxWidth: "200px" }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        );
       case "tourist":
         return (
           <>
@@ -503,104 +560,108 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
           </>
         );
 
-        case "advertiser":
-          return (
-            <Row>
-              <Col md={12}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Company Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="companyName"
-                    value={registerData.companyName}
-                    onChange={handleRegisterChange}
-                    required
-                  />
-                </Form.Group>
-        
-                <Form.Group className="mb-3">
-                  <Form.Label>Company Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    name="companyDescription"
-                    value={registerData.companyDescription}
-                    onChange={handleRegisterChange}
-                    rows={3}
-                    required
-                  />
-                </Form.Group>
-        
-                <Form.Group className="mb-3">
-                  <Form.Label>Website</Form.Label>
-                  <Form.Control
-                    type="url"
-                    name="website"
-                    value={registerData.website}
-                    onChange={handleRegisterChange}
-                    placeholder="https://example.com"
-                  />
-                </Form.Group>
-        
-                <Form.Group className="mb-3">
-                  <Form.Label>Hotline</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="hotline"
-                    value={registerData.hotline}
-                    onChange={handleRegisterChange}
-                    placeholder="+1234567890"
-                  />
-                </Form.Group>
-        
-                <Card className="mb-3">
-                  <Card.Header className="bg-light">Required Documents</Card.Header>
-                  <Card.Body>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Business License (Image or PDF)*</Form.Label>
-                      <Form.Control
-                        type="file"
-                        name="businessLicense"
-                        onChange={handleFileChange}
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        required
-                      />
-                      {filePreviews.businessLicense && (
-                        <div className="mt-2">
-                          <Image
-                            src={filePreviews.businessLicense}
-                            alt="Business License Preview"
-                            thumbnail
-                            style={{ maxWidth: '200px' }}
-                          />
-                        </div>
-                      )}
-                    </Form.Group>
-        
-                    <Form.Group className="mb-4">
-                      <Form.Label>Identification Document (Image or PDF)*</Form.Label>
-                      <Form.Control
-                        type="file"
-                        name="identificationDocument"
-                        onChange={handleFileChange}
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        required
-                      />
-                      {filePreviews.identificationDocument && (
-                        <div className="mt-2">
-                          <Image
-                            src={filePreviews.identificationDocument}
-                            alt="ID Preview"
-                            thumbnail
-                            style={{ maxWidth: '200px' }}
-                          />
-                        </div>
-                      )}
-                    </Form.Group>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          );
+      case "advertiser":
+        return (
+          <Row>
+            <Col md={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>Company Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="companyName"
+                  value={registerData.companyName}
+                  onChange={handleRegisterChange}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Company Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  name="companyDescription"
+                  value={registerData.companyDescription}
+                  onChange={handleRegisterChange}
+                  rows={3}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Website</Form.Label>
+                <Form.Control
+                  type="url"
+                  name="website"
+                  value={registerData.website}
+                  onChange={handleRegisterChange}
+                  placeholder="https://example.com"
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Hotline</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="hotline"
+                  value={registerData.hotline}
+                  onChange={handleRegisterChange}
+                  placeholder="+1234567890"
+                />
+              </Form.Group>
+
+              <Card className="mb-3">
+                <Card.Header className="bg-light">
+                  Required Documents
+                </Card.Header>
+                <Card.Body>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Business License (Image or PDF)*</Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="businessLicense"
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      required
+                    />
+                    {filePreviews.businessLicense && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.businessLicense}
+                          alt="Business License Preview"
+                          thumbnail
+                          style={{ maxWidth: "200px" }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+
+                  <Form.Group className="mb-4">
+                    <Form.Label>
+                      Identification Document (Image or PDF)*
+                    </Form.Label>
+                    <Form.Control
+                      type="file"
+                      name="identificationDocument"
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      required
+                    />
+                    {filePreviews.identificationDocument && (
+                      <div className="mt-2">
+                        <Image
+                          src={filePreviews.identificationDocument}
+                          alt="ID Preview"
+                          thumbnail
+                          style={{ maxWidth: "200px" }}
+                        />
+                      </div>
+                    )}
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        );
       case "tourguide":
         return (
           <Row>
@@ -626,9 +687,11 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
                   required
                 />
               </Form.Group>
-              
+
               <Card className="mb-3">
-                <Card.Header className="bg-light">Required Documents</Card.Header>
+                <Card.Header className="bg-light">
+                  Required Documents
+                </Card.Header>
                 <Card.Body>
                   <Form.Group className="mb-4">
                     <Form.Label>ID Document (Image only)</Form.Label>
@@ -645,7 +708,7 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
                           src={filePreviews.identificationDocument}
                           alt="ID Preview"
                           thumbnail
-                          style={{ maxWidth: '200px' }}
+                          style={{ maxWidth: "200px" }}
                         />
                       </div>
                     )}
@@ -666,7 +729,7 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
                           src={filePreviews.certificate}
                           alt="Certificate Preview"
                           thumbnail
-                          style={{ maxWidth: '200px' }}
+                          style={{ maxWidth: "200px" }}
                         />
                       </div>
                     )}
@@ -701,10 +764,7 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
 
               {error && <Alert variant="danger">{error}</Alert>}
 
-              <Nav
-                variant="tabs"
-                className="mb-3"
-              >
+              <Nav variant="tabs" className="mb-3">
                 <Nav.Item>
                   <Nav.Link
                     onClick={() => setActiveTab("login")}
@@ -722,58 +782,66 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
-
               {activeTab === "login" ? (
-                <Form onSubmit={handleLogin}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Username or Email</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="username"
-                      value={loginData.username}
-                      onChange={handleLoginChange}
-                      required
-                    />
-                  </Form.Group>
+  <Form onSubmit={handleLogin}>
+    <Form.Group className="mb-3">
+  <Form.Label>Username or Email</Form.Label>
+  <Form.Control
+    type="text"
+    name="username"
+    placeholder="Enter username or email"
+    value={loginData.username}
+    onChange={handleLoginChange}
+    required
+  />
+</Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="password"
-                      value={loginData.password}
-                      onChange={handleLoginChange}
-                      required
-                    />
-                  </Form.Group>
+    <Form.Group className="mb-3">
+      <Form.Label>Password</Form.Label>
+      <Form.Control
+        type="password"
+        name="password"
+        value={loginData.password}
+        onChange={handleLoginChange}
+        required
+      />
+      <div className="d-flex justify-content-end mt-2">
+        <Link 
+          to={`/${selectedRole}/forgot-password`} 
+          className="text-primary text-decoration-none"
+        >
+          Forgot Password?
+        </Link>
+      </div>
+    </Form.Group>
 
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        Logging in...
-                      </>
-                    ) : (
-                      "Login"
-                    )}
-                  </Button>
-                </Form>
-              ) : (
+    <Button
+      variant="primary"
+      type="submit"
+      className="w-100"
+      disabled={loading}
+    >
+      {loading ? (
+        <>
+          <Spinner
+            as="span"
+            animation="border"
+            size="sm"
+            role="status"
+            aria-hidden="true"
+            className="me-2"
+          />
+          Logging in...
+        </>
+      ) : (
+        "Login"
+      )}
+    </Button>
+  </Form>
+) : (
                 <Form onSubmit={handleRegister}>
                   <Form.Group className="mb-3">
-                  <Form.Label>Username</Form.Label>
+                    <Form.Label>Username</Form.Label>
                     <Form.Control
                       type="text"
                       name="username"
@@ -848,10 +916,7 @@ const [advertiserFiles, setAdvertiserFiles] = useState({
       </Row>
 
       {/* Role Selection Modal */}
-      <Modal
-        show={showRoleModal}
-        onHide={() => setShowRoleModal(false)}
-      >
+      <Modal show={showRoleModal} onHide={() => setShowRoleModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Select Role</Modal.Title>
         </Modal.Header>

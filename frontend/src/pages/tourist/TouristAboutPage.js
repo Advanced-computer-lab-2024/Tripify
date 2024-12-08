@@ -157,7 +157,7 @@ const navigate = useNavigate();
             <Col md={6} className="order-md-last">
             <div className="ps-md-5 d-flex align-items-center">
   <div>
-    <span className="text-primary h6 text-uppercase">Welcome to Pacific</span>
+    <span className="text-primary h6 text-uppercase">Welcome to Tripify</span>
     <h2 className="mb-4">It's time to start your adventure</h2>
     <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
     <p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean. A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>

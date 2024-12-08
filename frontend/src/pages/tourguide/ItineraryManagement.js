@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Container,
   Row,
@@ -9,9 +8,34 @@ import {
   Table,
   Modal,
   Alert,
+  Card,
+  Badge,
+  Spinner
 } from "react-bootstrap";
+import { 
+  FaRoute, 
+  FaPlus, 
+  FaEdit, 
+  FaTrash, 
+  FaChevronRight,
+  FaLanguage,
+  FaDollarSign,
+  FaTags,
+  FaUser,
+  FaClock,
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaWheelchair,
+  FaDeaf,
+  FaEye,
+  FaCheck,
+  FaTimes,
+  FaExclamationTriangle
+} from "react-icons/fa";
+import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-
+import { Link } from "react-router-dom";
+import TourguideNavbar from './TourguideNavbar';
 const ItineraryManagement = () => {
   const [itineraries, setItineraries] = useState([]);
   const [preferenceTags, setPreferenceTags] = useState([]);
@@ -262,276 +286,543 @@ const ItineraryManagement = () => {
     );
   }
 
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    position: 'relative',
+    padding: '8rem 0 4rem 0',
+    marginBottom: '2rem'
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1
+  };
+
   return (
-    <Container>
-      <h1 className="my-4">Itinerary Management</h1>
-      {userInfo && (
-        <Alert variant="info" className="mb-3">
-          Logged in as: {userInfo.username}
-        </Alert>
-      )}
+    <>
+      <TourguideNavbar />
+      <div className="itinerary-management">
+        {/* Hero Section */}
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }}>
+            <div className="text-center text-white">
+              <p className="mb-4">
+                <span className="me-2">
+                  <Link to="/guide" className="text-white text-decoration-none">
+                    Home <FaChevronRight className="small mx-2" />
+                  </Link>
+                </span>
+                <span>
+                  Itineraries <FaChevronRight className="small" />
+                </span>
+              </p>
+              <h1 className="display-4 mb-0">Manage Itineraries</h1>
+            </div>
+          </Container>
+        </div>
 
-      <Button onClick={() => setShowModal(true)} className="mb-3">
-        Add New Itinerary
-      </Button>
-
-      <Table striped bordered hover>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Language</th>
-            <th>Total Price</th>
-            <th>Preference Tags</th>
-            <th>Created By</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {itineraries.map((itinerary) => (
-            <tr key={itinerary._id}>
-              <td>{itinerary.name}</td>
-              <td>{itinerary.language}</td>
-              <td>${itinerary.totalPrice}</td>
-              <td>
-                {itinerary.preferenceTags.map((tag) => tag.name).join(", ")}
-              </td>
-              <td>{itinerary.createdBy?.username || "N/A"}</td>
-              <td>
+        <Container className="py-5">
+          <Card className="shadow-sm border-0 rounded-3">
+            <Card.Body className="p-4">
+              {/* Header Section */}
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="d-flex align-items-center">
+                  <div 
+                    className="icon-circle me-3"
+                    style={{
+                      backgroundColor: '#1089ff',
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white'
+                    }}
+                  >
+                    <FaRoute size={24} />
+                  </div>
+                  <div>
+                    <h3 className="mb-0">My Itineraries</h3>
+                    {userInfo && (
+                      <p className="text-muted mb-0">
+                        Guide: {userInfo.username}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <Button
-                  variant="info"
-                  size="sm"
-                  onClick={() => handleEdit(itinerary)}
-                  className="me-2"
+                  onClick={() => setShowModal(true)}
+                  className="rounded-pill px-4"
+                  style={{
+                    backgroundColor: '#1089ff',
+                    border: 'none'
+                  }}
                 >
-                  Edit
+                  <FaPlus className="me-2" />
+                  Add New Itinerary
                 </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => handleDelete(itinerary._id)}
-                >
-                  Delete
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+              </div>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {currentItinerary ? "Edit Itinerary" : "Add New Itinerary"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Language</Form.Label>
-              <Form.Control
-                type="text"
-                name="language"
-                value={formData.language}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Total Price</Form.Label>
-              <Form.Control
-                type="number"
-                name="totalPrice"
-                value={formData.totalPrice}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Pickup Location</Form.Label>
-              <Form.Control
-                type="text"
-                name="pickupLocation"
-                value={formData.pickupLocation}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Drop-off Location</Form.Label>
-              <Form.Control
-                type="text"
-                name="dropoffLocation"
-                value={formData.dropoffLocation}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
+              {error && (
+                <Alert variant="danger" className="rounded-3">
+                  <FaExclamationTriangle className="me-2" />
+                  {error}
+                </Alert>
+              )}
 
-            <h5 className="mt-3">Timeline</h5>
-            {formData.timeline.map((item, index) => (
-              <Row key={index} className="mb-3">
-                <Col>
-                  <Form.Control
-                    type="text"
-                    placeholder="Activity"
-                    value={item.activity}
-                    onChange={(e) =>
-                      handleTimelineChange(index, "activity", e.target.value)
-                    }
-                  />
+              {loading ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" variant="primary" />
+                  <p className="mt-3 text-muted">Loading itineraries...</p>
+                </div>
+              ) : itineraries.length === 0 ? (
+                <div className="text-center py-5">
+                  <FaRoute size={48} className="text-muted mb-3" />
+                  <h4>No Itineraries Found</h4>
+                  <p className="text-muted mb-4">Start by creating your first itinerary!</p>
+                  <Button
+                    onClick={() => setShowModal(true)}
+                    className="rounded-pill px-4"
+                    style={{
+                      backgroundColor: '#1089ff',
+                      border: 'none'
+                    }}
+                  >
+                    <FaPlus className="me-2" />
+                    Create Itinerary
+                  </Button>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <Table hover className="align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th>Name</th>
+                        <th>Language</th>
+                        <th>Price</th>
+                        <th>Tags</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itineraries.map((itinerary) => (
+                        <tr key={itinerary._id}>
+                          <td className="fw-bold">{itinerary.name}</td>
+                          <td>
+                            <div className="d-flex align-items-center">
+                              <FaLanguage className="text-primary me-2" />
+                              {itinerary.language}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center">
+                              <FaDollarSign className="text-success me-2" />
+                              ${itinerary.totalPrice}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {itinerary.preferenceTags.map((tag) => (
+                                <Badge 
+                                  key={tag._id}
+                                  bg="info" 
+                                  className="rounded-pill"
+                                  style={{
+                                    backgroundColor: '#1089ff',
+                                    fontWeight: 'normal'
+                                  }}
+                                >
+                                  {tag.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td>
+                            <Badge 
+                              bg={itinerary.isActive ? "success" : "secondary"}
+                              className="rounded-pill"
+                            >
+                              {itinerary.isActive ? (
+                                <><FaCheck className="me-1" /> Active</>
+                              ) : (
+                                <><FaTimes className="me-1" /> Inactive</>
+                              )}
+                            </Badge>
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <Button
+                                variant="light"
+                                className="rounded-pill"
+                                onClick={() => handleEdit(itinerary)}
+                              >
+                                <FaEdit className="me-2" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="danger"
+                                className="rounded-pill"
+                                onClick={() => handleDelete(itinerary._id)}
+                              >
+                                <FaTrash className="me-2" />
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Container>
+
+        {/* Form Modal */}
+        <Modal 
+          show={showModal} 
+          onHide={() => setShowModal(false)}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton className="border-0">
+            <Modal.Title>
+              <div className="d-flex align-items-center">
+                <FaRoute className="text-primary me-2" />
+                {currentItinerary ? "Edit Itinerary" : "Add New Itinerary"}
+              </div>
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-4">
+            <Form onSubmit={handleSubmit}>
+              <Row className="g-4">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaRoute className="me-2" />
+                      Name
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
                 </Col>
-                <Col>
-                  <Form.Control
-                    type="time"
-                    value={item.startTime}
-                    onChange={(e) =>
-                      handleTimelineChange(index, "startTime", e.target.value)
-                    }
-                  />
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaLanguage className="me-2" />
+                      Language
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="language"
+                      value={formData.language}
+                      onChange={handleInputChange}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
                 </Col>
-                <Col>
-                  <Form.Control
-                    type="time"
-                    value={item.endTime}
-                    onChange={(e) =>
-                      handleTimelineChange(index, "endTime", e.target.value)
-                    }
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaDollarSign className="me-2" />
+                      Total Price
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="totalPrice"
+                      value={formData.totalPrice}
+                      onChange={handleInputChange}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaMapMarkerAlt className="me-2" />
+                      Pickup Location
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="pickupLocation"
+                      value={formData.pickupLocation}
+                      onChange={handleInputChange}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="fw-bold">
+                      <FaMapMarkerAlt className="me-2" />
+                      Drop-off Location
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="dropoffLocation"
+                      value={formData.dropoffLocation}
+                      onChange={handleInputChange}
+                      required
+                      className="rounded-pill"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        border: '2px solid #eee'
+                      }}
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col xs={12}>
+                  <Card className="border-0 bg-light">
+                    <Card.Body>
+                      <h5 className="d-flex align-items-center mb-3">
+                        <FaClock className="me-2" />
+                        Timeline
+                      </h5>
+                      {formData.timeline.map((item, index) => (
+                        <Row key={index} className="mb-3">
+                          <Col md={6}>
+                            <Form.Control
+                              type="text"
+                              placeholder="Activity"
+                              value={item.activity}
+                              onChange={(e) => handleTimelineChange(index, "activity", e.target.value)}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Col>
+                          <Col md={3}>
+                            <Form.Control
+                              type="time"
+                              value={item.startTime}
+                              onChange={(e) => handleTimelineChange(index, "startTime", e.target.value)}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Col>
+                          <Col md={3}>
+                            <Form.Control
+                              type="time"
+                              value={item.endTime}
+                              onChange={(e) => handleTimelineChange(index, "endTime", e.target.value)}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Col>
+                        </Row>
+                      ))}
+                      <Button
+                        variant="light"
+                        size="sm"
+                        className="rounded-pill"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          timeline: [...prev.timeline, { activity: "", startTime: "", endTime: "" }]
+                        }))}
+                      >
+                        <FaPlus className="me-2" />
+                        Add Timeline Item
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col xs={12}>
+                  <Card className="border-0 bg-light">
+                    <Card.Body>
+                      <h5 className="d-flex align-items-center mb-3">
+                        <FaCalendarAlt className="me-2" />
+                        Available Dates
+                      </h5>
+                      {formData.availableDates.map((item, index) => (
+                        <Row key={index} className="mb-3">
+                          <Col md={6}>
+                            <Form.Control
+                              type="date"
+                              value={item.date}
+                              onChange={(e) => handleAvailableDatesChange(index, "date", e.target.value)}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                            </Col>
+                          <Col md={6}>
+                            <Form.Control
+                              type="text"
+                              placeholder="Available Times (comma-separated)"
+                              value={item.availableTimes.join(",")}
+                              onChange={(e) => handleAvailableDatesChange(index, "availableTimes", e.target.value)}
+                              className="rounded-pill"
+                              style={{
+                                padding: '0.75rem 1.25rem',
+                                border: '2px solid #eee'
+                              }}
+                            />
+                          </Col>
+                        </Row>
+                      ))}
+                      <Button
+                        variant="light"
+                        size="sm"
+                        className="rounded-pill"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          availableDates: [...prev.availableDates, { date: "", availableTimes: [""] }]
+                        }))}
+                      >
+                        <FaPlus className="me-2" />
+                        Add Available Date
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col xs={12}>
+                  <Card className="border-0 bg-light">
+                    <Card.Body>
+                      <h5 className="d-flex align-items-center mb-3">
+                        <FaWheelchair className="me-2" />
+                        Accessibility Options
+                      </h5>
+                      <div className="d-flex flex-wrap gap-4">
+                        <Form.Check
+                          type="checkbox"
+                          label="Wheelchair Accessible"
+                          checked={formData.accessibility.wheelchairAccessible}
+                          onChange={() => handleAccessibilityChange("wheelchairAccessible")}
+                          className="user-select-none"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          label="Hearing Impaired"
+                          checked={formData.accessibility.hearingImpaired}
+                          onChange={() => handleAccessibilityChange("hearingImpaired")}
+                          className="user-select-none"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          label="Visually Impaired"
+                          checked={formData.accessibility.visuallyImpaired}
+                          onChange={() => handleAccessibilityChange("visuallyImpaired")}
+                          className="user-select-none"
+                        />
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col xs={12}>
+                  <Card className="border-0 bg-light">
+                    <Card.Body>
+                      <h5 className="d-flex align-items-center mb-3">
+                        <FaTags className="me-2" />
+                        Preference Tags
+                      </h5>
+                      <div className="d-flex flex-wrap gap-3">
+                        {preferenceTags.map((tag) => (
+                          <Form.Check
+                            key={tag._id}
+                            type="checkbox"
+                            label={tag.name}
+                            checked={formData.preferenceTags.includes(tag._id)}
+                            onChange={() => handlePreferenceTagChange(tag._id)}
+                            className="user-select-none"
+                          />
+                        ))}
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col xs={12}>
+                  <Form.Check
+                    type="checkbox"
+                    label="Active"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleInputChange}
+                    className="user-select-none"
                   />
                 </Col>
               </Row>
-            ))}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mb-3"
-              onClick={() =>
-                setFormData((prevState) => ({
-                  ...prevState,
-                  timeline: [
-                    ...prevState.timeline,
-                    { activity: "", startTime: "", endTime: "" },
-                  ],
-                }))
-              }
-            >
-              Add Timeline Item
-            </Button>
 
-            <h5 className="mt-3">Available Dates</h5>
-            {formData.availableDates.map((item, index) => (
-              <Row key={index} className="mb-3">
-                <Col>
-                  <Form.Control
-                    type="date"
-                    value={item.date}
-                    onChange={(e) =>
-                      handleAvailableDatesChange(index, "date", e.target.value)
-                    }
-                  />
-                </Col>
-                <Col>
-                  <Form.Control
-                    type="text"
-                    placeholder="Available Times (comma-separated)"
-                    value={item.availableTimes.join(",")}
-                    onChange={(e) =>
-                      handleAvailableDatesChange(
-                        index,
-                        "availableTimes",
-                        e.target.value
-                      )
-                    }
-                  />
-                </Col>
-              </Row>
-            ))}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mb-3"
-              onClick={() =>
-                setFormData((prevState) => ({
-                  ...prevState,
-                  availableDates: [
-                    ...prevState.availableDates,
-                    { date: "", availableTimes: [""] },
-                  ],
-                }))
-              }
-            >
-              Add Available Date
-            </Button>
-
-            <h5 className="mt-3">Accessibility</h5>
-            <Form.Check
-              type="checkbox"
-              label="Wheelchair Accessible"
-              checked={formData.accessibility.wheelchairAccessible}
-              onChange={() => handleAccessibilityChange("wheelchairAccessible")}
-              className="mb-2"
-            />
-            <Form.Check
-              type="checkbox"
-              label="Hearing Impaired"
-              checked={formData.accessibility.hearingImpaired}
-              onChange={() => handleAccessibilityChange("hearingImpaired")}
-              className="mb-2"
-            />
-            <Form.Check
-              type="checkbox"
-              label="Visually Impaired"
-              checked={formData.accessibility.visuallyImpaired}
-              onChange={() => handleAccessibilityChange("visuallyImpaired")}
-              className="mb-3"
-            />
-
-            <h5 className="mt-3">Preference Tags</h5>
-            <div className="mb-3">
-              {preferenceTags.map((tag) => (
-                <Form.Check
-                  key={tag._id}
-                  inline
-                  type="checkbox"
-                  label={tag.name}
-                  checked={formData.preferenceTags.includes(tag._id)}
-                  onChange={() => handlePreferenceTagChange(tag._id)}
-                  className="me-3 mb-2"
-                />
-              ))}
-            </div>
-
-            <Form.Group className="mb-4">
-              <Form.Check
-                type="checkbox"
-                label="Active"
-                name="isActive"
-                checked={formData.isActive}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
-
-            <div className="d-flex gap-2">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" type="submit">
-                {currentItinerary ? "Update Itinerary" : "Create Itinerary"}
-              </Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
-    </Container>
+              <div className="d-flex gap-2 mt-4">
+                <Button
+                  variant="light"
+                  className="rounded-pill px-4"
+                  onClick={() => setShowModal(false)}
+                >
+                  <FaTimes className="me-2" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="rounded-pill px-4"
+                  style={{
+                    backgroundColor: '#1089ff',
+                    border: 'none'
+                  }}
+                >
+                  <FaCheck className="me-2" />
+                  {currentItinerary ? "Update Itinerary" : "Create Itinerary"}
+                </Button>
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
+      </div>
+    </>
   );
 };
 

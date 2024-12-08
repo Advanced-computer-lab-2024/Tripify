@@ -14,6 +14,18 @@ import {
   changePassword,
   checkDeletionEligibility,
   deleteTouristAccount,
+  bookmarkEvent,
+  getSavedEvents,
+  removeBookmark,
+  addDeliveryAddress,
+  getDeliveryAddresses,
+  updateDeliveryAddress,
+  deleteDeliveryAddress,
+  setDefaultAddress,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
+  
 } from "../controllers/tourist.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -28,6 +40,11 @@ router.get("/", getAllTourists);
 router.get("/profile/:username", authMiddleware, getTouristProfile);
 router.put("/profile/:username", authMiddleware, updateTouristProfile);
 router.get("/profile/:username", authMiddleware, getLoyaltyStatus);
+
+
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 
 router.put("/change-password", authMiddleware, changePassword);
 // Loyalty routes
@@ -44,5 +61,16 @@ router.post("/rate-guide/:tourGuideId", authMiddleware, rateTourGuide);
 
 router.get("/check-deletion/:id", authMiddleware, checkDeletionEligibility);
 router.delete("/delete/:id", authMiddleware, deleteTouristAccount);
+
+router.post('/bookmark-event', authMiddleware, bookmarkEvent);
+router.get('/saved-events', authMiddleware, getSavedEvents);
+router.delete('/bookmark/:eventId', authMiddleware, removeBookmark);
+
+// Delivery address routes
+router.post('/address', authMiddleware, addDeliveryAddress);
+router.get('/addresses', authMiddleware, getDeliveryAddresses);
+router.put('/address/:addressId', authMiddleware, updateDeliveryAddress);
+router.delete('/address/:addressId', authMiddleware, deleteDeliveryAddress);
+router.patch('/address/:addressId/set-default', authMiddleware, setDefaultAddress);
 
 export default router;
