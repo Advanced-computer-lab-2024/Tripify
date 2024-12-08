@@ -11,6 +11,7 @@ import {
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import SellerNavbar from "./SellerNavbar";
 
 const SellerSalesReport = () => {
   const [salesData, setSalesData] = useState([]);
@@ -93,7 +94,7 @@ const SellerSalesReport = () => {
 
   const filterSalesByName = (sales) => {
     if (!nameFilter) return sales;
-    return sales.filter(sale => 
+    return sales.filter((sale) =>
       sale.productId?.name?.toLowerCase().includes(nameFilter.toLowerCase())
     );
   };
@@ -130,184 +131,184 @@ const SellerSalesReport = () => {
   const filteredSalesData = filterSalesByName(salesData);
 
   return (
-    <Container className="py-4">
-      <Card className="mb-4">
-      <Card.Header style={{ backgroundColor: "#FF6F00", color: "#FFF" }}>
-  <h4 className="mb-0">Seller Sales Report</h4>
-</Card.Header>
-
-        <Card.Body>
-          <Row className="mb-4">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Date Range</Form.Label>
-                <Form.Select
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="mb-2"
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="custom">Custom Range</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            {dateRange === "custom" && (
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Custom Range</Form.Label>
-                  <div className="d-flex gap-2">
+    <div className="min-h-screen bg-gray-50">
+      <SellerNavbar />
+      <div style={{ paddingTop: "64px" }}>
+        <Container className="py-4">
+          <Card className="mb-4">
+            <Card.Header style={{ backgroundColor: "#FF6F00", color: "#FFF" }}>
+              <h4 className="mb-0">Seller Sales Report</h4>
+            </Card.Header>
+            <Card.Body>
+              <Row className="mb-4">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Date Range</Form.Label>
+                    <Form.Select
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value)}
+                      className="mb-2"
+                    >
+                      <option value="all">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                      <option value="custom">Custom Range</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                {dateRange === "custom" && (
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Custom Range</Form.Label>
+                      <div className="d-flex gap-2">
+                        <Form.Control
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                        />
+                        <Form.Control
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                )}
+              </Row>
+              <Row className="mb-4">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Filter by Product Name</Form.Label>
                     <Form.Control
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      type="text"
+                      placeholder="Enter product name..."
+                      value={nameFilter}
+                      onChange={(e) => setNameFilter(e.target.value)}
                     />
-                    <Form.Control
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                    />
-                  </div>
-                </Form.Group>
-              </Col>
-            )}
-          </Row>
-
-          <Row className="mb-4">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Filter by Product Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Enter product name..."
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-
-          {loading ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-            </div>
-          ) : error ? (
-            <Alert variant="danger">{error}</Alert>
-          ) : (
-            <>
-              <Row className="mb-4 g-3">
-                <Col md={3}>
-                  <Card className="text-center h-100 border-primary">
-                    <Card.Body>
-                      <Card.Title>Total Sales</Card.Title>
-                      <h3 className="text-primary">{totals.totalSales}</h3>
-                      <small className="text-muted">Items Sold</small>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center h-100 border-primary">
-                    <Card.Body>
-                      <Card.Title>Gross Revenue</Card.Title>
-                      <h3 className="text-primary">
-                        ${totals.grossRevenue.toFixed(2)}
-                      </h3>
-                      <small className="text-muted">Total Revenue</small>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center h-100 border-danger">
-                    <Card.Body>
-                      <Card.Title>App Fees (10%)</Card.Title>
-                      <h3 className="text-danger">
-                        ${totals.appFees.toFixed(2)}
-                      </h3>
-                      <small className="text-muted">Platform Commission</small>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center h-100 border-success">
-                    <Card.Body>
-                      <Card.Title>Net Revenue</Card.Title>
-                      <h3 className="text-success">
-                        ${totals.netRevenue.toFixed(2)}
-                      </h3>
-                      <small className="text-muted">After App Fees</small>
-                    </Card.Body>
-                  </Card>
+                  </Form.Group>
                 </Col>
               </Row>
-
-              <div className="mb-4">
-                <h5>Monthly Sales Overview</h5>
-                <Table striped bordered hover responsive>
-                  <thead className="bg-light">
-                    <tr>
-                      <th>Month</th>
-                      <th>Sales Count</th>
-                      <th>Gross Revenue</th>
-                      <th>Net Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlyData.map((data, index) => (
-                      <tr key={index}>
-                        <td>{data.month}</td>
-                        <td>{data.sales}</td>
-                        <td>${data.grossRevenue.toFixed(2)}</td>
-                        <td>${data.netRevenue.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-
-              <div>
-                <h5>Detailed Sales History</h5>
-                <div className="table-responsive">
-                  <Table striped bordered hover>
-                    <thead className="bg-light">
-                      <tr>
-                        <th>Date</th>
-                        <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Gross Amount</th>
-                        <th>App Fee (10%)</th>
-                        <th>Net Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredSalesData.map((sale) => (
-                        <tr key={sale._id}>
-                          <td>
-                            {new Date(sale.purchaseDate).toLocaleDateString()}
-                          </td>
-                          <td>{sale.productId?.name || "Product Deleted"}</td>
-                          <td>{sale.quantity}</td>
-                          <td>${sale.totalPrice.toFixed(2)}</td>
-                          <td className="text-danger">
-                            ${(sale.totalPrice * 0.1).toFixed(2)}
-                          </td>
-                          <td className="text-success">
-                            ${(sale.totalPrice * 0.9).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+              {loading ? (
+                <div className="text-center py-4">
+                  <Spinner animation="border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </Spinner>
                 </div>
-              </div>
-            </>
-          )}
-        </Card.Body>
-      </Card>
-    </Container>
+              ) : error ? (
+                <Alert variant="danger">{error}</Alert>
+              ) : (
+                <>
+                  <Row className="mb-4 g-3">
+                    <Col md={3}>
+                      <Card className="text-center h-100 border-primary">
+                        <Card.Body>
+                          <Card.Title>Total Sales</Card.Title>
+                          <h3 className="text-primary">{totals.totalSales}</h3>
+                          <small className="text-muted">Items Sold</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center h-100 border-primary">
+                        <Card.Body>
+                          <Card.Title>Gross Revenue</Card.Title>
+                          <h3 className="text-primary">
+                            ${totals.grossRevenue.toFixed(2)}
+                          </h3>
+                          <small className="text-muted">Total Revenue</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center h-100 border-danger">
+                        <Card.Body>
+                          <Card.Title>App Fees (10%)</Card.Title>
+                          <h3 className="text-danger">
+                            ${totals.appFees.toFixed(2)}
+                          </h3>
+                          <small className="text-muted">Platform Commission</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center h-100 border-success">
+                        <Card.Body>
+                          <Card.Title>Net Revenue</Card.Title>
+                          <h3 className="text-success">
+                            ${totals.netRevenue.toFixed(2)}
+                          </h3>
+                          <small className="text-muted">After App Fees</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  </Row>
+                  <div className="mb-4">
+                    <h5>Monthly Sales Overview</h5>
+                    <Table striped bordered hover responsive>
+                      <thead className="bg-light">
+                        <tr>
+                          <th>Month</th>
+                          <th>Sales Count</th>
+                          <th>Gross Revenue</th>
+                          <th>Net Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlyData.map((data, index) => (
+                          <tr key={index}>
+                            <td>{data.month}</td>
+                            <td>{data.sales}</td>
+                            <td>${data.grossRevenue.toFixed(2)}</td>
+                            <td>${data.netRevenue.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                  <div>
+                    <h5>Detailed Sales History</h5>
+                    <div className="table-responsive">
+                      <Table striped bordered hover>
+                        <thead className="bg-light">
+                          <tr>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Gross Amount</th>
+                            <th>App Fee (10%)</th>
+                            <th>Net Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredSalesData.map((sale) => (
+                            <tr key={sale._id}>
+                              <td>
+                                {new Date(sale.purchaseDate).toLocaleDateString()}
+                              </td>
+                              <td>{sale.productId?.name || "Product Deleted"}</td>
+                              <td>{sale.quantity}</td>
+                              <td>${sale.totalPrice.toFixed(2)}</td>
+                              <td className="text-danger">
+                                ${(sale.totalPrice * 0.1).toFixed(2)}
+                              </td>
+                              <td className="text-success">
+                                ${(sale.totalPrice * 0.9).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </Card.Body>
+          </Card>
+        </Container>
+      </div>
+    </div>
   );
 };
 
