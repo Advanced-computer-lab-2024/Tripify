@@ -1,5 +1,5 @@
-// backend/routes/product.route.js
 import express from "express";
+import uploadMiddleware from "../utils/upload.js";
 import {
   addProduct,
   getProducts,
@@ -7,25 +7,46 @@ import {
   updateProduct,
   deleteProduct,
   addReview,
-} from "../controllers/product.controller.js"; // Ensure correct import path
+  purchaseProduct,
+  getUserPurchases,
+  addPurchaseReview,
+  toggleArchiveProduct,
+  getArchivedProducts,
+  getSellerSales,
+  cancelOrder,
+  validatePromoCode,
+  sendStockAlert
+} from "../controllers/product.controller.js";
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// POST: Create a new product
-router.post("/", addProduct);
+// Existing routes
+router.post(
+  "/",
+  uploadMiddleware.fields([{ name: "productImage", maxCount: 5 }]),
+  addProduct
+);
+router.get("/", getProducts);
+router.get("/:id", findProductById);
+router.put(
+  "/:id",
+  uploadMiddleware.fields([{ name: "productImage", maxCount: 5 }]),
+  updateProduct
+);
+router.delete("/:id", deleteProduct);
+router.post("/:id/review", addReview);
 
-// GET: Find all products
-router.get("/", getProducts); // e.g., /api/products
+// New purchase-related routes
+router.post("/purchase", purchaseProduct);
+router.get("/purchases/:userId", getUserPurchases);
+router.post("/purchases/:purchaseId/review", addPurchaseReview);
 
-// GET: Find a product by ID
-router.get("/:id", findProductById); // e.g., /api/products/:id
-
-// PUT: Update a product by ID
-router.put("/:id", updateProduct); // e.g., /api/products/:id
-
-// DELETE: Delete a product by ID
-router.delete("/:id", deleteProduct); // e.g., /api/products/:id
-
-router.post("/:id", addReview);
-
+router.get("/archived", authMiddleware, getArchivedProducts);
+router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
+// Add this to product.route.js
+router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
+router.post("/purchases/:purchaseId/cancel", authMiddleware, cancelOrder);
+router.post("/validate-promo", validatePromoCode);
+router.post("/stock-alert", sendStockAlert);
 export default router;

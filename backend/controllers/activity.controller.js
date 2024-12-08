@@ -1,4 +1,9 @@
+import mongoose from "mongoose";
 import Activity from "../models/activity.model.js";
+import Advertiser from "../models/advertiser.model.js";
+import sendEmail from "../utils/sendEmail.js";
+import Notification from "../models/notification.model.js";
+
 
 // CREATE a new activity
 export const createActivity = async (req, res) => {
@@ -106,17 +111,65 @@ export const deleteActivity = async (req, res) => {
 export const flagActivity = async (req, res) => {
   try {
     const { flagged } = req.body;
-
+    
+    // Fetch activity with creator information
     const activity = await Activity.findByIdAndUpdate(
       req.params.id,
       { $set: { flagged: flagged } },
       { new: true, runValidators: true }
     )
       .populate("category")
-      .populate("tags");
+      .populate("tags")
+      .populate("createdBy");  // Add this to get advertiser info
 
     if (!activity) {
       return res.status(404).json({ message: "Activity not found" });
+    }
+
+    // Get advertiser's email
+    const advertiser = await Advertiser.findById(activity.createdBy);
+    
+    if (advertiser && advertiser.email) {
+      // Send email notification
+      const subject = 'Activity Flagged Notification';
+      const text = `Your activity "${activity.name}" has been flagged for review.`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Activity Flagged Notification</h2>
+          <p>Hello ${advertiser.name || 'Advertiser'},</p>
+          <p>Your activity has been flagged for review:</p>
+          <div style="background-color: #f8f8f8; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Activity Details:</h3>
+            <ul>
+              <li><strong>Name:</strong> ${activity.name}</li>
+              <li><strong>Category:</strong> ${activity.category?.name || 'N/A'}</li>
+              <li><strong>Status:</strong> Flagged</li>
+            </ul>
+          </div>
+          <p>Our team will review the activity and take appropriate action if necessary.</p>
+          <p>If you have any questions, please contact our support team.</p>
+          <p>Best regards,<br>The Tripify Team</p>
+        </div>
+      `;
+
+      await sendEmail(advertiser.email, subject, text, html);
+
+      // Create system notification
+      const notification = new Notification({
+        recipient: {
+          userId: advertiser._id,
+          userType: 'Advertiser'
+        },
+        title: '⚠️ Activity Flagged',
+        message: `Your activity "${activity.name}" has been flagged for review.`,
+        type: 'SYSTEM_NOTIFICATION',
+        priority: 'high',
+        // relatedId: activity._id,
+        // relatedModel: 'Flag_Activity',
+        link: `/advertiser/activities/${activity._id}`  // Adjust link based on your frontend routes
+      });
+
+      await notification.save();
     }
 
     res.status(200).json(activity);

@@ -3,7 +3,7 @@ import TourGuide from "../models/tourGuide.model.js";
 import Itinerary from "../models/itinerary.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import fs from 'fs';
+import fs from "fs";
 
 dotenv.config();
 
@@ -121,6 +121,7 @@ export const registerTourGuide = async (req, res) => {
         previousWork: newTourGuide.previousWork,
         identificationDocument: newTourGuide.identificationDocument.path,
         certificate: newTourGuide.certificate.path,
+        TandC: newTourGuide.TandC,
       },
       token,
     });
@@ -152,7 +153,7 @@ export const loginTourGuide = async (req, res) => {
 
     const tourGuide = await TourGuide.findOne({
       $or: [{ username }, { email: username }],
-    }).select('+password');
+    }).select("+password");
 
     if (!tourGuide) {
       return res.status(401).json({ message: "Invalid username or password" });
@@ -174,6 +175,7 @@ export const loginTourGuide = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
       token,
     });
@@ -187,28 +189,7 @@ export const loginTourGuide = async (req, res) => {
 };
 
 // Reset Password for Tour Guide
-export const resetPassword = async (req, res) => {
-  const { identifier, newPassword } = req.body;
 
-  try {
-    const tourGuide = await TourGuide.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    });
-    if (!tourGuide) {
-      return res.status(404).json({ message: "Tour guide not found" });
-    }
-
-    tourGuide.password = newPassword; // Will be hashed by pre-save middleware
-    await tourGuide.save();
-
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.error("Error resetting password:", error);
-    return res
-      .status(500)
-      .json({ message: "Error resetting password", error: error.message });
-  }
-};
 
 // Get Tour Guide Profile by Username (Protected Route)
 export const getTourGuideByUsername = async (req, res) => {
@@ -233,26 +214,28 @@ export const getTourGuideByUsername = async (req, res) => {
 };
 
 // Update Tour Guide Profile (Protected Route)
+// Update Tour Guide Profile (Protected Route)
 export const updateTourGuideAccount = async (req, res) => {
-  const { id } = req.params;
-  const { username, email, mobileNumber, yearsOfExperience, previousWork } =
+  const { username } = req.params;
+  const { email, mobileNumber, yearsOfExperience, previousWork, TandC } =
     req.body;
 
   try {
-    if (req.user._id !== id) {
+    // Check if the requesting user matches the username from token
+    if (req.user.username !== username) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const tourGuide = await TourGuide.findById(id);
+    const tourGuide = await TourGuide.findOne({ username: username });
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
-    tourGuide.username = username || tourGuide.username;
-    tourGuide.email = email || tourGuide.email;
-    tourGuide.mobileNumber = mobileNumber || tourGuide.mobileNumber;
-    tourGuide.yearsOfExperience =
-      yearsOfExperience || tourGuide.yearsOfExperience;
+    // Only update fields that are provided
+    if (email) tourGuide.email = email;
+    if (mobileNumber) tourGuide.mobileNumber = mobileNumber;
+    if (yearsOfExperience) tourGuide.yearsOfExperience = yearsOfExperience;
+    if (TandC !== undefined) tourGuide.TandC = TandC;
 
     if (Array.isArray(previousWork)) {
       tourGuide.previousWork = previousWork.map((work) => ({
@@ -275,6 +258,7 @@ export const updateTourGuideAccount = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
     });
   } catch (error) {
@@ -286,28 +270,42 @@ export const updateTourGuideAccount = async (req, res) => {
 };
 
 // Change Password (Protected Route)
-export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
+// In tourGuide.controller.js
 
+export const changePassword = async (req, res) => {
   try {
-    const tourGuide = await TourGuide.findById(_id).select('+password');
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
+    }
+
+    // Find the tour guide and explicitly select the password field
+    const tourGuide = await TourGuide.findById(_id).select("+password");
     if (!tourGuide) {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
+    // Verify current password
     const isMatch = await tourGuide.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    tourGuide.password = newPassword; // Will be hashed by pre-save middleware
+    // Set new password (it will be hashed by the pre-save middleware)
+    tourGuide.password = newPassword;
     await tourGuide.save();
 
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Error changing password:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
   }
 };
 
@@ -389,6 +387,7 @@ export const getProfileByToken = async (req, res) => {
         mobileNumber: tourGuide.mobileNumber,
         yearsOfExperience: tourGuide.yearsOfExperience,
         previousWork: tourGuide.previousWork,
+        TandC: tourGuide.TandC,
       },
     });
   } catch (error) {
@@ -458,10 +457,114 @@ export const uploadProfilePicture = async (req, res) => {
   }
 };
 
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const tourGuide = await TourGuide.findOne({ email });
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour Guide not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database, adding userType and userId
+    await Otp.create({
+      userId: tourGuide._id,  // The Tour Guide's ID
+      userType: 'TourGuide',  // The user type (hardcoded as Tour Guide here)
+      otp,  // The OTP
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the Tour Guide to get their ID
+    const tourGuide = await TourGuide.findOne({ email });
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour Guide not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: tourGuide._id,
+      userType: 'TourGuide',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const tourGuide = await TourGuide.findOne({ email });
+    
+    if (!tourGuide) {
+      return res.status(404).json({ message: "Tour Guide not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await TourGuide.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: tourGuide._id,
+      userType: 'TourGuide'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
+  }
+};
+
 export default {
   registerTourGuide,
   loginTourGuide,
-  resetPassword,
+  
   getTourGuideByUsername,
   updateTourGuideAccount,
   changePassword,

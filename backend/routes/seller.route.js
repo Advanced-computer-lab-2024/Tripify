@@ -7,6 +7,10 @@ import {
   getAllSellers,
   deleteSellerAccount,
   changePassword,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
+  
 } from "../controllers/seller.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import uploadMiddleware from "../utils/upload.js";
@@ -62,5 +66,8 @@ router.use((error, req, res, next) => {
   }
   next();
 });
+router.post("/forgot-password/send-otp", sendPasswordResetOtp);
+router.post("/forgot-password/verify-otp", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 
 export default router;

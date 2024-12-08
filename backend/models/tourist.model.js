@@ -26,6 +26,44 @@ const preferenceSchema = new mongoose.Schema({
   },
 });
 
+// Define the Address Schema
+const addressSchema = new mongoose.Schema({
+  label: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  street: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  city: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  state: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  country: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  postalCode: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+  }
+}, { timestamps: true });
+
 // Define the Tourist Schema
 const touristSchema = new mongoose.Schema({
   email: {
@@ -57,7 +95,7 @@ const touristSchema = new mongoose.Schema({
   dob: {
     type: Date,
     required: true,
-    immutable: true, // Prevents DOB from being changed
+    immutable: true,
   },
   jobStatus: {
     type: String,
@@ -67,7 +105,7 @@ const touristSchema = new mongoose.Schema({
   jobTitle: {
     type: String,
     required: function () {
-      return this.jobStatus === "job"; // Job title is required only if jobStatus is 'job'
+      return this.jobStatus === "job";
     },
     trim: true,
   },
@@ -84,8 +122,13 @@ const touristSchema = new mongoose.Schema({
     default: 0,
   },
   preferences: {
-    type: preferenceSchema,
-    default: {},
+    type: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PreferenceTag",
+      },
+    ],
+    default: [],
   },
   loyaltypoints: {
     type: Number,
@@ -95,30 +138,102 @@ const touristSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  savedEvents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event'
+  }],
+  // Add delivery addresses
+  deliveryAddresses: [addressSchema]
 });
 
 // Pre-save hook to hash the password
 touristSchema.pre("save", async function (next) {
   const tourist = this;
 
-  // Hash the password if it's new or has been modified
   if (tourist.isModified("password")) {
     tourist.password = await bcrypt.hash(tourist.password, 10);
   }
 
-  // Calculate the age and set isUnderage field
   const age = new Date().getFullYear() - tourist.dob.getFullYear();
   tourist.isUnderage = age < 18;
+
+  // Ensure only one default address
+  if (tourist.isModified('deliveryAddresses')) {
+    const defaultAddresses = tourist.deliveryAddresses.filter(addr => addr.isDefault);
+    if (defaultAddresses.length > 1) {
+      // Keep only the last default address
+      for (let i = 0; i < defaultAddresses.length - 1; i++) {
+        defaultAddresses[i].isDefault = false;
+      }
+    }
+    // If no default address and there are addresses, make the first one default
+    if (defaultAddresses.length === 0 && tourist.deliveryAddresses.length > 0) {
+      tourist.deliveryAddresses[0].isDefault = true;
+    }
+  }
 
   next();
 });
 
-// Password comparison method
+// Method to compare password
 touristSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Export the model
+// Method to add a new address
+touristSchema.methods.addDeliveryAddress = async function(addressData) {
+  // If this is the first address, make it default
+  if (this.deliveryAddresses.length === 0) {
+    addressData.isDefault = true;
+  }
+
+  // If setting as default, remove default from other addresses
+  if (addressData.isDefault) {
+    this.deliveryAddresses.forEach(addr => {
+      addr.isDefault = false;
+    });
+  }
+
+  this.deliveryAddresses.push(addressData);
+  return this.save();
+};
+
+// Method to update an address
+touristSchema.methods.updateDeliveryAddress = async function(addressId, updateData) {
+  const address = this.deliveryAddresses.id(addressId);
+  if (!address) {
+    throw new Error('Address not found');
+  }
+
+  // If setting as default, remove default from other addresses
+  if (updateData.isDefault) {
+    this.deliveryAddresses.forEach(addr => {
+      addr.isDefault = false;
+    });
+  }
+
+  Object.assign(address, updateData);
+  return this.save();
+};
+
+// Method to delete an address
+touristSchema.methods.deleteDeliveryAddress = async function(addressId) {
+  const address = this.deliveryAddresses.id(addressId);
+  if (!address) {
+    throw new Error('Address not found');
+  }
+
+  const wasDefault = address.isDefault;
+  address.remove();
+
+  // If deleted address was default, make first remaining address default
+  if (wasDefault && this.deliveryAddresses.length > 0) {
+    this.deliveryAddresses[0].isDefault = true;
+  }
+
+  return this.save();
+};
+
 const Tourist = mongoose.model("Tourist", touristSchema);
 
 export default Tourist;

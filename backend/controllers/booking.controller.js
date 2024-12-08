@@ -166,6 +166,62 @@ export const bookingController = {
       });
     }
   },
+  getGuideSalesReport: async (req, res) => {
+    try {
+      const { guideId } = req.params;
+
+      const bookings = await Booking.find({
+        bookingType: "Itinerary",
+        status: { $in: ["confirmed", "attended"] },
+      })
+        .populate({
+          path: "itemId",
+          match: { createdBy: guideId },
+          select: "totalPrice name createdBy",
+        })
+        .sort("-bookingDate");
+
+      // Filter out bookings where itemId is null (not created by this guide)
+      const validBookings = bookings.filter((booking) => booking.itemId);
+
+      // Calculate totals including platform fee
+      const salesData = validBookings.map((booking) => ({
+        ...booking.toObject(),
+        platformFee: booking.itemId.totalPrice * 0.1,
+        netAmount: booking.itemId.totalPrice * 0.9,
+      }));
+
+      const summary = {
+        totalRevenue: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice,
+          0
+        ),
+        platformFees: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice * 0.1,
+          0
+        ),
+        netRevenue: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice * 0.9,
+          0
+        ),
+        totalBookings: validBookings.length,
+      };
+
+      res.status(200).json({
+        success: true,
+        data: {
+          bookings: salesData,
+          summary,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching guide sales:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error fetching sales data",
+      });
+    }
+  },
 
   getUpcomingBookings: async (req, res) => {
     try {
@@ -735,3 +791,5 @@ export const bookingController = {
     }
   },
 };
+
+// Add this to your existing booking.controller.js

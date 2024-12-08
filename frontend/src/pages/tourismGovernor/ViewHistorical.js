@@ -104,7 +104,7 @@ const HistoricalPlacesManagement = () => {
     try {
       const endpoint = isAdmin 
         ? "http://localhost:5000/api/historicalplace"
-        : "http://localhost:5000/api/tourismgovernor/my-places";
+        : "http://localhost:5000/api/toursimGovernor/my-places";
       
       const response = await axios.get(endpoint, getAuthConfig());
       setHistoricalPlaces(response.data.places || response.data);
@@ -129,7 +129,7 @@ const HistoricalPlacesManagement = () => {
   const fetchTourismGovernors = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/tourismgovernor",
+        "http://localhost:5000/api/toursimGovernor",
         getAuthConfig()
       );
       setTourismGovernors(response.data);
@@ -155,12 +155,12 @@ const HistoricalPlacesManagement = () => {
       if (currentPlace) {
         const endpoint = isAdmin
           ? `http://localhost:5000/api/historicalplace/${currentPlace._id}`
-          : `http://localhost:5000/api/tourismgovernor/places/${currentPlace._id}`;
+          : `http://localhost:5000/api/toursimGovernor/places/${currentPlace._id}`;
         response = await axios.put(endpoint, payload, config);
       } else {
         const endpoint = isAdmin
           ? "http://localhost:5000/api/historicalplace"
-          : "http://localhost:5000/api/tourismgovernor/places";
+          : "http://localhost:5000/api/toursimGovernor/places";
         response = await axios.post(endpoint, payload, config);
       }
 
@@ -178,7 +178,7 @@ const HistoricalPlacesManagement = () => {
       try {
         const endpoint = isAdmin
           ? `http://localhost:5000/api/historicalplace/${id}`
-          : `http://localhost:5000/api/tourismgovernor/places/${id}`;
+          : `http://localhost:5000/api/toursimGovernor/places/${id}`;
         
         await axios.delete(endpoint, getAuthConfig());
         await fetchHistoricalPlaces();

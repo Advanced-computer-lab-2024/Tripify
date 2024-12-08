@@ -70,7 +70,7 @@ const GovernorCreatedPlaces = () => {
       const token = localStorage.getItem('token');
       
       const response = await axios.get(
-        "http://localhost:5000/api/tourismgovernor/my-places",
+        "http://localhost:5000/api/toursimGovernor/my-places",
         {
           headers: {
             Authorization: `Bearer ${token}`,

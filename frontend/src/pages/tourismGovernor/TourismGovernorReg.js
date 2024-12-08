@@ -54,7 +54,7 @@ const RegisterPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/tourismGovernor/register",
+        "http://localhost:5000/api/toursimGovernor/register/",
         formData
       );
       setMessage({ type: "success", text: "Governor registered successfully!" });
