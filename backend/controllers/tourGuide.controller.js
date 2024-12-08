@@ -4,6 +4,7 @@ import Itinerary from "../models/itinerary.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fs from "fs";
+import Booking from "../models/booking.model.js";
 
 dotenv.config();
 
@@ -558,6 +559,79 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error("Error resetting password:", error);
     res.status(500).json({ message: "Error resetting password" });
+  }
+};
+
+export const getTourGuideReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Tour guide ID is required.",
+      });
+    }
+
+    // Fetch itineraries created by the tour guide
+    const itineraries = await Itinerary.find({ createdBy: id });
+
+    if (!itineraries.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No itineraries found for the tour guide.",
+      });
+    }
+
+    const itineraryIds = itineraries.map((itinerary) => itinerary._id);
+
+    // Fetch bookings related to the itineraries
+    const bookings = await Booking.find({
+      itemId: { $in: itineraryIds },
+      bookingType: "Itinerary",
+      status: "attended",
+    });
+
+    // Calculate total attendees per itinerary
+    const itineraryAttendeesMap = bookings.reduce((acc, booking) => {
+      const itineraryId = booking.itemId.toString();
+      acc[itineraryId] = (acc[itineraryId] || 0) + 1; // Increment attendee count
+      return acc;
+    }, {});
+    
+
+    // Map attendee counts to itineraries
+    const itinerariesWithAttendees = itineraries.map((itinerary) => ({
+      ...itinerary.toObject(),
+      attendeesCount: itineraryAttendeesMap[itinerary._id.toString()] || 0,
+   }));
+   
+
+    // Prepare response data
+    const totalTourists = bookings.length;
+
+    const responseData = {
+      totalTourists,
+      itinerariesCount: itineraries.length,
+      bookingsCount: bookings.length,
+      itineraries: itinerariesWithAttendees,
+      bookings,
+    };
+
+    console.log(responseData);
+
+    res.status(200).json({
+      success: true,
+      message: "Tour guide report fetched successfully.",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while generating the report.",
+      error: error.message,
+    });
   }
 };
 

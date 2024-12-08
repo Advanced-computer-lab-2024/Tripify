@@ -80,6 +80,8 @@ import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
 import FlightBookings from "./pages/tourist/FlightBookings";
 import AdminProductPage from "./pages/admin/AdminProductPage";
 import TouristReport from "./pages/advertiser/Report";
+import TourGuideReport from "./pages/tourguide/TourGuideReport"
+
 function App() {
   return (
     <div className="App">
@@ -174,6 +176,10 @@ function App() {
           <Route
             path="/tourguide/sales-report"
             element={<TourGuideSalesReport />}
+          />
+           <Route
+            path="/tourguide/tourist-report"
+            element={<TourGuideReport />}
           />
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminHomePage />} />

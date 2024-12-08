@@ -119,6 +119,9 @@ const TourguideHomePage = () => {
         <Link to="/tourguide/change-password" className="btn btn-primary m-2">
           Change My Password
         </Link>
+        <Link to="/tourguide/tourist-report" className="btn btn-primary m-2">
+          View Tourist attended report
+        </Link>
         <Link to="/tourguide/sales-report" className="btn btn-primary m-2">
           View Sales Report
         </Link>
