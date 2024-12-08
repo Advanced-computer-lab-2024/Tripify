@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import {
@@ -11,7 +11,9 @@ import {
   Button,
   Badge,
   Collapse,
+  Alert
 } from "react-bootstrap";
+import { Link } from 'react-router-dom';
 import {
   FaCopy,
   FaEnvelope,
@@ -30,13 +32,15 @@ import {
   FaDollarSign,
   FaTag,
   FaBell,
+  FaChevronRight,
+  FaRoute // Added the missing icon
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
+import Navbar from "./components/Navbar";
 import ItineraryComment from "../../components/ItineraryComment";
 import EventPaymentModal from "./EventPaymentModal";
 import StripeWrapper from "../../components/StripeWrapper";
 import { requestEventNotification } from "../../pages/tourist/eventNotificationService";
-import Navbar from "./components/Navbar";
 
 const ViewEvents = () => {
   // State declarations
@@ -1241,129 +1245,258 @@ const ViewEvents = () => {
     );
   }
 
-  return (
-    <Container className="mt-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>{sharedItem ? "Shared Event" : "Available Events"}</h1>
-        <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center">
-          <FaWallet className="me-2 text-primary" size={24} />
-          <div>
-            <h4 className="mb-0">Wallet Balance: ${userWallet}</h4>
-            <small className="text-muted">Available for bookings</small>
-          </div>
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    minHeight: '60vh',
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingBottom: '3rem'
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }} className="d-flex justify-content-center align-items-center">
+            <Spinner animation="border" variant="light" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          </Container>
         </div>
-      </div>
+      </>
+    );
+  }
 
-      <div className="d-flex gap-3">
-        <LoyaltyInfo />
-      </div>
+  return (
+    <>
+      <Navbar />
+      <div className="events-page">
+        {/* Hero Section */}
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }}>
+            <div className="text-center text-white">
+              <p className="mb-4">
+                <span className="me-2">
+                  <Link to="/tourist" className="text-white text-decoration-none">
+                    Home <FaChevronRight className="small" />
+                  </Link>
+                </span>
+                <span>
+                  Events <FaChevronRight className="small" />
+                </span>
+              </p>
+              <h1 className="display-4">Discover Amazing Events</h1>
+            </div>
+          </Container>
+        </div>
 
-      {sharedItem ? (
-        <div className="mt-4">{renderSharedContent()}</div>
-      ) : (
-        <>
-          <div className="mb-4 p-3 bg-white rounded shadow-sm">
-            <Form.Control
-              type="text"
-              placeholder="Search by name, category, or tags"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="mb-3"
-            />
-
-            <Form.Select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </Form.Select>
-          </div>
-
-          {filteredHistoricalPlaces.length > 0 && (
-            <div className="mb-5">
-              <h2 className="mb-4">Historical Places</h2>
+        <section className="py-5">
+          <Container>
+            {/* Wallet and Loyalty Display */}
+            <div className="bg-light p-4 rounded shadow-sm mb-4">
               <Row>
-                {filteredHistoricalPlaces.map((place) => (
-                  <Col md={4} key={place._id}>
-                    <HistoricalPlaceCard
-                      place={place}
-                      onBooking={handleBooking}
-                      bookingDate={bookingDate} // Pass the date state
-                      setBookingDate={setBookingDate} // Pass the date setter
-                    />
-                  </Col>
-                ))}
+                <Col md={6}>
+                  <div className="d-flex align-items-center">
+                    <FaWallet className="text-primary me-3" size={32} />
+                    <div>
+                      <h4 className="mb-1">Wallet Balance</h4>
+                      <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+                    </div>
+                  </div>
+                </Col>
+                <Col md={6} className="border-start">
+                  <div className="d-flex align-items-center">
+                    {getBadgeIcon(touristLevel)}
+                    <div>
+                      <h4 className="mb-1">Level {touristLevel}</h4>
+                      <p className="mb-0">{loyaltyPoints.toLocaleString()} Points</p>
+                    </div>
+                  </div>
+                </Col>
               </Row>
             </div>
-          )}
 
-          {filteredActivities.length > 0 && (
-            <div className="mb-5">
-              <h2 className="mb-4">Activities</h2>
-              <Row>
-                {filteredActivities.map((activity) => (
-                  <Col md={4} key={activity._id}>
-                    <ActivityCard
-                      activity={activity}
-                      onBooking={handleBooking}
-                      bookingDate={bookingDate}
-                      setBookingDate={setBookingDate}
+            {/* Search and Filter Section */}
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                <Row className="g-3">
+                  <Col md={8}>
+                    <Form.Control
+                      type="text"
+                      placeholder="Search by name, category, or tags"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="border-0 bg-light"
                     />
                   </Col>
-                ))}
-              </Row>
-            </div>
-          )}
-
-          {filteredItineraries.length > 0 && (
-            <div className="mb-5">
-              <h2 className="mb-4">Itineraries</h2>
-              <Row>
-                {filteredItineraries.map((itinerary) => (
-                  <Col md={4} key={itinerary._id}>
-                    <ItineraryCard
-                      itinerary={itinerary}
-                      onBooking={handleBooking}
-                      bookingDate={bookingDate}
-                      setBookingDate={setBookingDate}
-                    />
+                  <Col md={4}>
+                    <Form.Select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="border-0 bg-light"
+                    >
+                      <option value="">All Categories</option>
+                      {categories.map((category) => (
+                        <option key={category._id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Col>
-                ))}
-              </Row>
-            </div>
-          )}
+                </Row>
+              </Card.Body>
+            </Card>
 
-          {filteredHistoricalPlaces.length === 0 &&
-            filteredActivities.length === 0 &&
-            filteredItineraries.length === 0 && (
-              <div className="text-center mt-5 p-5 bg-light rounded">
-                <FaInfoCircle size={48} className="text-muted mb-3" />
-                <h3>No events found matching your search criteria.</h3>
-                <p>Try adjusting your search or category filter.</p>
-              </div>
+            {/* Shared Content or Regular Content */}
+            {sharedItem ? (
+              <div className="mt-4">{renderSharedContent()}</div>
+            ) : (
+              <>
+                {/* Historical Places Section */}
+                {filteredHistoricalPlaces.length > 0 && (
+                  <div className="mb-5">
+                    <h2 className="mb-4 d-flex align-items-center">
+                      <FaMapMarkerAlt className="me-2 text-primary" />
+                      Historical Places
+                    </h2>
+                    <Row className="g-4">
+                      {filteredHistoricalPlaces.map((place) => (
+                        <Col md={4} key={place._id}>
+                          <HistoricalPlaceCard
+                            place={place}
+                            onBooking={handleBooking}
+                            bookingDate={bookingDate}
+                            setBookingDate={setBookingDate}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                )}
+
+                {/* Activities Section */}
+                {filteredActivities.length > 0 && (
+                  <div className="mb-5">
+                    <h2 className="mb-4 d-flex align-items-center">
+                      <FaCalendarCheck className="me-2 text-primary" />
+                      Activities
+                    </h2>
+                    <Row className="g-4">
+                      {filteredActivities.map((activity) => (
+                        <Col md={4} key={activity._id}>
+                          <ActivityCard
+                            activity={activity}
+                            onBooking={handleBooking}
+                            bookingDate={bookingDate}
+                            setBookingDate={setBookingDate}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                )}
+
+                {/* Itineraries Section */}
+                {filteredItineraries.length > 0 && (
+                  <div className="mb-5">
+                    <h2 className="mb-4 d-flex align-items-center">
+                      <FaRoute className="me-2 text-primary" />
+                      Itineraries
+                    </h2>
+                    <Row className="g-4">
+                      {filteredItineraries.map((itinerary) => (
+                        <Col md={4} key={itinerary._id}>
+                          <ItineraryCard
+                            itinerary={itinerary}
+                            onBooking={handleBooking}
+                            bookingDate={bookingDate}
+                            setBookingDate={setBookingDate}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                )}
+
+                {/* No Results Message */}
+                {filteredHistoricalPlaces.length === 0 &&
+                  filteredActivities.length === 0 &&
+                  filteredItineraries.length === 0 && (
+                  <div className="text-center py-5">
+                    <FaInfoCircle size={48} className="text-muted mb-3" />
+                    <h3>No events found</h3>
+                    <p className="text-muted">Try adjusting your search criteria</p>
+                    <Button variant="primary" onClick={() => {
+                      setSearchQuery('');
+                      setCategoryFilter('');
+                    }}>
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
-        </>
-      )}
-      <StripeWrapper>
-        <EventPaymentModal
-          show={showPaymentModal}
-          onHide={() => setShowPaymentModal(false)}
-          totalAmount={selectedEvent?.finalPrice || 0}
-          walletBalance={userWallet}
-          onPaymentComplete={handlePaymentComplete}
-          eventDetails={{
-            name: selectedEvent?.item?.name,
-            type: selectedEvent?.type,
-          }}
-          appliedPromoCode={selectedEvent?.promoCode}
-        />
-      </StripeWrapper>
-    </Container>
+          </Container>
+        </section>
+
+        {/* Call to Action Section */}
+        <section className="py-5 bg-light">
+          <Container>
+            <div 
+              className="text-center p-5 position-relative rounded-lg"
+              style={{
+                backgroundImage: 'url("/images/bg_2.jpg")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                borderRadius: '10px'
+              }}
+            >
+              <div style={overlayStyle}></div>
+              <div className="position-relative" style={{ zIndex: 2 }}>
+                <h2 className="text-white mb-4">Ready for Your Next Adventure?</h2>
+                <p className="text-white mb-4">Explore our curated collection of experiences and create lasting memories</p>
+                <Button variant="primary" size="lg" as={Link} to="/tourist/profile">
+                  View My Bookings
+                </Button>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* Payment Modal */}
+        <StripeWrapper>
+          <EventPaymentModal
+            show={showPaymentModal}
+            onHide={() => setShowPaymentModal(false)}
+            totalAmount={selectedEvent?.finalPrice || 0}
+            walletBalance={userWallet}
+            onPaymentComplete={handlePaymentComplete}
+            eventDetails={{
+              name: selectedEvent?.item?.name,
+              type: selectedEvent?.type,
+            }}
+            appliedPromoCode={selectedEvent?.promoCode}
+          />
+        </StripeWrapper>
+      </div>
+    </>
   );
 };
 

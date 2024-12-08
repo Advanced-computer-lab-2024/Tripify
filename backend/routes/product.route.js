@@ -21,6 +21,8 @@ import {
 import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
+router.get("/", getProducts);
+router.get("/archived", getArchivedProducts);
 
 // Existing routes
 router.post(
@@ -28,7 +30,7 @@ router.post(
   uploadMiddleware.fields([{ name: "productImage", maxCount: 5 }]),
   addProduct
 );
-router.get("/", getProducts);
+
 router.get("/:id", findProductById);
 router.put(
   "/:id",
@@ -43,8 +45,7 @@ router.post("/purchase", purchaseProduct);
 router.get("/purchases/:userId", getUserPurchases);
 router.post("/purchases/:purchaseId/review", addPurchaseReview);
 
-router.get("/archived", authMiddleware, getArchivedProducts);
-router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
+router.put("/archive/:productId/", toggleArchiveProduct);
 // Add this to product.route.js
 router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
 router.post("/purchases/:purchaseId/cancel", authMiddleware, cancelOrder);

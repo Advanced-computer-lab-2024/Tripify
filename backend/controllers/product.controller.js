@@ -409,7 +409,6 @@ export const getAllProducts = async (req, res) => {
 export const toggleArchiveProduct = async (req, res) => {
   const { productId } = req.params;
   const { isArchived } = req.body;
-  const { _id: userId, role: userType } = req.user;
 
   try {
     const product = await Product.findById(productId);
@@ -418,18 +417,8 @@ export const toggleArchiveProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // If user is a seller, they can only archive their own products
-    // If user is an admin, they can archive any product
-    if (userType === 'Seller' && 
-        product.createdBy.user.toString() !== userId.toString()) {
-      return res.status(403).json({
-        message: "You don't have permission to archive this product",
-      });
-    }
-
     product.isArchived = isArchived;
     product.archivedAt = isArchived ? new Date() : null;
-    product.archivedBy = userId;
     
     await product.save();
 
@@ -446,18 +435,12 @@ export const toggleArchiveProduct = async (req, res) => {
   }
 };
 
+
 export const getArchivedProducts = async (req, res) => {
   try {
-    // Log incoming request details
-    console.log("Fetching archived products for user:", req.user);
-    console.log("User role:", req.headers['user-role']);
-
-    const query = { isArchived: true };
-    const products = await Product.find(query)
+    const products = await Product.find({ isArchived: true })
       .sort({ archivedAt: -1 })
       .lean();
-
-    console.log("Found products:", products.length);
 
     return res.status(200).json({
       success: true,
