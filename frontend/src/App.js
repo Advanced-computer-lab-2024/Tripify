@@ -26,7 +26,7 @@ import ViewHistorical from "./pages/tourismGovernor/ViewHistorical";
 import GovernorCreatedPlaces from "./pages/tourismGovernor/GovernorCreatedPlaces";
 import TagManagement from "./components/TagManagement";
 import SellerHomePage from "./pages/seller/SellerHomePage";
-import ProductPage from "./pages/product/productPage";
+import SellerProductPage from "./pages/seller/SellerProductPage";
 import UserDisplay from "./components/UserDisplay";
 import ItineraryManagement from "./pages/tourguide/ItineraryManagement";
 import TourguideHomePage from "./pages/tourguide/TourguideHomePage";
@@ -78,7 +78,7 @@ import ForgetPasswordTourGuide from "./pages/tourguide/ForgetPasswordTourGuide";
 import ForgetPasswordSeller from "./pages/seller/ForgetPasswordSeller";
 import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
 import FlightBookings from "./pages/tourist/FlightBookings";
-
+import AdminProductPage from "./pages/admin/AdminProductPage";
 function App() {
   return (
     <div className="App">
@@ -195,6 +195,7 @@ function App() {
             path="/admin/content-moderation"
             element={<ContentModeration />}
           />
+          <Route path="/admin/products" element={<AdminProductPage />} />
           <Route path="/admin/view-documents" element={<ViewDocuemnts />} />
           <Route
             path="/admin/change-password"
@@ -254,7 +255,7 @@ function App() {
           />
           {/* Seller Routes */}
           <Route path="/seller" element={<SellerHomePage />} />
-          <Route path="/seller/products" element={<ProductPage />} />
+          <Route path="/seller/products" element={<SellerProductPage />} />
           <Route path="/seller/profile" element={<UserDisplay />} />
           <Route
             path="/seller/change-password"

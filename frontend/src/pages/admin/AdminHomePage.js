@@ -21,7 +21,7 @@ const AdminHomePage = () => {
         <Link to="/admin/preference-tags" className="btn btn-primary m-2">
           Manage Preference Tags
         </Link>
-        <Link to="/seller/products" className="btn btn-primary m-2">
+        <Link to="/admin/products" className="btn btn-primary m-2">
           View Products
         </Link>
         <Link to="/admin/content-moderation" className="btn btn-primary m-2">

@@ -15,7 +15,7 @@ const exchangeRates = {
 
 export const addProduct = async (req, res) => {
   try {
-    const { name, description, price, quantity, seller } = req.body;
+    const { name, description, price, quantity, userId, userType, merchantEmail } = req.body;
 
     if (!req.files || !req.files.productImage) {
       return res.status(400).json({
@@ -37,8 +37,12 @@ export const addProduct = async (req, res) => {
       description,
       price,
       quantity,
-      totalSales: 0, // Initialize totalSales as 0
-      seller,
+      totalSales: 0,
+      merchantEmail, // Add merchantEmail here
+      createdBy: {
+        user: userId,
+        userType: userType
+      },
       productImage: imageData,
     });
 
@@ -67,20 +71,26 @@ export const addProduct = async (req, res) => {
         });
       });
     }
-    res
-      .status(500)
-      .json({ message: "Failed to add product", error: error.message });
+    res.status(500).json({ message: "Failed to add product", error: error.message });
   }
 };
 
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedData = req.body;
-
+    const { name, description, price, quantity, merchantEmail } = req.body;
+    
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ message: "Product not found" });
     }
+
+    // Create update object with only the fields that are provided
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (description) updateData.description = description;
+    if (price) updateData.price = price;
+    if (quantity) updateData.quantity = quantity;
+    if (merchantEmail) updateData.merchantEmail = merchantEmail;
 
     if (req.files && req.files.productImage) {
       const imageData = req.files.productImage.map((file) => ({
@@ -90,7 +100,7 @@ export const updateProduct = async (req, res) => {
         size: file.size,
         uploadDate: new Date(),
       }));
-      updatedData.productImage = imageData;
+      updateData.productImage = imageData;
 
       const oldProduct = await Product.findById(id);
       if (oldProduct && oldProduct.productImage) {
@@ -104,9 +114,15 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id, 
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     const productWithPrices = {
       ...updatedProduct.toObject(),
@@ -131,12 +147,12 @@ export const updateProduct = async (req, res) => {
         });
       });
     }
-    res
-      .status(500)
-      .json({ message: "Failed to update product", error: error.message });
+    res.status(500).json({ 
+      message: "Failed to update product", 
+      error: error.message 
+    });
   }
 };
-
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -392,23 +408,30 @@ export const getAllProducts = async (req, res) => {
 export const toggleArchiveProduct = async (req, res) => {
   const { productId } = req.params;
   const { isArchived } = req.body;
-  const userRole = req.user.role;
+  const { _id: userId, role: userType } = req.user;
+
   try {
     const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    // Check permissions
-    if (userRole === "seller" && product.seller !== req.user._id.toString()) {
+
+    // If user is a seller, they can only archive their own products
+    // If user is an admin, they can archive any product
+    if (userType === 'Seller' && 
+        product.createdBy.user.toString() !== userId.toString()) {
       return res.status(403).json({
         message: "You don't have permission to archive this product",
       });
     }
+
     product.isArchived = isArchived;
     product.archivedAt = isArchived ? new Date() : null;
-    product.archivedBy = req.user._id;
+    product.archivedBy = userId;
+    
     await product.save();
+
     res.status(200).json({
       message: `Product ${isArchived ? "archived" : "unarchived"} successfully`,
       product,
@@ -542,7 +565,6 @@ export const getSellerSales = async (req, res) => {
     const { sellerId } = req.params;
     const { startDate, endDate } = req.query;
 
-    // Validate seller ID
     if (!sellerId) {
       return res.status(400).json({
         success: false,
@@ -550,22 +572,22 @@ export const getSellerSales = async (req, res) => {
       });
     }
 
-    // Get all purchases and populate product details
     const purchases = await ProductPurchase.find()
       .populate({
         path: "productId",
-        match: { seller: "External seller" }, // Match products with seller type "External seller"
-        select: "name price seller",
+        match: { 
+          'createdBy.user': sellerId,
+          'createdBy.userType': 'Seller'
+        },
+        select: 'name price createdBy'
       })
       .populate("userId", "username")
       .sort({ purchaseDate: -1 });
 
-    // Filter out purchases where productId is null (means product doesn't match seller criteria)
     const sellerPurchases = purchases.filter(
       (purchase) => purchase.productId !== null
     );
 
-    // Calculate totals and format the data
     const salesData = sellerPurchases.map((purchase) => ({
       _id: purchase._id,
       purchaseDate: purchase.purchaseDate,

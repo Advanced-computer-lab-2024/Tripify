@@ -716,7 +716,7 @@ cd Tripify/frontend
 npm install
 ```
 
-- Install dependencies for bacKend
+- Install dependencies for backend
 
 ```bash
 cd Tripify/backend
@@ -2942,7 +2942,7 @@ Common error responses across all endpoints:
 ## 🧪 Tests
 
 
-We use `Postman` to manually test all our api references by making sure the response is as expected. We use it as some kind of sanity-check.Automatic Jest tests will be available in the near future.
+We use `Postman` to manually test all our api references by making sure the response is as expected. We use it as some kind of sanity-check. Automatic Jest tests will be available in the near future.
 
 Here is an example of testing one of our endpoints using Postman:
 

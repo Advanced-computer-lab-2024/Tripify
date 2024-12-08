@@ -6,6 +6,7 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
 });
+
 const fileSchema = new mongoose.Schema({
   filename: {
     type: String,
@@ -26,11 +27,7 @@ const fileSchema = new mongoose.Schema({
   uploadDate: {
     type: Date,
     default: Date.now
-  },
-  // isVerified: {
-  //   type: Boolean,
-  //   default: false
-  // }
+  }
 });
 
 const productSchema = new mongoose.Schema(
@@ -51,19 +48,28 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
     totalSales: {
       type: Number,
       required: true,
-      default: 0, 
+      default: 0,
     },
     imageUrl: {
       type: String,
     },
-    seller: {
+    merchantEmail: {
       type: String,
-      enum: ["VTP", "External seller"],
-      required: true,
+    },
+    createdBy: {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        refPath: 'createdBy.userType'
+      },
+      userType: {
+        type: String,
+        required: true,
+        enum: ['Seller', 'Admin']
+      }
     },
     reviews: [reviewSchema],
     productImage: [fileSchema],
@@ -93,7 +99,6 @@ productSchema.pre("save", function (next) {
   }
   next();
 });
-
 
 const Product = mongoose.model("Product", productSchema);
 
