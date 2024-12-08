@@ -86,7 +86,6 @@ const ViewEvents = () => {
     };
 
     return (
-      
       <Button
         variant={isRequested ? "success" : "outline-primary"}
         onClick={handleNotifyRequest}
@@ -475,35 +474,42 @@ const ViewEvents = () => {
       return;
     }
 
+    // Ensure consistent date handling
+    const selectedDate = new Date(bookingDate);
+    console.log("Selected date:", {
+      original: bookingDate,
+      parsed: selectedDate,
+      iso: selectedDate.toISOString(),
+      local: selectedDate.toLocaleDateString(),
+    });
+
     setSelectedEvent({
       item,
       type,
       promoCode,
       finalPrice: discountedPrice || getItemPrice(item, type),
+      formattedDate: selectedDate.toISOString(), // Store ISO string
     });
     setShowPaymentModal(true);
   };
+
   const handlePaymentComplete = async (paymentMethod, paymentIntent) => {
-    const { item, type, promoCode, finalPrice } = selectedEvent;
+    const { item, type, promoCode, finalPrice, formattedDate } = selectedEvent;
     const userId = getUserId();
 
     try {
-      const formattedBookingDate = new Date(bookingDate);
-      formattedBookingDate.setHours(12, 0, 0, 0);
-
+      // Use the ISO string date directly
       const bookingData = {
         userId,
         bookingType: type,
         itemId: item._id,
-        bookingDate: formattedBookingDate.toISOString(),
+        bookingDate: formattedDate, // Use the stored ISO string
         promoCode,
         paymentMethod,
         paymentIntentId: paymentIntent?.id,
       };
 
-      if (type === "Itinerary") {
-        bookingData.guideId = item.createdBy;
-      }
+      console.log("Sending booking data:", bookingData);
 
       const bookingResponse = await axios.post(
         "http://localhost:5000/api/bookings/create",
