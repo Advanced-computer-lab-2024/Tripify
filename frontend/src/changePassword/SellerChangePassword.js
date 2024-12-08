@@ -1,6 +1,9 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { FaKey, FaLock, FaUnlock, FaChevronRight } from 'react-icons/fa';
+import axios from 'axios';
+import SellerNavbar from '../pages/seller/SellerNavbar';
 
 const SellerChangePassword = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +17,25 @@ const SellerChangePassword = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    position: "relative",
+    padding: "8rem 0 4rem 0",
+    marginBottom: "2rem"
+  };
+
+  const overlayStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1
   };
 
   const handleSubmit = async (e) => {
@@ -42,7 +64,7 @@ const SellerChangePassword = () => {
         return;
       }
 
-      const response = await axios.put(
+      await axios.put(
         "http://localhost:5000/api/seller/change-password",
         {
           currentPassword: formData.currentPassword,
@@ -73,9 +95,7 @@ const SellerChangePassword = () => {
     } catch (error) {
       setMessage({
         type: "danger",
-        text:
-          error.response?.data?.message ||
-          "Error changing password. Please try again.",
+        text: error.response?.data?.message || "Error changing password. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -83,86 +103,122 @@ const SellerChangePassword = () => {
   };
 
   return (
-    <div className="container">
-      <div className="row justify-content-center mt-5">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h2 className="card-title text-center mb-4">Change Password</h2>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label
-                    htmlFor="currentPassword"
-                    className="form-label"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={formData.currentPassword}
-                    onChange={handleChange}
-                    required
-                  />
+    <div className="change-password-page">
+      <SellerNavbar />
+      {/* Hero Section */}
+      <div style={heroStyle}>
+        <div style={overlayStyle}></div>
+        <Container style={{ position: "relative", zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span>Security Settings <FaChevronRight className="small" /></span>
+            </p>
+            <h1 className="display-4 mb-0">Change Password</h1>
+          </div>
+        </Container>
+      </div>
+
+      <Container className="py-5">
+        <div className="row justify-content-center">
+          <div className="col-md-8 col-lg-6">
+            <Card className="shadow-sm" style={{ borderRadius: "15px" }}>
+              <Card.Body className="p-4">
+                <div className="text-center mb-4">
+                  <div className="mb-4">
+                    <span className="icon-circle bg-primary d-inline-flex align-items-center justify-content-center" 
+                          style={{ width: "64px", height: "64px", borderRadius: "50%" }}>
+                      <FaKey className="text-white" size={24} />
+                    </span>
+                  </div>
+                  <h4 className="mb-0">Update Your Password</h4>
+                  <p className="text-muted">Please enter your current and new password</p>
                 </div>
-                <div className="mb-3">
-                  <label
-                    htmlFor="newPassword"
-                    className="form-label"
-                  >
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="newPassword"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label
-                    htmlFor="confirmPassword"
-                    className="form-label"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="d-grid">
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
+
+                {message && (
+                  <Alert variant={message.type} className="mb-4">
+                    {message.text}
+                  </Alert>
+                )}
+
+                <Form onSubmit={handleSubmit}>
+                  <Form.Group className="mb-4">
+                    <div className="d-flex align-items-center mb-2">
+                      <FaUnlock className="text-muted me-2" />
+                      <Form.Label className="mb-0">Current Password</Form.Label>
+                    </div>
+                    <Form.Control
+                      type="password"
+                      name="currentPassword"
+                      value={formData.currentPassword}
+                      onChange={handleChange}
+                      required
+                      className="rounded-pill"
+                      style={{ padding: "0.75rem 1.25rem" }}
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-4">
+                    <div className="d-flex align-items-center mb-2">
+                      <FaLock className="text-muted me-2" />
+                      <Form.Label className="mb-0">New Password</Form.Label>
+                    </div>
+                    <Form.Control
+                      type="password"
+                      name="newPassword"
+                      value={formData.newPassword}
+                      onChange={handleChange}
+                      required
+                      className="rounded-pill"
+                      style={{ padding: "0.75rem 1.25rem" }}
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-4">
+                    <div className="d-flex align-items-center mb-2">
+                      <FaLock className="text-muted me-2" />
+                      <Form.Label className="mb-0">Confirm New Password</Form.Label>
+                    </div>
+                    <Form.Control
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      className="rounded-pill"
+                      style={{ padding: "0.75rem 1.25rem" }}
+                    />
+                  </Form.Group>
+
+                  <Button 
+                    type="submit" 
+                    className="w-100 rounded-pill py-3"
                     disabled={isLoading}
                   >
-                    {isLoading ? "Changing Password..." : "Change Password"}
-                  </button>
-                </div>
-              </form>
-              {message && (
-                <div
-                  className={`alert alert-${message.type} mt-3`}
-                  role="alert"
-                >
-                  {message.text}
-                </div>
-              )}
-            </div>
+                    {isLoading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                        />
+                        Changing Password...
+                      </>
+                    ) : (
+                      <>
+                        <FaKey className="me-2" />
+                        Update Password
+                      </>
+                    )}
+                  </Button>
+                </Form>
+              </Card.Body>
+            </Card>
           </div>
         </div>
-      </div>
+      </Container>
     </div>
   );
 };
