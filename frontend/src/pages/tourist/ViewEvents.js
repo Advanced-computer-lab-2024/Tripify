@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
-import Navbar from "./components/Navbar";
-
-
-import { FaClock, FaMoneyBill, FaSearch } from 'react-icons/fa';
-import { FaChevronRight } from 'react-icons/fa';
-
 import {
   Card,
   Container,
@@ -29,12 +24,22 @@ import {
   FaMedal,
   FaCrown,
   FaRegSmile,
-  
+  FaBookmark,
+  FaRegBookmark,
+  FaMapMarkerAlt,
+  FaDollarSign,
+  FaTag,
+  FaBell,
 } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import ItineraryComment from "../../components/ItineraryComment";
+import EventPaymentModal from "./EventPaymentModal";
+import StripeWrapper from "../../components/StripeWrapper";
+import { requestEventNotification } from "../../pages/tourist/eventNotificationService";
+import Navbar from "./components/Navbar";
 
 const ViewEvents = () => {
+  // State declarations
   const [historicalPlaces, setHistoricalPlaces] = useState([]);
   const [activities, setActivities] = useState([]);
   const [itineraries, setItineraries] = useState([]);
@@ -49,10 +54,118 @@ const ViewEvents = () => {
   const [userWallet, setUserWallet] = useState(0);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [touristLevel, setTouristLevel] = useState(1);
+  const [searchParams] = useSearchParams();
+  const [sharedItem, setSharedItem] = useState(null);
+  const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState("");
+  const [validatingPromo, setValidatingPromo] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  const NotifyMeButton = ({ item, type }) => {
+    const [isRequested, setIsRequested] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleNotifyRequest = async () => {
+      try {
+        setIsLoading(true);
+        const userId = getUserId();
+        await requestEventNotification(item._id, type, userId);
+        setIsRequested(true);
+        alert(
+          "You will be notified when this event starts accepting bookings!"
+        );
+      } catch (error) {
+        console.error("Error requesting notification:", error);
+        alert("Failed to set up notification. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return (
+      
+      <Button
+        variant={isRequested ? "success" : "outline-primary"}
+        onClick={handleNotifyRequest}
+        disabled={isLoading || isRequested}
+        className="me-2"
+      >
+        {isLoading ? (
+          <Spinner animation="border" size="sm" />
+        ) : isRequested ? (
+          <>
+            <FaBell className="me-2" />
+            Notification Set
+          </>
+        ) : (
+          <>
+            <FaBell className="me-2" />
+            Notify Me
+          </>
+        )}
+      </Button>
+    );
+  };
+
+  const handleApplyPromoCode = async (itemPrice) => {
+    if (!promoCode.trim()) return;
+
+    setValidatingPromo(true);
+    setPromoError("");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/products/validate-promo",
+        {
+          code: promoCode,
+          userId: getUserId(),
+          amount: itemPrice,
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      if (response.data.success) {
+        setAppliedPromo({
+          code: promoCode,
+          discount: response.data.discount,
+        });
+        setPromoCode("");
+        return response.data.discount;
+      }
+    } catch (error) {
+      setPromoError(
+        error.response?.data?.message || "Failed to apply promo code"
+      );
+      return 0;
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
+  // Utility functions
   const getUserSpecificKey = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
   };
+
+  const getUserId = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const decoded = jwtDecode(token);
+      return decoded._id;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  };
+
   const fetchLoyaltyStatus = async () => {
     try {
       const userId = getUserId();
@@ -75,7 +188,112 @@ const ViewEvents = () => {
       console.error("Error fetching loyalty status:", error);
     }
   };
-  // Update storage function
+
+  // Bookmark-related functions
+  const BookmarkButton = ({ item, type }) => (
+    <Button
+      variant={
+        bookmarkedEvents.includes(item._id) ? "primary" : "outline-primary"
+      }
+      onClick={() => handleBookmark(item, type)}
+      disabled={bookmarkedEvents.includes(item._id)}
+      className="me-2"
+    >
+      {bookmarkedEvents.includes(item._id) ? (
+        <>
+          <FaBookmark className="me-2" />
+          Saved
+        </>
+      ) : (
+        <>
+          <FaRegBookmark className="me-2" />
+          Save
+        </>
+      )}
+    </Button>
+  );
+
+  const handleBookmark = async (event, type) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:5000/api/tourist/bookmark-event",
+        {
+          eventId: event._id,
+          eventType: type,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        setBookmarkedEvents((prev) => [...prev, event._id]);
+        alert("Event bookmarked successfully!");
+      }
+    } catch (error) {
+      if (error.response?.data?.message === "Event already bookmarked") {
+        setBookmarkedEvents((prev) =>
+          prev.includes(event._id) ? prev : [...prev, event._id]
+        );
+      } else {
+        console.error("Error bookmarking event:", error);
+        alert(error.response?.data?.message || "Failed to bookmark event");
+      }
+    }
+  };
+
+  // Effect for fetching bookmarked events
+  useEffect(() => {
+    const fetchBookmarkedEvents = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/tourist/saved-events",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.data.success && response.data.savedEvents) {
+          const bookmarkedIds = response.data.savedEvents.map(
+            (event) => event._id
+          );
+          setBookmarkedEvents(bookmarkedIds);
+        }
+      } catch (error) {
+        console.error("Error fetching bookmarked events:", error);
+        setBookmarkedEvents([]);
+      }
+    };
+
+    fetchBookmarkedEvents();
+  }, []); // Effect for shared items
+  useEffect(() => {
+    const itemType = searchParams.get("type");
+    const itemId = searchParams.get("id");
+
+    if (itemType && itemId) {
+      const findItem = () => {
+        switch (itemType) {
+          case "historicalplace":
+            return historicalPlaces.find((place) => place._id === itemId);
+          case "activities":
+            return activities.find((activity) => activity._id === itemId);
+          case "itineraries":
+            return itineraries.find((itinerary) => itinerary._id === itemId);
+          default:
+            return null;
+        }
+      };
+
+      const item = findItem();
+      if (item) {
+        setSharedItem({ type: itemType, data: item });
+      }
+    }
+  }, [searchParams, historicalPlaces, activities, itineraries]);
+
   const updateWalletStorage = (wallet) => {
     const userKey = getUserSpecificKey();
     const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
@@ -87,6 +305,7 @@ const ViewEvents = () => {
       })
     );
   };
+
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -108,7 +327,6 @@ const ViewEvents = () => {
 
       if (response.data.tourist) {
         setUserWallet(response.data.tourist.wallet);
-        // Use user-specific key
         const userKey = getUserSpecificKey();
         localStorage.setItem(
           userKey,
@@ -121,10 +339,11 @@ const ViewEvents = () => {
       console.error("Error fetching user profile:", error);
     }
   };
+
+  // Main data fetching effect
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get token and user information
         const token = localStorage.getItem("token");
         const user = JSON.parse(localStorage.getItem("user"));
 
@@ -134,7 +353,6 @@ const ViewEvents = () => {
           return;
         }
 
-        // Fetch user's profile and wallet balance
         try {
           const profileResponse = await axios.get(
             `http://localhost:5000/api/tourist/profile/${user.username}`,
@@ -147,7 +365,6 @@ const ViewEvents = () => {
 
           if (profileResponse.data.tourist) {
             setUserWallet(profileResponse.data.tourist.wallet);
-            // Store in user-specific localStorage
             const userKey = `tourist_${user.username}`;
             localStorage.setItem(
               userKey,
@@ -159,15 +376,15 @@ const ViewEvents = () => {
           }
         } catch (profileError) {
           console.error("Error fetching user profile:", profileError);
-          // Don't return here, continue fetching other data
         }
+
         const storedPoints = JSON.parse(localStorage.getItem("loyaltyPoints"));
         const storedLevel = JSON.parse(localStorage.getItem("touristLevel"));
         if (storedPoints && storedLevel) {
           setLoyaltyPoints(storedPoints);
           setTouristLevel(storedLevel);
         }
-        // Fetch all other required data in parallel
+
         const [historicalRes, activitiesRes, itinerariesRes, categoriesRes] =
           await Promise.all([
             axios.get("http://localhost:5000/api/historicalplace", {
@@ -185,7 +402,6 @@ const ViewEvents = () => {
             fetchLoyaltyStatus(),
           ]);
 
-        // Get user role and filter flagged items
         const userRole = localStorage.getItem("userRole");
         const isAdmin = userRole === "admin";
 
@@ -193,7 +409,6 @@ const ViewEvents = () => {
           return isAdmin ? items : items.filter((item) => !item.flagged);
         };
 
-        // Set state with fetched data
         setHistoricalPlaces(filterFlagged(historicalRes.data));
         setActivities(filterFlagged(activitiesRes.data));
         setItineraries(filterFlagged(itinerariesRes.data));
@@ -201,27 +416,16 @@ const ViewEvents = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
         if (error.response?.status === 401) {
-          // Handle unauthorized access
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          // You might want to redirect to login page here
         }
       } finally {
         setLoading(false);
       }
     };
 
-    // Cleanup function
-    const cleanup = () => {
-      setHistoricalPlaces([]);
-      setActivities([]);
-      setItineraries([]);
-      setCategories([]);
-      setUserWallet(0);
-      setLoading(true);
-    };
+    fetchData();
 
-    // Function to handle storage events (for multi-tab synchronization)
     const handleStorageChange = (e) => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (user && e.key === `tourist_${user.username}`) {
@@ -236,98 +440,71 @@ const ViewEvents = () => {
       }
     };
 
-    // Add storage event listener
     window.addEventListener("storage", handleStorageChange);
 
-    // Initial data fetch
-    fetchData();
-
-    // Cleanup on unmount
     return () => {
-      cleanup();
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []); // Empty dependency array since we want this to run only once on mount
-  const getUserId = () => {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-
-    try {
-      const decoded = jwtDecode(token);
-      return decoded._id;
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
-  const getItemPrice = (item, type) => {
+  }, []);
+  const getItemPrice = (item, type, discount = 0) => {
+    let basePrice;
     switch (type) {
       case "HistoricalPlace":
-        return item.ticketPrices?.price || 100;
+        basePrice = item.ticketPrices?.price || 100;
+        break;
       case "Activity":
-        return item.price || 0;
+        basePrice = item.price || 0;
+        break;
       case "Itinerary":
-        return item.totalPrice || 0;
+        basePrice = item.totalPrice || 0;
+        break;
       default:
-        return 0;
+        basePrice = 0;
     }
+
+    if (discount > 0) {
+      return basePrice - (basePrice * discount) / 100;
+    }
+    return basePrice;
   };
-
-  const handleBooking = async (item, type, e) => {
+  const handleBooking = (item, type, e, promoCode, discountedPrice) => {
     e.preventDefault();
-
-    if (bookingLoading) return;
-
-    const userId = getUserId();
-    if (!userId) {
-      alert("Please log in to book");
-      return;
-    }
 
     if (!bookingDate) {
       alert("Please select a date");
       return;
     }
 
-    // Get item price and check balance
-    const bookingCost = getItemPrice(item, type);
-    console.log("Booking attempt:", {
-      userId,
-      itemId: item._id,
+    setSelectedEvent({
+      item,
       type,
-      cost: bookingCost,
-      currentWallet: userWallet,
+      promoCode,
+      finalPrice: discountedPrice || getItemPrice(item, type),
     });
-
-    if (userWallet < bookingCost) {
-      alert(
-        `Insufficient funds in your wallet. Required: $${bookingCost}, Available: $${userWallet}`
-      );
-      return;
-    }
-
-    setBookingItemId(item._id);
-    setBookingLoading(true);
+    setShowPaymentModal(true);
+  };
+  const handlePaymentComplete = async (paymentMethod, paymentIntent) => {
+    const { item, type, promoCode, finalPrice } = selectedEvent;
+    const userId = getUserId();
 
     try {
       const formattedBookingDate = new Date(bookingDate);
       formattedBookingDate.setHours(12, 0, 0, 0);
 
-      // Prepare booking data
       const bookingData = {
         userId,
         bookingType: type,
         itemId: item._id,
         bookingDate: formattedBookingDate.toISOString(),
+        promoCode,
+        paymentMethod,
+        paymentIntentId: paymentIntent?.id,
       };
 
-      // If booking type is Itinerary, include the guide ID
       if (type === "Itinerary") {
-        bookingData.guideId = item.createdBy; // Add guide ID from the itinerary
+        bookingData.guideId = item.createdBy;
       }
 
-      // Create the booking
       const bookingResponse = await axios.post(
         "http://localhost:5000/api/bookings/create",
         bookingData,
@@ -339,17 +516,11 @@ const ViewEvents = () => {
       );
 
       if (bookingResponse.data.success) {
-        try {
-          // Then deduct from wallet
-          console.log("Attempting wallet deduction:", {
-            userId,
-            amount: bookingCost,
-          });
-
+        if (paymentMethod === "wallet") {
           const deductResponse = await axios.post(
             `http://localhost:5000/api/tourist/wallet/deduct/${userId}`,
             {
-              amount: bookingCost,
+              amount: finalPrice,
               bookingId: bookingResponse.data.data._id,
             },
             {
@@ -359,65 +530,24 @@ const ViewEvents = () => {
             }
           );
 
-          if (deductResponse.data.success) {
-            // Update wallet balance in state and localStorage
-            setUserWallet(deductResponse.data.currentBalance);
-            setLoyaltyPoints(deductResponse.data.totalPoints);
-            setTouristLevel(deductResponse.data.newLevel);
-            localStorage.setItem(
-              "loyaltyPoints",
-              JSON.stringify(deductResponse.data.totalPoints)
-            );
-            localStorage.setItem(
-              "touristLevel",
-              JSON.stringify(deductResponse.data.newLevel)
-            );
-
-            // Update stored tourist data
-            const touristData =
-              JSON.parse(localStorage.getItem("tourist")) || {};
-            localStorage.setItem(
-              "tourist",
-              JSON.stringify({
-                ...touristData,
-                wallet: deductResponse.data.currentBalance,
-              })
-            );
-
-            alert(
-              "Booking successful! Amount has been deducted from your wallet."
-            );
-            await fetchUserProfile(); // Refresh user profile
-            await fetchLoyaltyStatus();
-          }
-        } catch (paymentError) {
-          console.error("Payment error:", paymentError);
-          console.log("Payment error details:", {
-            status: paymentError.response?.status,
-            data: paymentError.response?.data,
-          });
-
-          // If payment fails, cancel the booking
-          await cancelBooking(bookingResponse.data.data._id);
-          alert(
-            paymentError.response?.data?.message ||
-              "Payment failed. Booking has been cancelled."
-          );
+          setUserWallet(deductResponse.data.currentBalance);
+          updateWalletStorage(deductResponse.data.currentBalance);
         }
+
+        alert("Booking successful!");
+        await fetchUserProfile();
+        await fetchLoyaltyStatus();
+        setShowPaymentModal(false);
+        setSelectedEvent(null);
+        setBookingDate("");
       }
     } catch (error) {
-      console.error("Booking error:", error);
-      console.log("Booking error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-      alert(error.response?.data?.message || "Error creating booking");
-    } finally {
-      setBookingLoading(false);
-      setBookingItemId(null);
-      setBookingDate("");
+      throw new Error(
+        error.response?.data?.message || "Failed to complete booking"
+      );
     }
   };
+
   const cancelBooking = async (bookingId) => {
     try {
       await axios.patch(
@@ -433,23 +563,95 @@ const ViewEvents = () => {
       console.error("Error cancelling booking:", error);
     }
   };
+  // Add this PromoCodeInput component to be used in your cards
+  const PromoCodeInput = ({ basePrice, onPromoApplied }) => {
+    const [code, setCode] = useState("");
+    const [validating, setValidating] = useState(false);
+    const [error, setError] = useState("");
+    const [applied, setApplied] = useState(null);
 
-  const fetchUserBookings = async (userId) => {
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/bookings/user/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const handleApply = async () => {
+      if (!code.trim()) return;
+      setValidating(true);
+      setError("");
+
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/products/validate-promo",
+          {
+            code,
+            userId: getUserId(),
+            amount: basePrice,
           },
-        }
-      );
-      console.log("User bookings:", response.data);
-    } catch (error) {
-      console.error("Error fetching user bookings:", error);
-    }
-  };
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
+        if (response.data.success) {
+          const discount = response.data.discount;
+          const discountedPrice = basePrice - (basePrice * discount) / 100;
+          setApplied({
+            code,
+            discount,
+            finalPrice: discountedPrice,
+          });
+          onPromoApplied(discount, code);
+          setCode("");
+        }
+      } catch (error) {
+        setError(error.response?.data?.message || "Failed to apply promo code");
+      } finally {
+        setValidating(false);
+      }
+    };
+
+    return (
+      <div className="mb-3">
+        <h6>Promo Code</h6>
+        {applied ? (
+          <div className="d-flex align-items-center justify-content-between bg-light p-2 rounded">
+            <div>
+              <Badge bg="success" className="me-2">
+                <FaTag className="me-1" />
+                {applied.code}
+              </Badge>
+              <span className="text-success">{applied.discount}% OFF</span>
+            </div>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              onClick={() => {
+                setApplied(null);
+                onPromoApplied(0, null);
+              }}
+            >
+              Remove
+            </Button>
+          </div>
+        ) : (
+          <div className="d-flex gap-2">
+            <Form.Control
+              type="text"
+              placeholder="Enter promo code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <Button
+              variant="outline-primary"
+              onClick={handleApply}
+              disabled={validating || !code.trim()}
+            >
+              {validating ? <Spinner animation="border" size="sm" /> : "Apply"}
+            </Button>
+          </div>
+        )}
+        {error && <div className="text-danger mt-2 small">{error}</div>}
+      </div>
+    );
+  };
   const handleSearch = (data, query) => {
     return data.filter((item) => {
       const nameMatch = item.name?.toLowerCase().includes(query.toLowerCase());
@@ -470,13 +672,15 @@ const ViewEvents = () => {
   };
 
   const handleShare = (item) => {
-    const url = `http://localhost:3000/tourist/view-events`;
+    const baseUrl = window.location.origin;
+    const url = `${baseUrl}/tourist/view-events?type=${item.type}&id=${item._id}`;
     navigator.clipboard.writeText(url);
     alert("Link copied to clipboard!");
   };
 
   const handleEmailShare = (item) => {
-    const url = `http://localhost:3000/tourist/view-events`;
+    const baseUrl = window.location.origin;
+    const url = `${baseUrl}/tourist/view-events?type=${item.type}&id=${item._id}`;
     window.location.href = `mailto:?subject=Check out this ${item.type}&body=Here is the link: ${url}`;
   };
 
@@ -495,406 +699,519 @@ const ViewEvents = () => {
     });
   };
 
-  const getTimeRemaining = (bookingDate) => {
-    const now = new Date();
-    const bookingTime = new Date(bookingDate);
-    const diff = bookingTime - now;
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-    if (days > 0) {
-      return `${days} days and ${hours} hours`;
+  const getBadgeIcon = (touristLevel) => {
+    switch (touristLevel) {
+      case 1:
+        return <FaStar className="me-2 text-info" size={24} />;
+      case 2:
+        return <FaMedal className="me-2 text-success" size={24} />;
+      case 3:
+        return <FaCrown className="me-2 text-warning" size={24} />;
+      case 0:
+      default:
+        return <FaRegSmile className="me-2 text-secondary" size={24} />;
     }
-    return `${hours} hours`;
   };
 
-  const canCancelBooking = (bookingDate) => {
-    const now = new Date();
-    const bookingTime = new Date(bookingDate);
-    const hoursUntilBooking = (bookingTime - now) / (1000 * 60 * 60);
-    return hoursUntilBooking >= 48;
-  };
-
-  const HistoricalPlaceCard = ({ place }) => (
-    <Card className="h-100 border-0 shadow-hover" 
-      style={{
-        borderRadius: '15px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        backgroundColor: '#fff',
-        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
-      }}>
-      <div 
-        className="card-img-top"
-        style={{
-          height: '200px',
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/bg_1.jpg")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="p-4 text-white">
-          <h3 className="mb-0 fw-bold">{place.name}</h3>
+  const LoyaltyInfo = () => (
+    <div className="bg-light p-4 rounded shadow-sm d-flex align-items-center justify-content-between mb-4 w-100">
+      <div className="d-flex align-items-center">
+        <div className="me-4 d-flex align-items-center">
+          {getBadgeIcon(touristLevel)}
+          <div>
+            <h4 className="mb-0">Level {touristLevel}</h4>
+            <small className="text-muted">Tourist Status</small>
+          </div>
+        </div>
+        <div className="border-start ps-4">
+          <h4 className="mb-0">{loyaltyPoints.toLocaleString()} Points</h4>
+          <small className="text-muted">
+            Earn{" "}
+            <span className="fw-bold">
+              {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}
+            </span>{" "}
+            points on purchases
+          </small>
         </div>
       </div>
-      <Card.Body className="p-4">
-        <p className="text-muted">{place.description}</p>
-        
-        <div className="d-flex align-items-center mb-3">
-          <FaClock className="text-primary me-2" />
-          <span><strong>Opening Hours:</strong> {place.openingHours}</span>
-        </div>
-        
-        <div className="d-flex align-items-center mb-3">
-          <FaMoneyBill className="text-success me-2" />
-          <span><strong>Price:</strong> ${getItemPrice(place, "HistoricalPlace")}</span>
-        </div>
-  
-        {place.tags?.length > 0 && (
-          <div className="mb-4">
-            {place.tags.map((tag) => (
-              <Badge 
-                key={tag._id}
-                className="me-2 mb-2" 
-                style={{
-                  backgroundColor: '#1089ff',
-                  padding: '8px 15px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem'
-                }}
+      <div className="d-flex align-items-center">
+        <div className="text-end">
+          {touristLevel < 3 && (
+            <>
+              <small className="text-muted d-block">Next Level</small>
+              <div className="fw-bold text-primary">
+                {touristLevel === 1
+                  ? "Level 2 (100,000 points)"
+                  : "Level 3 (500,000 points)"}
+              </div>
+              <div
+                className="progress mt-1"
+                style={{ width: "200px", height: "6px" }}
               >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-  
-        <Form.Group className="mb-4">
-          <Form.Label className="fw-bold">Select Visit Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            required
-            className="rounded-pill"
-            style={{ padding: '12px 20px' }}
-          />
-        </Form.Group>
-  
-        <div className="d-flex gap-2">
-          <Button
-            variant="primary"
-            className="flex-grow-1 rounded-pill py-2"
-            onClick={(e) => handleBooking(place, "HistoricalPlace", e)}
-            disabled={bookingLoading && bookingItemId === place._id}
-            style={{
-              backgroundColor: '#1089ff',
-              border: 'none',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {bookingLoading && bookingItemId === place._id ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <FaCalendarCheck className="me-2" />
-            )}
-            Book Now (${getItemPrice(place, "HistoricalPlace")})
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleShare({ ...place, type: "historicalplace" })}
-          >
-            <FaCopy />
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleEmailShare({ ...place, type: "historicalplace" })}
-          >
-            <FaEnvelope />
-          </Button>
-        </div>
-      </Card.Body>
-    </Card>
-  );
-
-  const ActivityCard = ({ activity }) => (
-    <Card className="h-100 border-0 shadow-hover" 
-      style={{
-        borderRadius: '15px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        backgroundColor: '#fff',
-        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
-      }}>
-      <div 
-        className="card-img-top"
-        style={{
-          height: '200px',
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/services-2.jpg")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="p-4 text-white">
-          <h3 className="mb-0 fw-bold">{activity.name}</h3>
-          {activity.category?.name && (
-            <span className="badge bg-primary rounded-pill mt-2" style={{ backgroundColor: '#1089ff !important' }}>
-              {activity.category.name}
-            </span>
+                <div
+                  className="progress-bar bg-primary"
+                  role="progressbar"
+                  style={{
+                    width: `${
+                      (loyaltyPoints / (touristLevel === 1 ? 100000 : 500000)) *
+                      100
+                    }%`,
+                  }}
+                  aria-valuenow={
+                    (loyaltyPoints / (touristLevel === 1 ? 100000 : 500000)) *
+                    100
+                  }
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                />
+              </div>
+            </>
+          )}
+          {touristLevel === 3 && (
+            <div className="text-success">
+              <FaCrown className="me-2" />
+              Maximum Level Achieved
+            </div>
           )}
         </div>
       </div>
-      <Card.Body className="p-4">
-        <p className="text-muted">{activity.description}</p>
-        
-        {activity.date && (
-          <div className="d-flex align-items-center mb-3">
-            <FaCalendar className="text-primary me-2" />
-            <span><strong>Event Date:</strong> {formatDate(activity.date)}</span>
-          </div>
-        )}
-        
-        <div className="d-flex align-items-center mb-3">
-          <FaMoneyBill className="text-success me-2" />
-          <span><strong>Price:</strong> ${activity.price}</span>
-        </div>
-  
-        {activity.tags?.length > 0 && (
-          <div className="mb-4">
-            {activity.tags.map((tag) => (
-              <Badge 
-                key={tag._id}
-                className="me-2 mb-2" 
-                style={{
-                  backgroundColor: '#1089ff',
-                  padding: '8px 15px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-  
-        <Form.Group className="mb-4">
-          <Form.Label className="fw-bold">Select Activity Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            required
-            className="rounded-pill"
-            style={{ padding: '12px 20px' }}
-          />
-        </Form.Group>
-  
-        <div className="d-flex gap-2">
-          <Button
-            variant="primary"
-            className="flex-grow-1 rounded-pill py-2"
-            onClick={(e) => handleBooking(activity, "Activity", e)}
-            disabled={bookingLoading && bookingItemId === activity._id}
-            style={{
-              backgroundColor: '#1089ff',
-              border: 'none',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {bookingLoading && bookingItemId === activity._id ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <FaCalendarCheck className="me-2" />
-            )}
-            Book Now (${activity.price})
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleShare({ ...activity, type: "activities" })}
-          >
-            <FaCopy />
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleEmailShare({ ...activity, type: "activities" })}
-          >
-            <FaEnvelope />
-          </Button>
-        </div>
-      </Card.Body>
-    </Card>
+    </div>
   );
-  const ItineraryCard = ({ itinerary }) => (
-    <Card className="h-100 border-0 shadow-hover" 
-      style={{
-        borderRadius: '15px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        backgroundColor: '#fff',
-        boxShadow: '0 2px 15px rgba(0,0,0,0.1)'
-      }}>
-      <div 
-        className="card-img-top"
-        style={{
-          height: '200px',
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("/images/services-3.jpg")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="p-4 text-white">
-          <h3 className="mb-0 fw-bold">{itinerary.name}</h3>
-          <span className="badge bg-info rounded-pill mt-2">
-            {itinerary.language}
-          </span>
-        </div>
-      </div>
-      <Card.Body className="p-4">
-        <div className="d-flex align-items-center mb-3">
-          <FaMoneyBill className="text-success me-2" />
-          <span><strong>Total Price:</strong> ${itinerary.totalPrice}</span>
-        </div>
-  
-        {itinerary.activities?.length > 0 && (
-          <div className="mb-3">
-            <strong className="d-block mb-2">Included Activities:</strong>
-            <div className="activity-chips">
-              {itinerary.activities.map((act, index) => (
-                <span 
-                  key={index}
-                  className="badge bg-light text-dark me-2 mb-2"
-                  style={{
-                    padding: '8px 15px',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    border: '1px solid #eee'
-                  }}
-                >
-                  {act.name}
-                </span>
+
+  const HistoricalPlaceCard = ({
+    place,
+    onBooking,
+    bookingDate,
+    setBookingDate,
+  }) => {
+    const [discountedPrice, setDiscountedPrice] = useState(null);
+    const [activePromoCode, setActivePromoCode] = useState(null);
+
+    return (
+      <Card className="mb-3 h-100 shadow-sm">
+        <Card.Body>
+          <Card.Title>{place.name}</Card.Title>
+          <Card.Text>{place.description}</Card.Text>
+          <Card.Text>
+            <FaCalendar className="me-2" />
+            <strong>Opening Hours:</strong> {place.openingHours}
+          </Card.Text>
+          <Card.Text>
+            <FaDollarSign className="me-2" />
+            <strong>Price:</strong> ${getItemPrice(place, "HistoricalPlace")}
+          </Card.Text>
+          {place.tags?.length > 0 && (
+            <div className="mb-3">
+              {place.tags.map((tag) => (
+                <Badge bg="secondary" className="me-1" key={tag._id}>
+                  {tag.name}
+                </Badge>
               ))}
             </div>
+          )}
+
+          <PromoCodeInput
+            basePrice={getItemPrice(place, "HistoricalPlace")}
+            onPromoApplied={(discount, code) => {
+              if (discount > 0) {
+                const basePrice = getItemPrice(place, "HistoricalPlace");
+                setDiscountedPrice(basePrice - (basePrice * discount) / 100);
+                setActivePromoCode(code);
+              } else {
+                setDiscountedPrice(null);
+                setActivePromoCode(null);
+              }
+            }}
+          />
+
+          <Form.Group className="mb-3">
+            <Form.Label>Select Visit Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={bookingDate} // Use the prop value
+              onChange={(e) => setBookingDate(e.target.value)} // Call the main component's setter
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+          </Form.Group>
+          <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={place} type="HistoricalPlace" />
+            <BookmarkButton item={place} type="HistoricalPlace" />
+            <BookmarkButton item={place} type="HistoricalPlace" />
+            <Button
+              variant="primary"
+              onClick={(e) =>
+                onBooking(
+                  place,
+                  "HistoricalPlace",
+                  e,
+                  activePromoCode,
+                  discountedPrice
+                )
+              }
+              disabled={!bookingDate}
+            >
+              <FaCalendarCheck className="me-2" />
+              Book Now{" "}
+              {discountedPrice ? (
+                <>
+                  <span className="text-decoration-line-through">
+                    ${getItemPrice(place, "HistoricalPlace")}
+                  </span>{" "}
+                  ${discountedPrice.toFixed(2)}
+                </>
+              ) : (
+                `$${getItemPrice(place, "HistoricalPlace")}`
+              )}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => handleShare({ ...place, type: "historicalplace" })}
+            >
+              <FaCopy className="me-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() =>
+                handleEmailShare({ ...place, type: "historicalplace" })
+              }
+            >
+              <FaEnvelope className="me-2" />
+              Email
+            </Button>
           </div>
-        )}
-  
-        {itinerary.availableDates?.length > 0 && (
-          <div className="mb-3">
-            <strong className="d-block mb-2">Available Dates:</strong>
-            <div className="date-chips">
-              {itinerary.availableDates.map((dateObj, index) => (
-                <div 
-                  key={index}
-                  className="badge bg-light text-dark me-2 mb-2"
-                  style={{
-                    padding: '8px 15px',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    border: '1px solid #eee'
-                  }}
-                >
-                  <FaCalendar className="me-1" />
-                  {formatDate(dateObj.date)}
-                  {dateObj.availableTimes?.length > 0 && (
-                    <small className="ms-1 text-muted">
-                      ({dateObj.availableTimes.join(", ")})
-                    </small>
-                  )}
-                </div>
+        </Card.Body>
+      </Card>
+    );
+  };
+  const ActivityCard = ({
+    activity,
+    onBooking,
+    bookingDate,
+    setBookingDate,
+  }) => {
+    const [discountedPrice, setDiscountedPrice] = useState(null);
+    const [activePromoCode, setActivePromoCode] = useState(null);
+
+    return (
+      <Card className="mb-3 h-100 shadow-sm">
+        <Card.Body>
+          <Card.Title>{activity.name}</Card.Title>
+          <Card.Text>{activity.description}</Card.Text>
+          {activity.date && (
+            <Card.Text className="text-primary">
+              <FaCalendar className="me-2" />
+              <strong>Event Date:</strong> {formatDate(activity.date)}
+            </Card.Text>
+          )}
+          <Card.Text>
+            <strong>Category:</strong>{" "}
+            {activity.category?.name || "No Category"}
+          </Card.Text>
+          <Card.Text>
+            <FaDollarSign className="me-2" />
+            <strong>Price:</strong> ${activity.price}
+          </Card.Text>
+          {activity.location && (
+            <Card.Text>
+              <FaMapMarkerAlt className="me-2" />
+              <strong>Location:</strong>{" "}
+              {typeof activity.location === "object" &&
+              activity.location.coordinates
+                ? activity.location.coordinates.join(", ")
+                : typeof activity.location === "string"
+                ? activity.location
+                : "No location"}
+            </Card.Text>
+          )}
+          {activity.tags?.length > 0 && (
+            <div className="mb-3">
+              {activity.tags.map((tag) => (
+                <Badge bg="secondary" className="me-1" key={tag._id}>
+                  {tag.name}
+                </Badge>
               ))}
             </div>
-          </div>
-        )}
-  
-        {itinerary.preferenceTags?.length > 0 && (
-          <div className="mb-4">
-            {itinerary.preferenceTags.map((tag) => (
-              <Badge 
-                key={tag._id}
-                className="me-2 mb-2" 
-                style={{
-                  backgroundColor: '#1089ff',
-                  padding: '8px 15px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-  
-        <Form.Group className="mb-4">
-          <Form.Label className="fw-bold">Select Tour Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            required
-            className="rounded-pill"
-            style={{ padding: '12px 20px' }}
-          />
-        </Form.Group>
-  
-        <div className="d-flex gap-2 flex-wrap">
-          <Button
-            variant="primary"
-            className="flex-grow-1 rounded-pill py-2"
-            onClick={(e) => handleBooking(itinerary, "Itinerary", e)}
-            disabled={bookingLoading && bookingItemId === itinerary._id}
-            style={{
-              backgroundColor: '#1089ff',
-              border: 'none',
-              transition: 'all 0.3s ease'
+          )}
+
+          <PromoCodeInput
+            basePrice={getItemPrice(activity, "Activity")}
+            onPromoApplied={(discount, code) => {
+              if (discount > 0) {
+                const basePrice = getItemPrice(activity, "Activity");
+                setDiscountedPrice(basePrice - (basePrice * discount) / 100);
+                setActivePromoCode(code);
+              } else {
+                setDiscountedPrice(null);
+                setActivePromoCode(null);
+              }
             }}
-          >
-            {bookingLoading && bookingItemId === itinerary._id ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <FaCalendarCheck className="me-2" />
+          />
+
+          <Form.Group className="mb-3">
+            <Form.Label>Select Booking Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+            {activity.date && (
+              <Form.Text className="text-muted">
+                Note: This activity is scheduled for {formatDate(activity.date)}
+              </Form.Text>
             )}
-            Book Now (${itinerary.totalPrice})
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleShare({ ...itinerary, type: "itineraries" })}
-          >
-            <FaCopy />
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => handleEmailShare({ ...itinerary, type: "itineraries" })}
-          >
-            <FaEnvelope />
-          </Button>
-          <Button
-            variant="light"
-            className="rounded-circle p-2"
-            onClick={() => toggleComments(itinerary._id)}
-          >
-            <FaComment />
-          </Button>
-        </div>
-  
-        <Collapse in={expandedComments[itinerary._id]}>
-          <div className="mt-4 pt-4 border-top">
-            <ItineraryComment itineraryId={itinerary._id} />
+          </Form.Group>
+          <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={activity} type="Activity" />
+            <BookmarkButton item={activity} type="Activity" />
+            <BookmarkButton item={activity} type="Activity" />
+            <Button
+              variant="primary"
+              onClick={(e) =>
+                onBooking(
+                  activity,
+                  "Activity",
+                  e,
+                  activePromoCode,
+                  discountedPrice
+                )
+              }
+              disabled={!bookingDate}
+            >
+              {bookingLoading && bookingItemId === activity._id ? (
+                <Spinner animation="border" size="sm" className="me-2" />
+              ) : (
+                <FaCalendarCheck className="me-2" />
+              )}
+              Book Now{" "}
+              {discountedPrice ? (
+                <>
+                  <span className="text-decoration-line-through">
+                    ${getItemPrice(activity, "Activity")}
+                  </span>{" "}
+                  ${discountedPrice.toFixed(2)}
+                </>
+              ) : (
+                `$${getItemPrice(activity, "Activity")}`
+              )}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => handleShare({ ...activity, type: "activities" })}
+            >
+              <FaCopy className="me-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() =>
+                handleEmailShare({ ...activity, type: "activities" })
+              }
+            >
+              <FaEnvelope className="me-2" />
+              Email
+            </Button>
           </div>
-        </Collapse>
-      </Card.Body>
-    </Card>
-  );
+        </Card.Body>
+      </Card>
+    );
+  };
+  const ItineraryCard = ({
+    itinerary,
+    onBooking,
+    bookingDate,
+    setBookingDate,
+  }) => {
+    const [discountedPrice, setDiscountedPrice] = useState(null);
+    const [activePromoCode, setActivePromoCode] = useState(null);
+
+    return (
+      <Card className="mb-3 h-100 shadow-sm">
+        <Card.Body>
+          <Card.Title>{itinerary.name}</Card.Title>
+          <Card.Text>
+            <strong>Language:</strong> {itinerary.language}
+          </Card.Text>
+          <Card.Text>
+            <FaDollarSign className="me-2" />
+            <strong>Price:</strong> ${itinerary.totalPrice}
+          </Card.Text>
+          {itinerary.activities?.length > 0 && (
+            <Card.Text>
+              <strong>Included Activities:</strong>
+              <br />
+              {itinerary.activities.map((act) => act.name).join(", ")}
+            </Card.Text>
+          )}
+          {itinerary.availableDates?.length > 0 && (
+            <div className="mb-3">
+              <strong>Available Dates:</strong>
+              <div className="available-dates mt-2">
+                {itinerary.availableDates.map((dateObj, index) => (
+                  <Badge bg="info" className="me-2 mb-2" key={index}>
+                    {formatDate(dateObj.date)}
+                    {dateObj.availableTimes?.length > 0 && (
+                      <span className="ms-1">
+                        ({dateObj.availableTimes.join(", ")})
+                      </span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {itinerary.preferenceTags?.length > 0 && (
+            <div className="mb-3">
+              {itinerary.preferenceTags.map((tag) => (
+                <Badge bg="secondary" className="me-1" key={tag._id}>
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <PromoCodeInput
+            basePrice={getItemPrice(itinerary, "Itinerary")}
+            onPromoApplied={(discount, code) => {
+              if (discount > 0) {
+                const basePrice = getItemPrice(itinerary, "Itinerary");
+                setDiscountedPrice(basePrice - (basePrice * discount) / 100);
+                setActivePromoCode(code);
+              } else {
+                setDiscountedPrice(null);
+                setActivePromoCode(null);
+              }
+            }}
+          />
+
+          <Form.Group className="mb-3">
+            <Form.Label>Select Tour Date</Form.Label>
+            <Form.Control
+              type="date"
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+            {itinerary.availableDates?.length > 0 && (
+              <Form.Text className="text-muted">
+                Note: Please select from the available dates above
+              </Form.Text>
+            )}
+          </Form.Group>
+          <div className="d-flex gap-2 mt-3">
+            <NotifyMeButton item={itinerary} type="Itinerary" />
+            <BookmarkButton item={itinerary} type="Itinerary" />
+            <BookmarkButton item={itinerary} type="Itinerary" />
+            <Button
+              variant="primary"
+              onClick={(e) =>
+                onBooking(
+                  itinerary,
+                  "Itinerary",
+                  e,
+                  activePromoCode,
+                  discountedPrice
+                )
+              }
+              disabled={!bookingDate}
+            >
+              {bookingLoading && bookingItemId === itinerary._id ? (
+                <Spinner animation="border" size="sm" className="me-2" />
+              ) : (
+                <FaCalendarCheck className="me-2" />
+              )}
+              Book Now{" "}
+              {discountedPrice ? (
+                <>
+                  <span className="text-decoration-line-through">
+                    ${getItemPrice(itinerary, "Itinerary")}
+                  </span>{" "}
+                  ${discountedPrice.toFixed(2)}
+                </>
+              ) : (
+                `$${getItemPrice(itinerary, "Itinerary")}`
+              )}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => handleShare({ ...itinerary, type: "itineraries" })}
+            >
+              <FaCopy className="me-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() =>
+                handleEmailShare({ ...itinerary, type: "itineraries" })
+              }
+            >
+              <FaEnvelope className="me-2" />
+              Email
+            </Button>
+            <Button
+              variant="outline-secondary"
+              onClick={() => toggleComments(itinerary._id)}
+            >
+              <FaComment />{" "}
+              {expandedComments[itinerary._id]
+                ? "Hide Comments"
+                : "Show Comments"}
+            </Button>
+          </div>
+          <Collapse in={expandedComments[itinerary._id]}>
+            <div className="mt-3">
+              <ItineraryComment itineraryId={itinerary._id} />
+            </div>
+          </Collapse>
+        </Card.Body>
+      </Card>
+    );
+  };
+  const renderSharedContent = () => {
+    if (!sharedItem) return null;
+
+    const { type, data } = sharedItem;
+    switch (type) {
+      case "historicalplace":
+        return (
+          <Row>
+            <Col md={12}>
+              <HistoricalPlaceCard
+                place={data}
+                onBooking={handleBooking} // Add this here too
+              />
+            </Col>
+          </Row>
+        );
+      case "activities":
+        return (
+          <Row>
+            <Col md={12}>
+              <ActivityCard activity={data} />
+            </Col>
+          </Row>
+        );
+      case "itineraries":
+        return (
+          <Row>
+            <Col md={12}>
+              <ItineraryCard
+                itinerary={data}
+                onBooking={handleBooking}
+                bookingDate={bookingDate}
+                setBookingDate={setBookingDate}
+              />
+            </Col>
+          </Row>
+        );
+      default:
+        return null;
+    }
+  };
 
   const filteredActivities = categoryFilter
     ? handleSearch(activities, searchQuery).filter(
@@ -917,247 +1234,131 @@ const ViewEvents = () => {
       </Container>
     );
   }
-  // Define getBadgeIcon outside of LoyaltyInfo
-  const getBadgeIcon = (touristLevel) => {
-    switch (touristLevel) {
-      case 1:
-        return <FaStar className="me-2 text-info" size={24} />; // Level 1 badge
-      case 2:
-        return <FaMedal className="me-2 text-success" size={24} />; // Level 2 badge
-      case 3:
-        return <FaCrown className="me-2 text-warning" size={24} />; // Level 3 badge
-      case 0:
-      default:
-        return <FaRegSmile className="me-2 text-secondary" size={24} />; // Level 0 badge or default
-    }
-  };
 
-const LoyaltyInfo = () => (
-  <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center mb-4">
-    <div className="me-4">
-      {getBadgeIcon(touristLevel)}
-      <div>
-        <h4 className="mb-0">Level {touristLevel}</h4>
-        <small className="text-muted">Tourist Status</small>
-      </div>
-    </div>
-    <div>
-      <h4 className="mb-0">{loyaltyPoints} Points</h4>
-      <small className="text-muted">
-        Earn{" "}
-        {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"}{" "}
-        points on purchases
-      </small>
-    </div>
-  </div>
-);
-
-return (
-  <>
-  <Navbar/>
-    {/* Hero Section */}
-    <div 
-      style={{
-        backgroundImage: 'url("/images/bg_1.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative',
-        padding: '8rem 0 4rem 0',
-        marginBottom: '2rem'
-      }}
-    >
-      <div 
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 1
-        }}
-      ></div>
-      <Container style={{ position: 'relative', zIndex: 2 }}>
-        <div className="text-center text-white">
-          <p className="mb-4">
-            <span className="me-2">
-              <a href="/tourist" className="text-white text-decoration-none">
-                Home <FaChevronRight className="small mx-2" />
-              </a>
-            </span>
-            <span>
-              View Events <FaChevronRight className="small" />
-            </span>
-          </p>
-          <h1 className="display-4 mb-4">Available Events</h1>
-        </div>
-      </Container>
-    </div>
-
-    {/* Main Content Container */}
-    <Container>
-      {/* Wallet and Loyalty Info Section */}
-      <div 
-        className="py-4 px-4 mb-5"
-        style={{
-          backgroundImage: 'url("/images/bg_2.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          borderRadius: '10px',
-          position: 'relative'
-        }}
-      >
-        <div 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            borderRadius: '10px',
-            zIndex: 1
-          }}
-        ></div>
-        <Row className="position-relative" style={{ zIndex: 2 }}>
-          <Col md={6}>
-            <div className="d-flex align-items-center text-white">
-              <FaWallet className="me-3" size={40} />
-              <div>
-                <h3 className="mb-0">Wallet Balance: ${userWallet}</h3>
-                <p className="mb-0">Available for bookings</p>
-              </div>
-            </div>
-          </Col>
-          <Col md={6}>
-            <div className="d-flex align-items-center text-white">
-              {getBadgeIcon(touristLevel)}
-              <div>
-                <h3 className="mb-0">Level {touristLevel} - {loyaltyPoints} Points</h3>
-                <p className="mb-0">
-                  Earn {touristLevel === 1 ? "0.5x" : touristLevel === 2 ? "1x" : "1.5x"} points on purchases
-                </p>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </div>
-
-      <Card className="shadow-sm mb-5 border-0" style={{ borderRadius: '15px' }}>
-  <Card.Body className="p-4">
-    <h4 className="text-primary mb-4">
-      <FaSearch className="me-2" />
-      Search Events
-    </h4>
-    <Row>
-      <Col md={8}>
-        <div className="position-relative">
-          <Form.Control
-            type="text"
-            placeholder="Search by name, category, or tags"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="mb-3 rounded-pill"
-            style={{
-              height: '55px',
-              paddingLeft: '50px',
-              border: '2px solid #eee'
-            }}
-          />
-          <FaSearch 
-            style={{
-              position: 'absolute',
-              left: '20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#aaa'
-            }}
-          />
-        </div>
-      </Col>
-      <Col md={4}>
-        <Form.Select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-pill"
-          style={{
-            height: '55px',
-            border: '2px solid #eee'
-          }}
-        >
-          <option value="">All Categories</option>
-          {categories.map((category) => (
-            <option key={category._id} value={category.name}>
-              {category.name}
-            </option>
-          ))}
-        </Form.Select>
-      </Col>
-    </Row>
-  </Card.Body>
-</Card>
-
-      {/* Historical Places Section */}
-      {filteredHistoricalPlaces.length > 0 && (
-        <div className="mb-5">
-          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
-            Historical Places
-          </h2>
-          <Row>
-            {filteredHistoricalPlaces.map((place) => (
-              <Col md={4} key={place._id}>
-                <HistoricalPlaceCard place={place} />
-              </Col>
-            ))}
-          </Row>
-        </div>
-      )}
-
-      {/* Activities Section */}
-      {filteredActivities.length > 0 && (
-        <div className="mb-5">
-          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
-            Activities
-          </h2>
-          <Row>
-            {filteredActivities.map((activity) => (
-              <Col md={4} key={activity._id}>
-                <ActivityCard activity={activity} />
-              </Col>
-            ))}
-          </Row>
-        </div>
-      )}
-
-      {/* Itineraries Section */}
-      {filteredItineraries.length > 0 && (
-        <div className="mb-5">
-          <h2 className="mb-4" style={{ borderBottom: '2px solid #1089ff', paddingBottom: '10px' }}>
-            Itineraries
-          </h2>
-          <Row>
-            {filteredItineraries.map((itinerary) => (
-              <Col md={4} key={itinerary._id}>
-                <ItineraryCard itinerary={itinerary} />
-              </Col>
-            ))}
-          </Row>
-        </div>
-      )}
-
-      {/* No Results Message */}
-      {filteredHistoricalPlaces.length === 0 &&
-        filteredActivities.length === 0 &&
-        filteredItineraries.length === 0 && (
-          <div className="text-center mt-5 p-5 bg-light rounded">
-            <FaInfoCircle size={48} className="text-muted mb-3" />
-            <h3>No events found matching your search criteria.</h3>
-            <p>Try adjusting your search or category filter.</p>
+  return (
+    <Container className="mt-5">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>{sharedItem ? "Shared Event" : "Available Events"}</h1>
+        <div className="bg-light p-3 rounded shadow-sm d-flex align-items-center">
+          <FaWallet className="me-2 text-primary" size={24} />
+          <div>
+            <h4 className="mb-0">Wallet Balance: ${userWallet}</h4>
+            <small className="text-muted">Available for bookings</small>
           </div>
-        )}
+        </div>
+      </div>
+
+      <div className="d-flex gap-3">
+        <LoyaltyInfo />
+      </div>
+
+      {sharedItem ? (
+        <div className="mt-4">{renderSharedContent()}</div>
+      ) : (
+        <>
+          <div className="mb-4 p-3 bg-white rounded shadow-sm">
+            <Form.Control
+              type="text"
+              placeholder="Search by name, category, or tags"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="mb-3"
+            />
+
+            <Form.Select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </Form.Select>
+          </div>
+
+          {filteredHistoricalPlaces.length > 0 && (
+            <div className="mb-5">
+              <h2 className="mb-4">Historical Places</h2>
+              <Row>
+                {filteredHistoricalPlaces.map((place) => (
+                  <Col md={4} key={place._id}>
+                    <HistoricalPlaceCard
+                      place={place}
+                      onBooking={handleBooking}
+                      bookingDate={bookingDate} // Pass the date state
+                      setBookingDate={setBookingDate} // Pass the date setter
+                    />
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          )}
+
+          {filteredActivities.length > 0 && (
+            <div className="mb-5">
+              <h2 className="mb-4">Activities</h2>
+              <Row>
+                {filteredActivities.map((activity) => (
+                  <Col md={4} key={activity._id}>
+                    <ActivityCard
+                      activity={activity}
+                      onBooking={handleBooking}
+                      bookingDate={bookingDate}
+                      setBookingDate={setBookingDate}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          )}
+
+          {filteredItineraries.length > 0 && (
+            <div className="mb-5">
+              <h2 className="mb-4">Itineraries</h2>
+              <Row>
+                {filteredItineraries.map((itinerary) => (
+                  <Col md={4} key={itinerary._id}>
+                    <ItineraryCard
+                      itinerary={itinerary}
+                      onBooking={handleBooking}
+                      bookingDate={bookingDate}
+                      setBookingDate={setBookingDate}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          )}
+
+          {filteredHistoricalPlaces.length === 0 &&
+            filteredActivities.length === 0 &&
+            filteredItineraries.length === 0 && (
+              <div className="text-center mt-5 p-5 bg-light rounded">
+                <FaInfoCircle size={48} className="text-muted mb-3" />
+                <h3>No events found matching your search criteria.</h3>
+                <p>Try adjusting your search or category filter.</p>
+              </div>
+            )}
+        </>
+      )}
+      <StripeWrapper>
+        <EventPaymentModal
+          show={showPaymentModal}
+          onHide={() => setShowPaymentModal(false)}
+          totalAmount={selectedEvent?.finalPrice || 0}
+          walletBalance={userWallet}
+          onPaymentComplete={handlePaymentComplete}
+          eventDetails={{
+            name: selectedEvent?.item?.name,
+            type: selectedEvent?.type,
+          }}
+          appliedPromoCode={selectedEvent?.promoCode}
+        />
+      </StripeWrapper>
     </Container>
-  </>
-);
-}
+  );
+};
 
 export default ViewEvents;

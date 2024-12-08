@@ -316,47 +316,59 @@ const ViewBookings = () => {
   };
 
   // Submit tour guide rating
-  const submitGuideRating = async () => {
-    if (!selectedBooking?.guideId) {
-      alert("No tour guide found for this booking");
-      return;
-    }
+ // Submit tour guide rating
+const submitGuideRating = async () => {
+  if (!selectedBooking?.guideId) {
+    alert("No tour guide found for this booking");
+    return;
+  }
 
-    if (!guideRating || guideRating < 1 || guideRating > 5) {
-      alert("Please select a rating between 1 and 5 for the tour guide");
-      return;
-    }
+  if (!guideRating || guideRating < 1 || guideRating > 5) {
+    alert("Please select a rating between 1 and 5 for the tour guide");
+    return;
+  }
 
-    setSubmittingGuideRating(true);
-    try {
-      const response = await axios.post(
-        `http://localhost:5000/api/tourist/rate-guide/${selectedBooking.guideId}`,
-        {
-          rating: guideRating,
-          comment: guideReview
+  setSubmittingGuideRating(true);
+  try {
+    const response = await axios.post(
+      `http://localhost:5000/api/tourist/rate-guide/${selectedBooking.guideId}`,
+      {
+        rating: guideRating,
+        comment: guideReview
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        alert("Tour guide rating submitted successfully");
-        setShowGuideRatingModal(false);
-        fetchBookings();
       }
-    } catch (error) {
-      console.error("Error submitting guide rating:", error);
-      alert(error.response?.data?.message || "Failed to submit guide rating");
-    } finally {
-      setSubmittingGuideRating(false);
-      setGuideRating(0);
-      setGuideReview("");
-    }
-  };
+    );
 
+    if (response.data.success) {
+      // Update the local bookings state to reflect the new guide rating
+      const updatedBookings = bookings.map(booking => {
+        if (booking._id === selectedBooking._id) {
+          return {
+            ...booking,
+            guideRating: guideRating,
+            guideReview: guideReview
+          };
+        }
+        return booking;
+      });
+      
+      setBookings(updatedBookings);
+      alert("Tour guide rating submitted successfully");
+      setShowGuideRatingModal(false);
+    }
+  } catch (error) {
+    console.error("Error submitting guide rating:", error);
+    alert(error.response?.data?.message || "Failed to submit guide rating");
+  } finally {
+    setSubmittingGuideRating(false);
+    setGuideRating(0);
+    setGuideReview("");
+  }
+};
   const canBeRated = (booking) => {
     return (
       booking.status === "attended" &&
@@ -618,6 +630,44 @@ const ViewBookings = () => {
                         )}
                       </div>
                     )}
+                    {/* Tour Guide Rating Section - Only for attended Itineraries */}
+{booking.bookingType === "Itinerary" && booking.status === "attended" && (
+  <div className="mb-3 mt-3 p-3 bg-light rounded">
+    {!booking.guideRating ? (
+      <Button
+        variant="outline-primary"
+        onClick={() => {
+          setSelectedBooking(booking);
+          setShowGuideRatingModal(true);
+        }}
+        className="w-100 rounded-pill"
+        style={{
+          padding: '0.8rem',
+          borderColor: '#1089ff',
+          color: '#1089ff'
+        }}
+      >
+        <FaStar className="me-2" />
+        Rate Tour Guide
+      </Button>
+    ) : (
+      <>
+        <div className="d-flex justify-content-center align-items-center text-success">
+          <FaStar className="me-2" />
+          Tour Guide Rated Successfully
+        </div>
+        <div className="d-flex align-items-center justify-content-center mt-2">
+          {[...Array(booking.guideRating)].map((_, i) => (
+            <FaStar key={i} className="text-warning" />
+          ))}
+        </div>
+        {booking.guideReview && (
+          <p className="text-center mt-2 mb-0 small text-muted">{booking.guideReview}</p>
+        )}
+      </>
+    )}
+  </div>
+)}
   
                     <div className="d-grid gap-2">
                       {canBeRated(booking) && (
