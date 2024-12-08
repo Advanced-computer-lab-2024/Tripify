@@ -1,8 +1,31 @@
 import React, { useState } from "react";
-import { Container, Form, Button, Alert, Card } from "react-bootstrap";
+import { 
+  Container, 
+  Form, 
+  Button, 
+  Alert, 
+  Card,
+  Row,
+  Col,
+  Spinner 
+} from "react-bootstrap";
+import { 
+  FaCar, 
+  FaUsers, 
+  FaDollarSign,
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaList,
+  FaCheckSquare,
+  FaChevronRight,
+  FaTimes,
+  FaPlus,
+  FaArrowLeft
+} from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { useNavigate } from "react-router-dom";
+import AdvertiserNavbar from './AdvertiserNavbar';
 
 const CreateTransportationListing = () => {
   const navigate = useNavigate();
@@ -80,6 +103,24 @@ const CreateTransportationListing = () => {
     if (!formData.description) return "Description is required";
     return null;
   };
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    position: 'relative',
+    padding: '8rem 0 4rem 0',
+    marginBottom: '2rem'
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,163 +182,331 @@ const CreateTransportationListing = () => {
   };
 
   return (
-    <Container className="mt-4">
-      <Card>
-        <Card.Body>
-          <h2 className="mb-4">Create Transportation Listing</h2>
-
-          {error && <Alert variant="danger">{error}</Alert>}
-          {success && <Alert variant="success">{success}</Alert>}
-
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Vehicle Type</Form.Label>
-              <Form.Select
-                name="vehicleType"
-                value={formData.vehicleType}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select vehicle type</option>
-                {vehicleTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Model</Form.Label>
-              <Form.Control
-                type="text"
-                name="model"
-                value={formData.model}
-                onChange={handleInputChange}
-                placeholder="e.g., Toyota Hiace 2022"
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Capacity (number of passengers)</Form.Label>
-              <Form.Control
-                type="number"
-                name="capacity"
-                value={formData.capacity}
-                onChange={handleInputChange}
-                placeholder="Enter passenger capacity"
-                required
-                min="1"
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Price per day (USD)</Form.Label>
-              <Form.Control
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="Enter daily rate"
-                required
-                min="0"
-                step="0.01"
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Availability Start</Form.Label>
-              <Form.Control
-                type="date"
-                name="availabilityStart"
-                value={formData.availabilityStart}
-                onChange={handleInputChange}
-                required
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Availability End</Form.Label>
-              <Form.Control
-                type="date"
-                name="availabilityEnd"
-                value={formData.availabilityEnd}
-                onChange={handleInputChange}
-                required
-                min={formData.availabilityStart}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Pickup Location</Form.Label>
-              <Form.Control
-                type="text"
-                name="pickupLocation"
-                value={formData.pickupLocation}
-                onChange={handleInputChange}
-                placeholder="Enter pickup location"
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Dropoff Location</Form.Label>
-              <Form.Control
-                type="text"
-                name="dropoffLocation"
-                value={formData.dropoffLocation}
-                onChange={handleInputChange}
-                placeholder="Enter dropoff location"
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Enter vehicle description and terms"
-                required
-                rows={3}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Features</Form.Label>
-              <div className="d-grid gap-2">
-                {features.map((feature) => (
-                  <Form.Check
-                    key={feature}
-                    type="checkbox"
-                    label={feature}
-                    checked={formData.features.includes(feature)}
-                    onChange={() => handleFeaturesChange(feature)}
-                    className="mb-2"
-                  />
-                ))}
-              </div>
-            </Form.Group>
-
-            <div className="d-grid gap-2">
-              <Button variant="primary" type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Listing"}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => navigate("/advertiser/transportation")}
-              >
-                Cancel
-              </Button>
+    <>
+      <AdvertiserNavbar />
+      <div className="create-transportation">
+        {/* Hero Section */}
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }}>
+            <div className="text-center text-white">
+              <p className="mb-4">
+                <span className="me-2">
+                  <Link to="/advertiser" className="text-white text-decoration-none">
+                    Home <FaChevronRight className="small mx-2" />
+                  </Link>
+                </span>
+                <span>
+                  Create Transportation <FaChevronRight className="small" />
+                </span>
+              </p>
+              <h1 className="display-4 mb-0">Create Transportation Listing</h1>
             </div>
-          </Form>
-        </Card.Body>
-      </Card>
-    </Container>
+          </Container>
+        </div>
+
+        <Container className="py-5">
+          <Card className="shadow-sm border-0 rounded-3">
+            <Card.Body className="p-4">
+              {/* Header Section */}
+              <div className="d-flex align-items-center mb-4">
+                <div 
+                  className="icon-circle me-3"
+                  style={{
+                    backgroundColor: '#1089ff',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}
+                >
+                  <FaCar size={24} />
+                </div>
+                <h3 className="mb-0">Vehicle Details</h3>
+              </div>
+
+              {error && (
+                <Alert variant="danger" className="mb-4">
+                  {error}
+                </Alert>
+              )}
+
+              {success && (
+                <Alert variant="success" className="mb-4">
+                  {success}
+                </Alert>
+              )}
+
+              <Form onSubmit={handleSubmit}>
+                <Row className="g-4">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaCar className="me-2" />
+                        Vehicle Type
+                      </Form.Label>
+                      <Form.Select
+                        name="vehicleType"
+                        value={formData.vehicleType}
+                        onChange={handleInputChange}
+                        required
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      >
+                        <option value="">Select vehicle type</option>
+                        {vehicleTypes.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaList className="me-2" />
+                        Model
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="model"
+                        value={formData.model}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Toyota Hiace 2022"
+                        required
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaUsers className="me-2" />
+                        Capacity (number of passengers)
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="capacity"
+                        value={formData.capacity}
+                        onChange={handleInputChange}
+                        placeholder="Enter passenger capacity"
+                        required
+                        min="1"
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaDollarSign className="me-2" />
+                        Price per day (USD)
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        placeholder="Enter daily rate"
+                        required
+                        min="0"
+                        step="0.01"
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaCalendarAlt className="me-2" />
+                        Availability Start
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="availabilityStart"
+                        value={formData.availabilityStart}
+                        onChange={handleInputChange}
+                        required
+                        min={new Date().toISOString().split("T")[0]}
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaCalendarAlt className="me-2" />
+                        Availability End
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="availabilityEnd"
+                        value={formData.availabilityEnd}
+                        onChange={handleInputChange}
+                        required
+                        min={formData.availabilityStart}
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaMapMarkerAlt className="me-2" />
+                        Pickup Location
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="pickupLocation"
+                        value={formData.pickupLocation}
+                        onChange={handleInputChange}
+                        placeholder="Enter pickup location"
+                        required
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaMapMarkerAlt className="me-2" />
+                        Dropoff Location
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="dropoffLocation"
+                        value={formData.dropoffLocation}
+                        onChange={handleInputChange}
+                        placeholder="Enter dropoff location"
+                        required
+                        className="rounded-pill"
+                        style={{
+                          padding: '0.75rem 1.25rem',
+                          border: '2px solid #eee'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">Description</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        placeholder="Enter vehicle description and terms"
+                        required
+                        rows={3}
+                        style={{
+                          border: '2px solid #eee',
+                          borderRadius: '15px'
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">
+                        <FaCheckSquare className="me-2" />
+                        Features
+                      </Form.Label>
+                      <div className="d-flex flex-wrap gap-3">
+                        {features.map((feature) => (
+                          <Form.Check
+                            key={feature}
+                            type="checkbox"
+                            label={feature}
+                            checked={formData.features.includes(feature)}
+                            onChange={() => handleFeaturesChange(feature)}
+                            className="user-select-none"
+                          />
+                        ))}
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <div className="d-flex gap-3 mt-4">
+                  <Button
+                    variant="light"
+                    onClick={() => navigate("/advertiser/transportation")}
+                    className="rounded-pill px-4"
+                  >
+                    <FaArrowLeft className="me-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="rounded-pill px-4"
+                    style={{
+                      backgroundColor: '#1089ff',
+                      border: 'none'
+                    }}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <FaPlus className="me-2" />
+                        Create Listing
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Container>
+      </div>
+    </>
   );
 };
 
