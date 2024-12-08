@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Table, Container, Badge, Button, Alert } from "react-bootstrap";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, Alert, Spinner } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const ArchivedProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const API_URL = "http://localhost:5000/api";
-  const userRole = localStorage.getItem("userRole");
+  const [unarchiving, setUnarchiving] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchArchivedProducts();
@@ -15,20 +16,11 @@ const ArchivedProducts = () => {
 
   const fetchArchivedProducts = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/products/archived`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "User-Role": userRole,
-        },
-      });
-  
-      if (response.data.success) {
-        setProducts(response.data.data.products || []);
-      }
-    } catch (error) {
-      console.error("Error details:", error.response?.data || error);
-      setError(error.response?.data?.message || "Failed to load archived products");
+      setLoading(true);
+      const response = await axios.get('http://localhost:5000/api/products/archived');
+      setProducts(response.data.data.products);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch archived products');
     } finally {
       setLoading(false);
     }
@@ -36,79 +28,100 @@ const ArchivedProducts = () => {
 
   const handleUnarchive = async (productId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `${API_URL}/products/${productId}/archive`,
-        { isArchived: false },
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "User-Role": userRole,
-          } 
-        }
-      );
-
-      if (response.data.success) {
-        setProducts(products.filter((product) => product._id !== productId));
-      } else {
-        throw new Error("Failed to unarchive product");
-      }
-    } catch (error) {
-      console.error("Error unarchiving product:", error);
-      setError(error.response?.data?.message || "Error unarchiving product");
+      setUnarchiving(productId);
+      await axios.put(`http://localhost:5000/api/products/archive/${productId}`, {
+        isArchived: false
+      });
+      
+      // Remove the unarchived product from the list
+      setProducts(products.filter(product => product._id !== productId));
+      
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to unarchive product');
+    } finally {
+      setUnarchiving(null);
     }
   };
 
   if (loading) {
-    return <div className="text-center mt-5">Loading...</div>;
+    return (
+      <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+        <Spinner animation="border" variant="primary" />
+      </Container>
+    );
   }
 
   return (
-    <Container className="mt-4">
-      <h2>Archived Products</h2>
-      {error && <Alert variant="danger">{error}</Alert>}
+    <Container className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <Button 
+          variant="outline-secondary" 
+          onClick={() => navigate(-1)}
+          className="mb-3"
+        >
+          ← Back to Products
+        </Button>
+        <h2>Archived Products</h2>
+      </div>
+      
+      {error && (
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          {error}
+        </Alert>
+      )}
 
       {products.length === 0 ? (
-        <Alert variant="info">No archived products found.</Alert>
+        <Alert variant="info">
+          No archived products found.
+        </Alert>
       ) : (
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>Product Name</th>
-              <th>Description</th>
-              <th>Price</th>
-              {userRole === "admin" && <th>Merchant Email</th>}
-              <th>Archived Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product._id}>
-                <td>{product.name}</td>
-                <td>{product.description}</td>
-                <td>${product.price.toFixed(2)}</td>
-                {userRole === "admin" && (
-                  <td>{product.merchantEmail || "Unknown Seller"}</td>
+        <Row xs={1} md={2} lg={3} className="g-4">
+          {products.map((product) => (
+            <Col key={product._id}>
+              <Card>
+                {product.productImage && product.productImage[0] && (
+                  <Card.Img
+                    variant="top"
+                    src={product.productImage[0].path}
+                    alt={product.name}
+                    style={{ height: '200px', objectFit: 'cover' }}
+                  />
                 )}
-                <td>
-                  {product.archivedAt 
-                    ? new Date(product.archivedAt).toLocaleDateString()
-                    : new Date(product.updatedAt).toLocaleDateString()}
-                </td>
-                <td>
+                <Card.Body>
+                  <Card.Title>{product.name}</Card.Title>
+                  <Card.Text>
+                    Price: ${product.price}
+                    <br />
+                    Quantity: {product.quantity}
+                    <br />
+                    Archived on: {new Date(product.archivedAt).toLocaleDateString()}
+                  </Card.Text>
                   <Button
-                    variant="success"
-                    size="sm"
+                    variant="primary"
                     onClick={() => handleUnarchive(product._id)}
+                    disabled={unarchiving === product._id}
                   >
-                    Unarchive
+                    {unarchiving === product._id ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                        />
+                        Unarchiving...
+                      </>
+                    ) : (
+                      'Unarchive Product'
+                    )}
                   </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       )}
     </Container>
   );
