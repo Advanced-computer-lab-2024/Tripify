@@ -5,6 +5,14 @@ import Itinerary from "../models/itinerary.model.js";
 import mongoose from "mongoose";
 
 const validateBookingDate = async (eventItem, bookingType, requestedDate) => {
+  console.log("Validating date:", {
+    bookingType,
+    requestedDate,
+    requestedDateISO: requestedDate.toISOString(),
+    eventItemDate: eventItem?.date,
+    eventItemDateParsed: new Date(eventItem?.date),
+  });
+
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
 
@@ -17,14 +25,42 @@ const validateBookingDate = async (eventItem, bookingType, requestedDate) => {
 
   switch (bookingType) {
     case "Activity":
-      // For activities, check if the activity date matches the requested date
       const activityDate = new Date(eventItem.date);
       activityDate.setHours(0, 0, 0, 0);
 
-      if (requestedDate.getTime() !== activityDate.getTime()) {
+      // Convert both dates to UTC midnight for comparison
+      const requestedUTC = new Date(
+        Date.UTC(
+          requestedDate.getFullYear(),
+          requestedDate.getMonth(),
+          requestedDate.getDate()
+        )
+      );
+
+      const activityUTC = new Date(
+        Date.UTC(
+          activityDate.getFullYear(),
+          activityDate.getMonth(),
+          activityDate.getDate()
+        )
+      );
+
+      console.log("Comparing dates:", {
+        requestedUTC: requestedUTC.toISOString(),
+        activityUTC: activityUTC.toISOString(),
+        areEqual: requestedUTC.getTime() === activityUTC.getTime(),
+      });
+
+      if (requestedUTC.getTime() !== activityUTC.getTime()) {
         return {
           success: false,
-          message: `This activity is only available on ${activityDate.toLocaleDateString()}`,
+          message: `This activity is only available on ${activityDate.toLocaleDateString(
+            "en-GB"
+          )}`,
+          debug: {
+            requestedDate: requestedUTC.toISOString(),
+            activityDate: activityUTC.toISOString(),
+          },
         };
       }
       break;
@@ -58,21 +94,24 @@ export const bookingController = {
   createBooking: async (req, res) => {
     try {
       const { userId, bookingType, itemId, bookingDate } = req.body;
+      console.log("Received booking request:", {
+        originalBookingDate: bookingDate,
+        parsedDate: new Date(bookingDate),
+        isoString: new Date(bookingDate).toISOString(),
+        localString: new Date(bookingDate).toLocaleDateString(),
+      });
 
-      if (!userId || !bookingType || !itemId || !bookingDate) {
-        return res.status(400).json({
-          success: false,
-          message: "Missing required fields",
-        });
-      }
-
-      const requestedDate = new Date(bookingDate);
-      requestedDate.setHours(0, 0, 0, 0);
-
+      // Only validate that the item exists and the date is valid
       let eventItem;
       switch (bookingType) {
         case "Activity":
           eventItem = await Activity.findById(itemId);
+          console.log("Activity details:", {
+            activityDate: eventItem?.date,
+            parsedActivityDate: new Date(eventItem?.date),
+            activityISOString: new Date(eventItem?.date).toISOString(),
+            activityLocalString: new Date(eventItem?.date).toLocaleDateString(),
+          });
           break;
         case "HistoricalPlace":
           eventItem = await HistoricalPlace.findById(itemId);
@@ -94,50 +133,32 @@ export const bookingController = {
         });
       }
 
-      const isDateValid = await validateBookingDate(
+      // Validate booking date
+      const dateValidation = await validateBookingDate(
         eventItem,
         bookingType,
-        requestedDate
+        new Date(bookingDate)
       );
-      if (!isDateValid.success) {
+      if (!dateValidation.success) {
         return res.status(400).json({
           success: false,
-          message: isDateValid.message,
+          message: dateValidation.message,
         });
       }
 
-      const startDate = new Date(requestedDate);
-      const endDate = new Date(requestedDate);
-      endDate.setHours(23, 59, 59, 999);
-
-      const existingBooking = await Booking.findOne({
-        bookingType,
-        itemId,
-        bookingDate: {
-          $gte: startDate,
-          $lte: endDate,
-        },
-        status: { $ne: "cancelled" },
-      });
-
-      if (existingBooking) {
-        return res.status(400).json({
-          success: false,
-          message: "This date is already booked",
-        });
-      }
-
+      // Create the booking without any capacity checks
       const booking = await Booking.create({
         userId,
         bookingType,
         itemId,
-        bookingDate: requestedDate,
+        bookingDate,
         status: "confirmed",
       });
 
       res.status(201).json({
         success: true,
         data: booking,
+        message: "Booking confirmed successfully",
       });
     } catch (error) {
       console.error("Booking creation error:", error);
@@ -147,7 +168,6 @@ export const bookingController = {
       });
     }
   },
-
   getUserBookings: async (req, res) => {
     try {
       const { userId } = req.params;
@@ -367,6 +387,12 @@ export const bookingController = {
       switch (bookingType) {
         case "Activity":
           eventItem = await Activity.findById(itemId);
+          console.log("Activity details:", {
+            activityDate: eventItem?.date,
+            parsedActivityDate: new Date(eventItem?.date),
+            activityISOString: new Date(eventItem?.date).toISOString(),
+            activityLocalString: new Date(eventItem?.date).toLocaleDateString(),
+          });
           break;
         case "HistoricalPlace":
           eventItem = await HistoricalPlace.findById(itemId);
@@ -393,6 +419,8 @@ export const bookingController = {
         bookingType,
         requestedDate
       );
+      console.log("Date validation result:", dateValidation);
+
       if (!dateValidation.success) {
         return res.status(400).json({
           success: false,
@@ -793,3 +821,85 @@ export const bookingController = {
 };
 
 // Add this to your existing booking.controller.js
+const checkAvailability = async (itemId, bookingType, bookingDate) => {
+  const startOfDay = new Date(bookingDate);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(bookingDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  switch (bookingType) {
+    case "Activity": {
+      const activity = await Activity.findById(itemId);
+      if (!activity) return { available: false, message: "Activity not found" };
+
+      // Always return available=true for unlimited bookings
+      return {
+        available: true,
+        remainingSpots: Infinity,
+        message: "Available for booking",
+      };
+    }
+
+    case "HistoricalPlace": {
+      const place = await HistoricalPlace.findById(itemId);
+      if (!place)
+        return { available: false, message: "Historical place not found" };
+
+      // Always return available=true for unlimited bookings
+      return {
+        available: true,
+        remainingSpots: Infinity,
+        message: "Available for booking",
+      };
+    }
+
+    case "Itinerary": {
+      const itinerary = await Itinerary.findById(itemId);
+      if (!itinerary)
+        return { available: false, message: "Itinerary not found" };
+
+      // Only check date availability for itineraries, no capacity limit
+      const isAvailableDate = itinerary.availableDates?.some((dateObj) => {
+        const availableDate = new Date(dateObj.date);
+        availableDate.setHours(0, 0, 0, 0);
+        return availableDate.getTime() === startOfDay.getTime();
+      });
+
+      return {
+        available: isAvailableDate,
+        remainingSpots: Infinity,
+        message: isAvailableDate
+          ? "Available for booking"
+          : "Date not available for this itinerary",
+      };
+    }
+
+    default:
+      return { available: false, message: "Invalid booking type" };
+  }
+};
+
+// Export the function to be used in the controller
+export const validateAndCheckAvailability = async (
+  eventItem,
+  bookingType,
+  bookingDate
+) => {
+  // Only validate the basic booking date
+  const dateValidation = await validateBookingDate(
+    eventItem,
+    bookingType,
+    bookingDate
+  );
+  if (!dateValidation.success) {
+    return dateValidation;
+  }
+
+  // Always return success for availability
+  return {
+    success: true,
+    message: "Available for booking",
+    remainingSpots: Infinity,
+  };
+};

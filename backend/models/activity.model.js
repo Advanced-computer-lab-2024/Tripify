@@ -63,6 +63,16 @@ const activitySchema = new mongoose.Schema(
       default: false,
       required: true,
     },
+    capacity: {
+      type: Number,
+      required: true,
+      min: [1, "Capacity must be at least 1"],
+      default: 1,
+    },
+    bookedCount: {
+      type: Number,
+      default: 0,
+    },
   },
 
   { timestamps: true }
@@ -72,3 +82,10 @@ activitySchema.index({ location: "2dsphere" });
 
 const Activity = mongoose.model("Activity", activitySchema);
 export default Activity;
+activitySchema.methods.hasAvailableSpots = function () {
+  return this.bookedCount < this.capacity;
+};
+
+activitySchema.methods.getRemainingSpots = function () {
+  return this.capacity - this.bookedCount;
+};
