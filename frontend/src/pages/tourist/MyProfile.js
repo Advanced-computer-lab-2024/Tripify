@@ -21,6 +21,7 @@ import {
   FaChevronRight,
   FaTrash,
   FaExclamationTriangle,
+  FaMapMarker,
 } from "react-icons/fa";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
@@ -727,6 +728,15 @@ const MyProfile = () => {
                           Edit Profile
                         </Button>
                         <Button
+              as={Link}
+              to="/tourist/delivery-addresses"
+              variant="outline-primary"
+              className="rounded-pill px-4"
+            >
+              <FaMapMarker className="me-2" />
+              Manage Addresses
+            </Button>
+                        <Button
                           variant="outline-danger"
                           onClick={() => setShowDeleteModal(true)}
                           className="rounded-pill px-4"
@@ -734,6 +744,7 @@ const MyProfile = () => {
                           <FaTrash className="me-2" />
                           Delete Account
                         </Button>
+                        
                       </div>
                     </div>
                   ) : (
@@ -989,6 +1000,7 @@ const MyProfile = () => {
                 </>
               )}
             </Button>
+           
           </Modal.Footer>
         </Modal>
 

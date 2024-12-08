@@ -16,11 +16,14 @@ import {
   FaPencilAlt,
   FaTrash,
   FaStar,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaArrowLeft
 } from 'react-icons/fa';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const DeliveryAddresses = () => {
+  const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
@@ -154,14 +157,24 @@ const DeliveryAddresses = () => {
   }
 
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>My Delivery Addresses</h1>
-        <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          <FaPlus className="me-2" />
-          Add New Address
-        </Button>
-      </div>
+      <Container className="py-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="d-flex align-items-center gap-3">
+            <Button 
+              variant="outline-secondary" 
+              onClick={() => navigate(-1)}
+              className="rounded-pill"
+            >
+              <FaArrowLeft className="me-2" />
+              Back
+            </Button>
+            <h1 className="mb-0">My Delivery Addresses</h1>
+          </div>
+          <Button variant="primary" onClick={() => setShowAddModal(true)}>
+            <FaPlus className="me-2" />
+            Add New Address
+          </Button>
+        </div>
 
       {error && (
         <Alert variant="danger" onClose={() => setError(null)} dismissible>
