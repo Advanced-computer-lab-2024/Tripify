@@ -50,6 +50,16 @@ import MyReviews from "./pages/reviews/MyReviews";
 import RateTourGuides from "./pages/tourist/RateTourGuides";
 import HotelBookings from "./pages/tourist/HotelBookings";
 import TouristAboutPage from "./pages/tourist/TouristAboutPage";
+import FilterHistoricalPlaces from "./pages/tourist/FilterHistoricalPlaces";
+import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
+import MyPurchasesPage from "./pages/tourist/MyPurchasesPage";
+import WishlistPage from "./pages/tourist/WishlistPage";
+import SavedEvents from "./pages/tourist/SavedEvents";
+import NotificationsPage from "./pages/tourist/NotificationPage";
+import DeliveryAddresses from "./components/DeliveryAddresses";
+import FlightBookings from "./pages/tourist/FlightBookings";
+import VacationGuide from "./components/VacationGuide";
+
 
 // Import Bootstrap CSS
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -82,94 +92,39 @@ function App() {
             path="/login"
             element={<AuthPage />}
           />
-          {/* Tourist Routes */}
-          <Route
-            path="/tourist"
-            element={<TouristHomePage />}
-          />
-          <Route
-            path="/tourist/register"
-            element={<TouristRegister />}
-          />
-          <Route
-            path="/tourist/view-events"
-            element={<ViewEvents />}
-          />
-          <Route
-            path="/tourist/my-profile"
-            element={<MyProfile />}
-          />
-          <Route
-            path="/tourist/my-complaints"
-            element={<TouristComplaints />}
-          />
-          <Route
-            path="/tourist/itinerary-filter"
-            element={<ItineraryFilter />}
-          />
-          <Route
-            path="/tourist/filtered-activities"
-            element={<FilteredActivities />}
-          />
-          <Route
-            path="/tourist/products"
-            element={<ProductTouristPage />}
-          />
-          <Route
-            path="/tourist/complaints"
-            element={<CreateComplaint />}
-          />
-          <Route
-            path="/tourist/book-flight"
-            element={<FlightBooking />}
-          />
-          <Route
-            path="/tourist/book-hotel"
-            element={<HotelBooking />}
-          />
-          <Route
-            path="/tourist/hotel-bookings"
-            element={<HotelBookings />}
-          />{" "}
-          <Route
-            path="/tourist/view-bookings"
-            element={<ViewBookings />}
-          />
-          <Route
-            path="/tourist/book-transportation"
-            element={<BookTransportation />}
-          />
-          <Route
-            path="/tourist/change-password"
-            element={<TouristChangePassword />}
-          />
-          {/* Review System Routes */}
-          <Route
-            path="/tourist/reviews/tour-guides"
-            element={<RateTourGuides />}
-          />
-          <Route
-            path="/tourist/reviews/events"
-            element={<EventReviews />}
-          />
-          <Route
-            path="/tourist/reviews/products"
-            element={<ProductReviews />}
-          />
-          <Route
-            path="/tourist/my-reviews"
-            element={<MyReviews />}
-          />
-           <Route
-            path="/about"
-            element={<TouristAboutPage />}
-          />
-          <Route
-            path="/tourist/reviews"
-            element={<ReviewsSystem />}
-          />{" "}
-          {/* Keep your existing general reviews route */}
-          {/* Tour Guide Routes */}
+        {/* Tourist Routes */}
+<Route path="/tourist" element={<TouristHomePage />} />
+<Route path="/tourist/register" element={<TouristRegister />} />
+<Route path="/tourist/view-events" element={<ViewEvents />} />
+<Route path="/tourist/my-profile" element={<MyProfile />} />
+<Route path="/tourist/filter-historical-places" element={<FilterHistoricalPlaces />} />
+<Route path="/tourist/forgot-password" element={<ForgetPasswordTourist />} />
+<Route path="/tourist/my-complaints" element={<TouristComplaints />} />
+<Route path="/tourist/itinerary-filter" element={<ItineraryFilter />} />
+<Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
+<Route path="/tourist/wishlist" element={<WishlistPage />} />
+<Route path="/tourist/products" element={<ProductTouristPage />} />
+<Route path="/tourist/purchases" element={<MyPurchasesPage />} />
+<Route path="/tourist/complaints" element={<CreateComplaint />} />
+<Route path="/tourist/book-flight" element={<FlightBooking />} />
+<Route path="/tourist/book-hotel" element={<HotelBooking />} />
+<Route path="/tourist/saved-events" element={<SavedEvents />} />
+<Route path="/tourist/notifications" element={<NotificationsPage />} />
+<Route path="/tourist/guide" element={<VacationGuide />} />
+<Route path="/tourist/hotel-bookings" element={<HotelBookings />} />
+<Route path="/tourist/view-bookings" element={<ViewBookings />} />
+<Route path="/tourist/book-transportation" element={<BookTransportation />} />
+<Route path="/tourist/change-password" element={<TouristChangePassword />} />
+<Route path="/tourist/flight-bookings" element={<FlightBookings />} />
+<Route path="/tourist/delivery-addresses" element={<DeliveryAddresses />} />
+<Route path="/about" element={<TouristAboutPage />} />
+
+{/* Review System Routes */}
+<Route path="/tourist/reviews/tour-guides" element={<RateTourGuides />} />
+<Route path="/tourist/reviews/events" element={<EventReviews />} />
+<Route path="/tourist/reviews/products" element={<ProductReviews />} />
+<Route path="/tourist/my-reviews" element={<MyReviews />} />
+<Route path="/tourist/reviews" element={<ReviewsSystem />} />  {/* Tour Guide Routes */}
           <Route
             path="/tourguide"
             element={<TourguideHomePage />}
