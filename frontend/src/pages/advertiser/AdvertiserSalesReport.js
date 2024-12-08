@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Card, Table, Row, Col, Spinner, Alert } from "react-bootstrap";
+import { Card, Table, Row, Col, Spinner, Alert, Form } from "react-bootstrap";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 
 const AdvertiserSalesReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [salesData, setSalesData] = useState([]);
   const [summary, setSummary] = useState({
     totalRevenue: 0,
     platformFees: 0,
     netRevenue: 0,
     totalBookings: 0,
+  });
+  const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    activityName: "",
   });
 
   useEffect(() => {
@@ -21,43 +27,54 @@ const AdvertiserSalesReport = () => {
   const fetchSalesData = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
+      if (!token) throw new Error("No authentication token found");
 
       const decoded = jwtDecode(token);
       const advertiserId = decoded._id;
 
-      // Get all activities created by this advertiser
       const activitiesResponse = await axios.get(
-        "http://localhost:5000/api/advertiser/activities/my",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `http://localhost:5000/api/advertiser/activities/my`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Get all bookings for these activities
-      const activityIds = activitiesResponse.data.map(
-        (activity) => activity._id
-      );
-      const bookings = [];
-
+      const activityIds = activitiesResponse.data.map((activity) => activity._id);
+      const allBookings = [];
       for (const activityId of activityIds) {
-        const bookingResponse = await axios.get(
+        const bookingsResponse = await axios.get(
           `http://localhost:5000/api/bookings/item/Activity/${activityId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-        bookings.push(...bookingResponse.data.data);
+        allBookings.push(
+          ...bookingsResponse.data.data.map((booking) => ({
+            ...booking,
+            activityName: activitiesResponse.data.find(
+              (activity) => activity._id === booking.itemId
+            )?.name || "Unknown Activity",
+            price: activitiesResponse.data.find(
+              (activity) => activity._id === booking.itemId
+            )?.price || 0,
+          }))
+        );
       }
 
-      const processedData = processBookingsData(
-        bookings,
-        activitiesResponse.data
+      const totalRevenue = allBookings.reduce(
+        (sum, booking) =>
+          ["attended", "confirmed"].includes(booking.status)
+            ? sum + (booking.price || 0)
+            : sum,
+        0
       );
-      setSalesData(processedData.monthlyData);
-      setSummary(processedData.summary);
+      const platformFees = totalRevenue * 0.1;
+      const netRevenue = totalRevenue - platformFees;
+
+      setSummary({
+        totalRevenue,
+        platformFees,
+        netRevenue,
+        totalBookings: allBookings.length,
+      });
+      setBookings(allBookings);
+      setFilteredBookings(allBookings); // Initially, all bookings are shown
     } catch (error) {
       console.error("Error fetching sales data:", error);
       setError(error.message || "Error loading sales data");
@@ -66,180 +83,95 @@ const AdvertiserSalesReport = () => {
     }
   };
 
-  const processBookingsData = (bookings, activities) => {
-    const monthlyDataMap = new Map();
-    let totalRevenue = 0;
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
 
-    bookings.forEach((booking) => {
-      if (booking.status === "attended" || booking.status === "confirmed") {
-        const date = new Date(booking.bookingDate);
-        const monthYear = date.toLocaleString("default", {
-          month: "short",
-          year: "numeric",
-        });
+    const filtered = bookings.filter((booking) => {
+      const bookingDate = new Date(booking.bookingDate);
+      const matchesStartDate =
+        !filters.startDate || bookingDate >= new Date(filters.startDate);
+      const matchesEndDate =
+        !filters.endDate || bookingDate <= new Date(filters.endDate);
+      const matchesActivityName =
+        filters.activityName === "" ||
+        booking.activityName?.toLowerCase().includes(filters.activityName.toLowerCase());
 
-        // Find the activity price
-        const activity = activities.find((a) => a._id === booking.itemId);
-        const amount = activity?.price || 0;
-
-        if (monthlyDataMap.has(monthYear)) {
-          const existing = monthlyDataMap.get(monthYear);
-          existing.revenue += amount;
-          existing.bookings += 1;
-          monthlyDataMap.set(monthYear, existing);
-        } else {
-          monthlyDataMap.set(monthYear, {
-            month: monthYear,
-            revenue: amount,
-            bookings: 1,
-          });
-        }
-
-        totalRevenue += amount;
-      }
+      return matchesStartDate && matchesEndDate && matchesActivityName;
     });
 
-    const platformFees = totalRevenue * 0.1; // 10% platform fee
-    const netRevenue = totalRevenue - platformFees;
-
-    return {
-      monthlyData: Array.from(monthlyDataMap.values()).sort(
-        (a, b) => new Date(b.month) - new Date(a.month)
-      ),
-      summary: {
-        totalRevenue,
-        platformFees,
-        netRevenue,
-        totalBookings: bookings.length,
-      },
-    };
+    setFilteredBookings(filtered);
   };
 
-  if (loading) {
+  if (loading)
+    return <Spinner animation="border" className="d-block mx-auto mt-5" />;
+  if (error)
     return (
-      <div className="text-center p-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="danger" className="m-4">
+      <Alert variant="danger" className="mt-5">
         {error}
       </Alert>
     );
-  }
 
   return (
     <div className="p-4">
-      <h2 className="mb-4">Activities Sales Report</h2>
-
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Total Revenue</h6>
-              <h3 className="text-primary">
-                ${summary.totalRevenue.toFixed(2)}
-              </h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Platform Fees (10%)</h6>
-              <h3 className="text-danger">
-                -${summary.platformFees.toFixed(2)}
-              </h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Net Revenue</h6>
-              <h3 className="text-success">${summary.netRevenue.toFixed(2)}</h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Total Bookings</h6>
-              <h3 className="text-info">{summary.totalBookings}</h3>
-            </Card.Body>
-          </Card>
-        </Col>
+      <h2 className="mb-4">Advertiser Sales Report</h2>
+      <Row>
+        <Col>Total Revenue: ${summary.totalRevenue.toFixed(2)}</Col>
+        <Col>Platform Fees: ${summary.platformFees.toFixed(2)}</Col>
+        <Col>Net Revenue: ${summary.netRevenue.toFixed(2)}</Col>
+        <Col>Total Bookings: {summary.totalBookings}</Col>
       </Row>
-
-      <Card className="shadow-sm">
-        <Card.Body>
-          <h4 className="mb-4">Monthly Revenue Breakdown</h4>
-          <div className="table-responsive">
-            <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Month</th>
-                  <th>Total Revenue</th>
-                  <th>Platform Fee (10%)</th>
-                  <th>Net Revenue</th>
-                  <th>Bookings</th>
-                  <th>Average Revenue Per Booking</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesData.map((month) => (
-                  <tr key={month.month}>
-                    <td>{month.month}</td>
-                    <td>${month.revenue.toFixed(2)}</td>
-                    <td className="text-danger">
-                      -${(month.revenue * 0.1).toFixed(2)}
-                    </td>
-                    <td className="text-success">
-                      ${(month.revenue * 0.9).toFixed(2)}
-                    </td>
-                    <td>{month.bookings}</td>
-                    <td>${(month.revenue / month.bookings).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="table-dark">
-                <tr>
-                  <td>
-                    <strong>Total</strong>
-                  </td>
-                  <td>
-                    <strong>${summary.totalRevenue.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>-${summary.platformFees.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>${summary.netRevenue.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>{summary.totalBookings}</strong>
-                  </td>
-                  <td>
-                    <strong>
-                      $
-                      {summary.totalBookings
-                        ? (
-                            summary.totalRevenue / summary.totalBookings
-                          ).toFixed(2)
-                        : "0.00"}
-                    </strong>
-                  </td>
-                </tr>
-              </tfoot>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
+      <Form className="my-4">
+        <Row>
+          <Col md={4}>
+            <Form.Control
+              type="date"
+              name="startDate"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+              placeholder="Start Date"
+            />
+          </Col>
+          <Col md={4}>
+            <Form.Control
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              placeholder="End Date"
+            />
+          </Col>
+          <Col md={4}>
+            <Form.Control
+              type="text"
+              name="activityName"
+              value={filters.activityName}
+              onChange={handleFilterChange}
+              placeholder="Filter by Activity Name"
+            />
+          </Col>
+        </Row>
+      </Form>
+      <Table striped bordered className="mt-4">
+        <thead>
+          <tr>
+            <th>Booking Date</th>
+            <th>Status</th>
+            <th>Activity Name</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredBookings.map((booking) => (
+            <tr key={booking._id}>
+              <td>{new Date(booking.bookingDate).toLocaleDateString()}</td>
+              <td>{booking.status}</td>
+              <td>{booking.activityName}</td>
+              <td>${booking.price.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
     </div>
   );
 };

@@ -423,7 +423,11 @@ export const getAdvertiserSalesReport = async (req, res) => {
     }).populate({
       path: "itemId",
       select: "price name",
+      model: 'Activity'  // Explicitly specify the model
     });
+
+    // Log bookings to check population
+    console.log('Populated Bookings:', JSON.stringify(bookings, null, 2));
 
     res.status(200).json({
       success: true,
