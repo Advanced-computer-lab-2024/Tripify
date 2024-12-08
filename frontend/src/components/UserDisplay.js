@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { Button, Form, Alert, Container, Card, Modal } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { Container, Card, Form, Button, Alert, Modal, Spinner, Row, Col } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { FaUser, FaEdit, FaTrash, FaSignOutAlt, FaEnvelope, FaInfoCircle, FaChevronRight } from 'react-icons/fa';
+import axios from 'axios';
+
+import SellerNavbar from '../pages/seller/SellerNavbar';
 
 const UserDisplay = () => {
   const [profile, setProfile] = useState(null);
@@ -11,9 +14,27 @@ const UserDisplay = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
-  // Get user data from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
+
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    position: "relative",
+    padding: "8rem 0 4rem 0",
+    marginBottom: "2rem"
+  };
+
+  const overlayStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1
+  };  
 
   useEffect(() => {
     fetchProfile();
@@ -116,162 +137,255 @@ const UserDisplay = () => {
 
   if (loading) {
     return (
-      <Container className="mt-5">
-        <div className="text-center">Loading...</div>
-      </Container>
+      <div className="seller-profile-page">
+        <SellerNavbar />
+        <Container className="py-5 text-center">
+          <Spinner animation="border" variant="primary" />
+        </Container>
+      </div>
     );
   }
 
   return (
-    <Container className="mt-5">
-      <Card>
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="mb-0">My Profile</h2>
-            <div>
-              <Button variant="danger" onClick={handleLogout} className="me-2">
-                Logout
-              </Button>
-              <Button
-                variant="outline-danger"
-                onClick={() => setShowDeleteModal(true)}
-              >
-                Delete Account
-              </Button>
-            </div>
+    <div className="seller-profile-page">
+      <SellerNavbar />
+      
+      {/* Hero Section */}
+      <div style={heroStyle}>
+        <div style={overlayStyle}></div>
+        <Container style={{ position: "relative", zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span>Account Management <FaChevronRight className="small" /></span>
+            </p>
+            <h1 className="display-4 mb-0">My Profile</h1>
           </div>
+        </Container>
+      </div>
 
-          {error && (
-            <Alert variant="danger" className="mb-4">
-              {error}
-            </Alert>
-          )}
-
-          {!isEditing ? (
-            // View Mode
-            <div>
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  <strong>Username:</strong>
-                </Form.Label>
-                <div>{profile?.username}</div>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  <strong>Email:</strong>
-                </Form.Label>
-                <div>{profile?.email}</div>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  <strong>Name:</strong>
-                </Form.Label>
-                <div>{profile?.name}</div>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  <strong>Description:</strong>
-                </Form.Label>
-                <div>{profile?.description}</div>
-              </Form.Group>
-
-              <Button
-                variant="primary"
-                onClick={() => setIsEditing(true)}
-                className="mt-3"
-              >
-                Edit Profile
-              </Button>
-            </div>
-          ) : (
-            // Edit Mode
-            <Form onSubmit={handleUpdateProfile}>
-              <Form.Group className="mb-3">
-                <Form.Label>Username</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="username"
-                  value={profile.username}
-                  onChange={handleInputChange}
-                  disabled
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Email</Form.Label>
-                <Form.Control
-                  type="email"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={profile.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  name="description"
-                  value={profile.description}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Form.Group>
-
-              <div className="d-flex gap-2">
-                <Button variant="primary" type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save Changes"}
+      <Container className="py-5">
+        <Card className="shadow-sm" style={{ borderRadius: "15px" }}>
+          <Card.Body className="p-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div className="d-flex align-items-center">
+                <div className="icon-circle bg-primary me-3 d-flex align-items-center justify-content-center"
+                     style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
+                  <FaUser className="text-white" size={24} />
+                </div>
+                <h3 className="mb-0">Profile Details</h3>
+              </div>
+              <div>
+                <Button 
+                  variant="outline-danger" 
+                  onClick={handleLogout} 
+                  className="me-2 rounded-pill"
+                >
+                  <FaSignOutAlt className="me-2" />
+                  Logout
                 </Button>
-                <Button variant="secondary" onClick={() => setIsEditing(false)}>
-                  Cancel
+                <Button
+                  variant="danger"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="rounded-pill"
+                >
+                  <FaTrash className="me-2" />
+                  Delete Account
                 </Button>
               </div>
-            </Form>
-          )}
-        </Card.Body>
-      </Card>
+            </div>
 
-      {/* Delete Account Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Delete Account</Modal.Title>
+            {error && (
+              <Alert variant="danger" className="mb-4 rounded-3">
+                <FaInfoCircle className="me-2" />
+                {error}
+              </Alert>
+            )}
+
+            {!isEditing ? (
+              // View Mode
+              <div className="profile-details">
+                <Row className="g-4">
+                  {[
+                    { icon: FaUser, label: "Username", value: profile?.username },
+                    { icon: FaEnvelope, label: "Email", value: profile?.email },
+                    { icon: FaUser, label: "Name", value: profile?.name },
+                    { icon: FaInfoCircle, label: "Description", value: profile?.description }
+                  ].map((field, index) => (
+                    <Col md={6} key={index}>
+                      <Card className="h-100 border-0 bg-light" style={{ borderRadius: "15px" }}>
+                        <Card.Body>
+                          <div className="d-flex align-items-center mb-3">
+                            <field.icon className="text-primary me-2" />
+                            <h5 className="mb-0">{field.label}</h5>
+                          </div>
+                          <p className="mb-0">{field.value}</p>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+
+                <div className="text-center mt-4">
+                  <Button
+                    variant="primary"
+                    onClick={() => setIsEditing(true)}
+                    className="rounded-pill px-4 py-2"
+                  >
+                    <FaEdit className="me-2" />
+                    Edit Profile
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Edit Mode
+              <Form onSubmit={handleUpdateProfile}>
+                <Row className="g-4">
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex align-items-center mb-2">
+                        <FaUser className="text-muted me-2" />
+                        <Form.Label className="mb-0">Username</Form.Label>
+                      </div>
+                      <Form.Control
+                        type="text"
+                        name="username"
+                        value={profile.username}
+                        onChange={handleInputChange}
+                        disabled
+                        className="rounded-pill"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex align-items-center mb-2">
+                        <FaEnvelope className="text-muted me-2" />
+                        <Form.Label className="mb-0">Email</Form.Label>
+                      </div>
+                      <Form.Control
+                        type="email"
+                        name="email"
+                        value={profile.email}
+                        onChange={handleInputChange}
+                        required
+                        className="rounded-pill"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex align-items-center mb-2">
+                        <FaUser className="text-muted me-2" />
+                        <Form.Label className="mb-0">Name</Form.Label>
+                      </div>
+                      <Form.Control
+                        type="text"
+                        name="name"
+                        value={profile.name}
+                        onChange={handleInputChange}
+                        required
+                        className="rounded-pill"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <div className="d-flex align-items-center mb-2">
+                        <FaInfoCircle className="text-muted me-2" />
+                        <Form.Label className="mb-0">Description</Form.Label>
+                      </div>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        name="description"
+                        value={profile.description}
+                        onChange={handleInputChange}
+                        required
+                        style={{ borderRadius: "15px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <div className="d-flex justify-content-center gap-3 mt-4">
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    className="rounded-pill px-4"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaEdit className="me-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-pill px-4"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Form>
+            )}
+          </Card.Body>
+        </Card>
+      </Container>
+
+      {/* Delete Account Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton className="border-0 bg-danger text-white">
+          <Modal.Title>
+            <FaTrash className="me-2" />
+            Delete Account
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <p>
-            Are you sure you want to delete your account? This action cannot be
-            undone.
-          </p>
-          <p>
-            All your products and data will be permanently removed from the
-            system.
-          </p>
+        <Modal.Body className="p-4">
+          <div className="text-center">
+            <div className="mb-4">
+              <span className="icon-circle bg-danger d-inline-flex align-items-center justify-content-center"
+                    style={{ width: "64px", height: "64px", borderRadius: "50%" }}>
+                <FaTrash className="text-white" size={24} />
+              </span>
+            </div>
+            <h4 className="mb-3">⚠️ Warning</h4>
+            <p className="mb-0">
+              Are you sure you want to delete your account? This action cannot be undone.
+              All your products and data will be permanently removed from the system.
+            </p>
+          </div>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+        <Modal.Footer className="border-0">
+          <Button
+            variant="light"
+            onClick={() => setShowDeleteModal(false)}
+            className="rounded-pill"
+          >
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDeleteAccount}>
+          <Button
+            variant="danger"
+            onClick={handleDeleteAccount}
+            className="rounded-pill"
+          >
+            <FaTrash className="me-2" />
             Delete Account
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   );
 };
 
