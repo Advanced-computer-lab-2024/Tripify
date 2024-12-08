@@ -111,6 +111,19 @@ const AdminHomePage = () => {
               </div>
             </Link>
           </div>
+          <div className="col-md-4 mb-4">
+            <Link
+              to="/admin/sales-report"
+              className="card text-center shadow h-100 text-decoration-none"
+            >
+              <div className="card-body">
+                <h5 className="card-title">View Sales</h5>
+                <p className="card-text">
+                  See the Revenue and net grossAmount.
+                </p>
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
     </>

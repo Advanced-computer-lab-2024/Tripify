@@ -227,7 +227,7 @@ const handleEditProduct = async (event) => {
   const handleArchiveProduct = async (productId) => {
     try {
       await axios.put(
-        `${API_URL}/products/${productId}/archive`,
+        `${API_URL}/products/archive/${productId}`,  // Updated endpoint URL
         {
           isArchived: true
         },
@@ -290,8 +290,8 @@ const handleEditProduct = async (event) => {
           <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
         </Col>
         <Col md={2}>
-          <Link
-            to={userType === "Admin" ? "http://localhost:5000/api/products/archived" : "http://localhost:5000/api/products/archived"}
+        <Link
+            to ="http://localhost:3000/products/archived" 
             className="btn btn-secondary w-100"
           >
             View Archived
@@ -358,33 +358,16 @@ const handleEditProduct = async (event) => {
                       Edit
                     </Button>
                     <Button
-                      variant="secondary"
-                      className="me-2"
-                      onClick={async () => {
-                        if (window.confirm("Are you sure you want to archive this product?")) {
-                          try {
-                            await axios.put(
-                              `${API_URL}/products/${product._id}/archive`,
-                              {
-                                isArchived: true
-                              },
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${token}`,
-                                },
-                              }
-                            );
-                            fetchProducts();
-                          } catch (error) {
-                            console.error("Error archiving product:", error);
-                            alert(error.response?.data?.message || "Error archiving product");
-                          }
-                        }
-                      }}
-                    >
-                      Archive
-                    </Button>
-                    <Button
+  variant="secondary"
+  className="me-2"
+  onClick={() => {
+    if (window.confirm("Are you sure you want to archive this product?")) {
+      handleArchiveProduct(product._id);
+    }
+  }}
+>
+  Archive
+</Button>    <Button
                       variant="danger"
                       onClick={() => handleDeleteProduct(product._id)}
                     >

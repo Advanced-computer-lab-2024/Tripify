@@ -14,7 +14,7 @@ import {
   Pagination
 } from 'react-bootstrap';
 import { format } from 'date-fns';
-import { FaBell, FaTrash, FaCheckCircle, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaBell, FaTrash, FaCheckCircle, FaExternalLinkAlt,FaChevronLeft } from 'react-icons/fa';
 // import { useNavigate } from 'react-router-dom';
 
 const NotificationsPage = () => {
@@ -222,6 +222,20 @@ const NotificationsPage = () => {
 
   return (
     <Container className="py-4">
+    <Button
+      variant="link"
+      onClick={() => window.history.back()}
+      className="mb-4 ps-0"
+      style={{ 
+        textDecoration: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        color: '#1089ff'
+      }}
+    >
+      <FaChevronLeft className="me-1" /> Back
+    </Button>
+      
       <Row className="mb-4 align-items-center">
         <Col>
           <h2 className="mb-2">

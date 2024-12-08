@@ -184,7 +184,7 @@ const handleEditProduct = async (event) => {
   const handleArchiveProduct = async (productId) => {
     try {
       await axios.put(
-        `${API_URL}/products/${productId}/archive`,
+        `${API_URL}/products/archive/${productId}`,
         {
           isArchived: true
         },
@@ -248,7 +248,7 @@ const handleEditProduct = async (event) => {
         </Col>
         <Col md={2}>
           <Link
-            to="http://localhost:5000/api/products/archived"
+            to="http://localhost:3000/products/archived"
             className="btn btn-secondary w-100"
           >
             View Archived

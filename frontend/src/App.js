@@ -74,6 +74,8 @@ import TouristGovernorChangePassword from "./changePassword/TouristGovernerChang
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import SellerProductPage from "./pages/seller/SellerProductPage";
 import AdminProdcutPage from "./pages/admin/AdminProductPage";
+import ArchivedProducts from "./pages/product/ArchivedProduct";
+import AdminSalesReport from "./pages/admin/AdminSalesReport";
 
 function App() {
   return (
@@ -155,6 +157,10 @@ function App() {
             element={<ListUsers />}
           />
           <Route
+            path="/admin/sales-report"
+            element={<AdminSalesReport />}
+          />
+          <Route
             path="/admin/activity-categories"
             element={<ActivityCategoryManagement />}
           />
@@ -173,6 +179,10 @@ function App() {
           <Route
             path="/admin/view-documents"
             element={<ViewDocuemnts />}
+          />
+          <Route
+          path="/products/archived"
+          element={<ArchivedProducts />}
           />
           <Route
             path="/admin/change-password"

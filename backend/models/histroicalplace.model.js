@@ -10,7 +10,7 @@ const ticketPriceSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true,
-    min: [0, 'Price must be a positive number'], // Ensures price is non-negative
+    min: [0, "Price must be a positive number"], // Ensures price is non-negative
   },
 });
 
@@ -62,6 +62,12 @@ const historicalPlaceSchema = new mongoose.Schema(
       ref: "TourismGovernor",
       required: true, // Ensures the creator is mandatory
     },
+    dailyCapacity: {
+      type: Number,
+      required: true,
+      min: [1, "Daily capacity must be at least 1"],
+      default: 100,
+    },
   },
   { timestamps: true }
 );
@@ -71,6 +77,38 @@ historicalPlaceSchema.index({ tags: 1 });
 historicalPlaceSchema.index({ createdBy: 1 });
 
 // Create and export the HistoricalPlace model
-const HistoricalPlace = mongoose.model("HistoricalPlace", historicalPlaceSchema);
+const HistoricalPlace = mongoose.model(
+  "HistoricalPlace",
+  historicalPlaceSchema
+);
 
 export default HistoricalPlace;
+
+historicalPlaceSchema.statics.checkDailyAvailability = async function (
+  placeId,
+  date
+) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const place = await this.findById(placeId);
+  if (!place) return { available: false, message: "Place not found" };
+
+  const bookingCount = await mongoose.model("Booking").countDocuments({
+    itemId: placeId,
+    bookingType: "HistoricalPlace",
+    bookingDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+    status: { $ne: "cancelled" },
+  });
+
+  return {
+    available: bookingCount < place.dailyCapacity,
+    remainingSpots: place.dailyCapacity - bookingCount,
+  };
+};
