@@ -3,6 +3,7 @@ import Product from "../models/product.model.js";
 import fs from "fs";
 import ProductPurchase from "../models/productPurchase.model.js";
 import Tourist from "../models/tourist.model.js";
+import sendEmail from '../utils/sendEmail.js';
 
 import PromoCode from "../models/promoCode.model.js";
 
@@ -786,4 +787,46 @@ export const validatePromoCode = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+// In your notifications.controller.js or similar
+
+
+export const sendStockAlert = async (req, res) => {
+    try {
+        const { merchantEmail, productName, productId } = req.body;
+
+        if (!merchantEmail || !productName || !productId) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields"
+            });
+        }
+
+        const subject = "Product Stock Alert - Action Required";
+        const text = `Your product "${productName}" is now out of stock.\n\nProduct ID: ${productId}\n\nPlease log in to your account to update the stock levels.`;
+        const html = `
+            <h2>Product Stock Alert</h2>
+            <p>Your product <strong>"${productName}"</strong> is now out of stock.</p>
+            <p><strong>Product ID:</strong> ${productId}</p>
+            <p>Please log in to your account to update the stock levels.</p>
+            <br>
+            <p>Best regards,</p>
+            <p>Your Tripify Team</p>
+        `;
+
+        await sendEmail(merchantEmail, subject, text, html);
+
+        res.status(200).json({
+            success: true,
+            message: "Stock alert email sent successfully"
+        });
+    } catch (error) {
+        console.error("Error sending stock alert:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to send stock alert email",
+            error: error.message
+        });
+    }
 };

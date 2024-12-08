@@ -15,6 +15,7 @@ import {
   getSellerSales,
   cancelOrder,
   validatePromoCode,
+  sendStockAlert
 } from "../controllers/product.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -47,5 +48,5 @@ router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);
 router.get("/seller-sales/:sellerId", authMiddleware, getSellerSales);
 router.post("/purchases/:purchaseId/cancel", authMiddleware, cancelOrder);
 router.post("/validate-promo", validatePromoCode);
-
+router.post("/stock-alert", sendStockAlert);
 export default router;
