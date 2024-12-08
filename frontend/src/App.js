@@ -62,6 +62,8 @@ import TourGuideChangePassword from "./changePassword/TourGuideChangePassword";
 import TouristChangePassword from "./changePassword/TouristChangePassword";
 import TouristGovernorChangePassword from "./changePassword/TouristGovernerChangePassword";
 import ViewDocuemnts from "./pages/admin/ViewDocuments";
+import SellerProductPage from "./pages/seller/SellerProductPage";
+import AdminProdcutPage from "./pages/admin/AdminProductPage";
 
 function App() {
   return (
@@ -190,6 +192,10 @@ function App() {
             element={<AdminHomePage />}
           />
           <Route
+            path="/admin/products"
+            element={<AdminProdcutPage />}
+          />
+          <Route
             path="/admin/manage-users"
             element={<ListUsers />}
           />
@@ -278,7 +284,7 @@ function App() {
           />
           <Route
             path="/seller/products"
-            element={<ProductPage />}
+            element={<SellerProductPage />}
           />
           <Route
             path="/seller/profile"

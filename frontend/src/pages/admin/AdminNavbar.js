@@ -131,7 +131,7 @@ const AdminNavbar = () => {
             <li className="nav-item">
               <Link
                 className="nav-link"
-                to="/seller/products"
+                to="/admin/products"
                 style={{ ...linkStyle, ...defaultLinkColor }}
               >
                 Products
