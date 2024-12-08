@@ -588,6 +588,33 @@ export const bookingController = {
       });
     }
   },
+  getAllBookings: async (req, res) => {
+    
+    try {
+      const bookings = await Booking.find()
+        .populate("itemId")
+        .sort("-bookingDate");
+      res.status(200).json({
+        success: true,
+        data: bookings,
+      });
+      
+      console.log('✨ Response sent successfully');
+  
+    } catch (error) {
+      console.error('❌ Error in getAllBookings:', {
+        errorMessage: error.message,
+        errorStack: error.stack
+      });
+      
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+      
+      console.log('🔚 Error response sent');
+    }
+  },
 
   getHistoricalPlaceRatings: async (req, res) => {
     try {

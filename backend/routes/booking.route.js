@@ -33,4 +33,6 @@ router.get(
 // Sales Report Route
 router.get("/guide/:guideId/sales", bookingController.getGuideSalesReport);
 
+router.get('/all', bookingController.getAllBookings);
+
 export default router;

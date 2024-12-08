@@ -75,6 +75,7 @@ import ViewDocuemnts from "./pages/admin/ViewDocuments";
 import SellerProductPage from "./pages/seller/SellerProductPage";
 import AdminProdcutPage from "./pages/admin/AdminProductPage";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
+import AdminSalesReport from "./pages/admin/AdminSalesReport";
 
 function App() {
   return (
@@ -154,6 +155,10 @@ function App() {
           <Route
             path="/admin/manage-users"
             element={<ListUsers />}
+          />
+          <Route
+            path="/admin/sales-report"
+            element={<AdminSalesReport />}
           />
           <Route
             path="/admin/activity-categories"
