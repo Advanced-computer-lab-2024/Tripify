@@ -19,6 +19,7 @@ const SellerSalesReport = () => {
   const [dateRange, setDateRange] = useState("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,10 +71,11 @@ const SellerSalesReport = () => {
   };
 
   const calculateTotals = () => {
-    const totals = salesData.reduce(
+    const filteredData = filterSalesByName(salesData);
+    const totals = filteredData.reduce(
       (acc, sale) => {
         const grossRevenue = sale.totalPrice;
-        const appFee = grossRevenue * 0.1; // 10% app fee
+        const appFee = grossRevenue * 0.1;
         const netRevenue = grossRevenue - appFee;
 
         return {
@@ -89,8 +91,16 @@ const SellerSalesReport = () => {
     return totals;
   };
 
+  const filterSalesByName = (sales) => {
+    if (!nameFilter) return sales;
+    return sales.filter(sale => 
+      sale.productId?.name?.toLowerCase().includes(nameFilter.toLowerCase())
+    );
+  };
+
   const groupSalesByMonth = () => {
-    const grouped = salesData.reduce((acc, sale) => {
+    const filteredData = filterSalesByName(salesData);
+    const grouped = filteredData.reduce((acc, sale) => {
       const date = new Date(sale.purchaseDate);
       const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
 
@@ -117,13 +127,15 @@ const SellerSalesReport = () => {
 
   const totals = calculateTotals();
   const monthlyData = groupSalesByMonth();
+  const filteredSalesData = filterSalesByName(salesData);
 
   return (
     <Container className="py-4">
       <Card className="mb-4">
-        <Card.Header className="bg-primary text-white">
-          <h4 className="mb-0">Seller Sales Report</h4>
-        </Card.Header>
+      <Card.Header style={{ backgroundColor: "#FF6F00", color: "#FFF" }}>
+  <h4 className="mb-0">Seller Sales Report</h4>
+</Card.Header>
+
         <Card.Body>
           <Row className="mb-4">
             <Col md={6}>
@@ -161,6 +173,20 @@ const SellerSalesReport = () => {
                 </Form.Group>
               </Col>
             )}
+          </Row>
+
+          <Row className="mb-4">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Filter by Product Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter product name..."
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
           </Row>
 
           {loading ? (
@@ -257,7 +283,7 @@ const SellerSalesReport = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {salesData.map((sale) => (
+                      {filteredSalesData.map((sale) => (
                         <tr key={sale._id}>
                           <td>
                             {new Date(sale.purchaseDate).toLocaleDateString()}
