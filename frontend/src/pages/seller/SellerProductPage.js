@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Modal, ListGroup, Badge, Spinner } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { FaPlus, FaSearch, FaStar, FaDollarSign, FaArchive, FaEdit, FaTrash, FaImage, FaBoxOpen } from 'react-icons/fa';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
-import SellerNavbar from './SellerNavbar';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import {jwtDecode} from "jwt-decode";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Form,
+  Modal,
+  ListGroup,
+  Badge
+} from "react-bootstrap";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -219,7 +227,7 @@ const handleEditProduct = async (event) => {
   const handleArchiveProduct = async (productId) => {
     try {
       await axios.put(
-        `${API_URL}/products/${productId}/archive`,
+        `${API_URL}/products/archive/${productId}`,  // Updated endpoint URL
         {
           isArchived: true
         },
@@ -232,200 +240,300 @@ const handleEditProduct = async (event) => {
     }
   };
 
-  const heroStyle = {
-    backgroundImage: 'url("/images/bg_1.jpg")',
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    position: "relative",
-    padding: "8rem 0 4rem 0",
-    marginBottom: "2rem"
-  };
-
-  const overlayStyle = {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 1
-  };
-
   return (
-    <div className="seller-product-page">
-      <SellerNavbar />
-      {/* Hero Section */}
-      <div style={heroStyle}>
-        <div style={overlayStyle}></div>
-        <Container style={{ position: "relative", zIndex: 2 }}>
-          <div className="text-center text-white">
-            <p className="mb-4">Manage Your Products</p>
-            <h1 className="display-4 mb-0">Product Catalog</h1>
-          </div>
-        </Container>
-      </div>
-
-      <Container className="py-5">
-        {/* Search and Filter Section */}
-        <Card className="shadow-sm mb-4">
-          <Card.Body>
-            <Row className="g-3 align-items-center">
-              <Col lg={3}>
-                <div className="search-box">
-                  <FaSearch className="text-muted position-absolute ms-3" style={{ top: '12px' }}/>
-                  <Form.Control
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="ps-5"
-                    style={{ borderRadius: '50px' }}
+    <Container>
+      <h1 className="my-4">Product Catalog</h1>
+  
+      <Row className="mb-3">
+        <Col md={3}>
+          <Form.Control
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </Col>
+        <Col md={2}>
+          <Form.Select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(Number(e.target.value))}
+          >
+            <option value={0}>All Ratings</option>
+            {[1, 2, 3, 4, 5].map((num) => (
+              <option key={num} value={num}>
+                {num}+ Stars
+              </option>
+            ))}
+          </Form.Select>
+        </Col>
+        <Col md={2}>
+          <Form.Control
+            type="number"
+            placeholder="Min Price"
+            value={priceFilter.min}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, min: e.target.value })
+            }
+          />
+        </Col>
+        <Col md={2}>
+          <Form.Control
+            type="number"
+            placeholder="Max Price"
+            value={priceFilter.max}
+            onChange={(e) =>
+              setPriceFilter({ ...priceFilter, max: e.target.value })
+            }
+          />
+        </Col>
+        <Col md={3}>
+          <Button onClick={() => setShowAddModal(true)}>Add New Product</Button>
+        </Col>
+        <Col md={2}>
+        <Link
+            to ="http://localhost:3000/products/archived" 
+            className="btn btn-secondary w-100"
+          >
+            View Archived
+          </Link>
+        </Col>
+      </Row>
+  
+      <Row>
+        {filteredProducts.map((product) => (
+          <Col md={6} lg={4} key={product._id} className="mb-4">
+            <Card>
+              {product.productImage && product.productImage[0] ? (
+                product.productImage.map((image, index) => (
+                  <Card.Img
+                    key={index}
+                    variant="top"
+                    src={image.path}
+                    style={{ height: "200px", objectFit: "cover" }}
                   />
-                </div>
-              </Col>
-              <Col lg={2}>
-                <Form.Select
-                  value={ratingFilter}
-                  onChange={(e) => setRatingFilter(Number(e.target.value))}
-                  style={{ borderRadius: '50px' }}
-                >
-                  <option value={0}>All Ratings</option>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <option key={num} value={num}>
-                      {num}+ Stars
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-              <Col lg={2}>
-                <Form.Control
-                  type="number"
-                  placeholder="Min Price"
-                  value={priceFilter.min}
-                  onChange={(e) => setPriceFilter({ ...priceFilter, min: e.target.value })}
-                  style={{ borderRadius: '50px' }}
-                />
-              </Col>
-              <Col lg={2}>
-                <Form.Control
-                  type="number"
-                  placeholder="Max Price"
-                  value={priceFilter.max}
-                  onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
-                  style={{ borderRadius: '50px' }}
-                />
-              </Col>
-              <Col lg={3} className="text-end">
-                <Button
-                  variant="primary"
-                  onClick={() => setShowAddModal(true)}
-                  className="me-2 rounded-pill"
-                  style={{ padding: '10px 20px' }}
-                >
-                  <FaPlus className="me-2" />
-                  Add Product
-                </Button>
-                <Link
-                  to="/archived-products"
-                  className="btn btn-secondary rounded-pill"
-                  style={{ padding: '10px 20px' }}
-                >
-                  <FaArchive className="me-2" />
-                  Archived
-                </Link>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
-
-        {/* Products Grid */}
-        <Row className="g-4">
-          {filteredProducts.map((product) => (
-            <Col lg={4} md={6} key={product._id}>
-              <Card className="h-100 shadow-sm hover-card" style={{
-                transition: "transform 0.2s",
-                borderRadius: "15px",
-                overflow: "hidden"
-              }}>
-                <div style={{ height: "200px", overflow: "hidden" }}>
-                  {product.productImage && product.productImage[0] ? (
-                    <Card.Img
-                      variant="top"
-                      src={product.productImage[0].path}
-                      style={{ height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <div className="d-flex align-items-center justify-content-center h-100 bg-light">
-                      <FaImage size={40} className="text-muted" />
-                    </div>
-                  )}
-                </div>
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <Card.Title className="mb-0">{product.name}</Card.Title>
-                    {product.isArchived && (
-                      <Badge bg="secondary">Archived</Badge>
-                    )}
-                  </div>
-                  <Card.Text className="text-muted">{product.description}</Card.Text>
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h5 className="mb-0 text-primary">${product.price}</h5>
-                    <div className="text-warning">
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar
-                          key={i}
-                          size={16}
-                          className={i < Math.round(product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length) ? "text-warning" : "text-muted"}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <ListGroup variant="flush" className="mb-3">
-                    <ListGroup.Item className="d-flex justify-content-between px-0">
-                      <span>Quantity:</span>
-                      <span className="fw-bold">{product.quantity}</span>
-                    </ListGroup.Item>
-                    <ListGroup.Item className="d-flex justify-content-between px-0">
-                      <span>Total Sales:</span>
-                      <span className="fw-bold">{product.totalSales}</span>
-                    </ListGroup.Item>
-                    <ListGroup.Item className="d-flex justify-content-between px-0">
-                      <span>Reviews:</span>
-                      <span className="fw-bold">{product.reviews.length}</span>
-                    </ListGroup.Item>
-                  </ListGroup>
-                  <div className="d-grid gap-2">
+                ))
+              ) : (
+                <Card.Img variant="top" src={product.imageUrl} />
+              )}
+              <Card.Body>
+                {product.isArchived && (
+                  <Badge bg="secondary" className="mb-2">
+                    Archived
+                  </Badge>
+                )}
+                <Card.Title>{product.name}</Card.Title>
+                <Card.Text>{product.description}</Card.Text>
+                <Card.Text>Price: ${product.price}</Card.Text>
+                <Card.Text>Quantity: {product.quantity}</Card.Text>
+                <Card.Text>Total Sales: {product.totalSales}</Card.Text>
+                <Card.Text>
+                    Created by: {product.createdBy ? product.createdBy.userType : 'Seller'}
+                </Card.Text>
+                <Card.Text>
+        Merchant Email: {product.merchantEmail || 'Not available'}
+    </Card.Text>
+                <Card.Text>
+                  Average Rating:{" "}
+                  {product.reviews.length > 0
+                    ? (
+                        product.reviews.reduce(
+                          (sum, review) => sum + review.rating,
+                          0
+                        ) / product.reviews.length
+                      ).toFixed(1)
+                    : "No ratings yet"}{" "}
+                  ({product.reviews.length} reviews)
+                </Card.Text>
+                {/* Only show edit/delete buttons if user is the creator or admin */}
+                {(userType === 'Admin' || (userType === 'Seller' && product.createdBy.user === userId)) && (
+                  <>
                     <Button
-                      variant="outline-primary"
-                      className="rounded-pill"
+                      variant="warning"
+                      className="me-2"
                       onClick={() => {
                         setSelectedProduct(product);
                         setShowEditModal(true);
                       }}
                     >
-                      <FaEdit className="me-2" />
-                      Edit Product
+                      Edit
                     </Button>
                     <Button
-                      variant="outline-danger"
-                      className="rounded-pill"
+  variant="secondary"
+  className="me-2"
+  onClick={() => {
+    if (window.confirm("Are you sure you want to archive this product?")) {
+      handleArchiveProduct(product._id);
+    }
+  }}
+>
+  Archive
+</Button>    <Button
+                      variant="danger"
                       onClick={() => handleDeleteProduct(product._id)}
                     >
-                      <FaTrash className="me-2" />
-                      Delete Product
+                      Delete
                     </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </Container>
-
-      {/* Add/Edit Modals with enhanced styling */}
-      {/* ... [Keep the modal code but update styling to match] ... */}
-    </div>
+                  </>
+                )}
+              </Card.Body>
+              <Card.Footer>
+                <h5>Reviews</h5>
+                {product.reviews.length > 0 ? (
+                  <ListGroup variant="flush">
+                    {product.reviews.map((review, index) => (
+                      <ListGroup.Item key={index}>
+                        <div>
+                          <strong>Rating: {review.rating}/5</strong>
+                        </div>
+                        <div>
+                          <strong>Reviewer:</strong> {review.reviewerName}
+                        </div>
+                        <div>{review.comment}</div>
+                        <small className="text-muted">
+                          {new Date(review.timestamp).toLocaleDateString()}
+                        </small>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                ) : (
+                  <p>No reviews yet.</p>
+                )}
+              </Card.Footer>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+  
+      {/* Add Product Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control type="text" name="name" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control as="textarea" name="description" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control type="number" name="price" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control type="number" name="quantity" required />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Product Images</Form.Label>
+              <Form.Control
+                type="file"
+                name="productImage"
+                accept="image/*"
+                multiple
+                required
+              />
+            </Form.Group>
+            <Button type="submit">Add Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+  
+      {/* Edit Product Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleEditProduct}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                defaultValue={selectedProduct?.name}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                defaultValue={selectedProduct?.description}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                name="price"
+                defaultValue={selectedProduct?.price}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                name="quantity"
+                defaultValue={selectedProduct?.quantity}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Product Images</Form.Label>
+              <Form.Control
+                type="file"
+                name="productImage"
+                accept="image/*"
+                multiple
+              />
+            </Form.Group>
+            <Button type="submit">Update Product</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+  
+      {/* Review Modal */}
+      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Review for {selectedProduct?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddReview}>
+            <Form.Group className="mb-3">
+              <Form.Label>Your Name (Tourist ID)</Form.Label>
+              <Form.Control
+                type="text"
+                name="reviewerName"
+                required
+                placeholder="Enter your Tourist ID"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Rating</Form.Label>
+              <Form.Select name="rating" required>
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={num}>
+                    {num} Star{num > 1 ? "s" : ""}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Comment</Form.Label>
+              <Form.Control as="textarea" name="comment" required />
+            </Form.Group>
+            <Button type="submit">Submit Review</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+    </Container>
   );
-};
-
+}
 export default SellerProductPage;
