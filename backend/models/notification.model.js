@@ -40,6 +40,7 @@ const notificationSchema = new mongoose.Schema({
       'SYSTEM_NOTIFICATION',
        'BIRTHDAY_PROMO',
        'Flag_Activity',
+       'stock_alert'
     ]
   },
   relatedId: {

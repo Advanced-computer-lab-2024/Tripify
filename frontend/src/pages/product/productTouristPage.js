@@ -326,55 +326,86 @@ function ProductTouristPage() {
   const handlePurchase = async (paymentMethod, paymentIntent) => {
     setProcessingPurchase(true);
     try {
-      if (paymentMethod === "card") {
-        // Handle Stripe card payment
-        for (const item of cart) {
-          await axios.post(
-            `${API_URL}/products/purchase`,
-            {
-              userId,
-              productId: item._id,
-              quantity: item.quantity,
-              paymentMethod: "card",
-              stripePaymentId: paymentIntent.id,
-              promoCode: appliedPromo?.code, // Include promo code if applied
+      // Create an array to track products that will be out of stock
+      const outOfStockProducts = [];
+      
+      // Common purchase processing function
+      const processPurchase = async (item) => {
+        // First process the purchase
+        await axios.post(
+          `${API_URL}/products/purchase`,
+          {
+            userId,
+            productId: item._id,
+            quantity: item.quantity,
+            paymentMethod,
+            stripePaymentId: paymentMethod === 'card' ? paymentIntent.id : undefined,
+            promoCode: appliedPromo?.code,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
+          }
+        );
+  
+        // Get full product details to check stock and get creator info
+        try {
+          const productResponse = await axios.get(
+            `${API_URL}/products/${item._id}`,
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
             }
           );
+  
+          console.log('Full product response data:', productResponse.data);
+  
+          const fullProduct = productResponse.data;
+  
+          // Check if product will be out of stock and has necessary data
+          if (fullProduct && fullProduct.createdBy && (fullProduct.quantity - item.quantity) === 0) {
+            outOfStockProducts.push({
+              productId: fullProduct._id,
+              productName: fullProduct.name,
+              merchantEmail: fullProduct.merchantEmail,
+              createdBy: {
+                user: fullProduct.createdBy.user,
+                userType: fullProduct.createdBy.userType
+              }
+            });
+            
+            console.log('Added to outOfStockProducts:', {
+              productId: fullProduct._id,
+              productName: fullProduct.name,
+              createdBy: fullProduct.createdBy
+            });
+          }
+        } catch (error) {
+          console.error('Product fetch error:', {
+            error: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            productId: item._id
+          });
         }
-      } else if (paymentMethod === "wallet") {
-        // Handle wallet payment
-        if (userWallet < getCartTotal()) {
-          throw new Error("Insufficient wallet balance");
-        }
-
-        for (const item of cart) {
-          await axios.post(
-            `${API_URL}/products/purchase`,
-            {
-              userId,
-              productId: item._id,
-              quantity: item.quantity,
-              paymentMethod: "wallet",
-              promoCode: appliedPromo?.code,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-        }
-
-        // Update wallet balance
+      };
+    
+      // Check wallet balance if using wallet payment
+      if (paymentMethod === "wallet" && userWallet < getCartTotal()) {
+        throw new Error("Insufficient wallet balance");
+      }
+    
+      // Process all items in cart
+      for (const item of cart) {
+        await processPurchase(item);
+      }
+    
+      // Update wallet balance if using wallet payment
+      if (paymentMethod === "wallet") {
         const newBalance = userWallet - getCartTotal();
         setUserWallet(newBalance);
-
-        // Update localStorage
         const userKey = getUserSpecificKey();
         const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
         localStorage.setItem(
@@ -384,51 +415,94 @@ function ProductTouristPage() {
             wallet: newBalance,
           })
         );
-      } else if (paymentMethod === "cod") {
-        // Handle cash on delivery
-        for (const item of cart) {
-          await axios.post(
-            `${API_URL}/products/purchase`,
-            {
-              userId,
-              productId: item._id,
-              quantity: item.quantity,
-              paymentMethod: "cod",
-              promoCode: appliedPromo?.code,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-        }
-      } else {
-        throw new Error("Invalid payment method");
       }
-
-      // Clear cart and close modal on successful purchase
+  
+      // Send both email alerts and notifications for out-of-stock products
+      if (outOfStockProducts.length > 0) {
+        for (const product of outOfStockProducts) {
+          // Send email alert
+          try {
+            await axios.post(
+              `${API_URL}/products/stock-alert`,
+              {
+                merchantEmail: product.merchantEmail,
+                productName: product.productName,
+                productId: product.productId
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+            console.log(`Email stock alert sent for product: ${product.productName}`);
+          } catch (emailError) {
+            console.error(`Failed to send email alert for ${product.productName}:`, emailError);
+          }
+  
+          // Send in-app notification if we have valid createdBy data
+          if (product.createdBy && product.createdBy.user && product.createdBy.userType) {
+            try {
+              const notificationPayload = {
+                recipients: [{
+                  userId: product.createdBy.user,
+                  userType: product.createdBy.userType
+                }],
+                title: 'Product Out of Stock',
+                message: `Your product "${product.productName}" is now out of stock and needs immediate attention.`,
+                type: 'stock_alert',
+                priority: 'high',
+                link: `/merchant/products/${product.productId}`
+              };
+  
+              console.log('Sending notification with payload:', notificationPayload);
+  
+              const notificationResponse = await axios.post(
+                `${API_URL}/notify`,
+                notificationPayload,
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
+                }
+              );
+  
+              console.log('Notification response:', notificationResponse.data);
+            } catch (notifyError) {
+              console.error('Notification error details:', {
+                response: notifyError.response?.data,
+                status: notifyError.response?.status,
+                message: notifyError.message,
+                payload: product.createdBy
+              });
+            }
+          } else {
+            console.error('Missing or invalid createdBy data:', product);
+          }
+        }
+      }
+    
+      // Clear cart and close modals
       setCart([]);
       setShowCart(false);
       setShowPaymentModal(false);
       setAppliedPromo(null);
-
-      // Refresh products to update stock
+    
+      // Refresh products
       await fetchProducts();
-
+    
       alert("Purchase successful!");
     } catch (error) {
       console.error("Purchase error:", error);
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to complete purchase"
+        error.message ||
+        "Failed to complete purchase"
       );
     } finally {
       setProcessingPurchase(false);
     }
   };
-
   // Add this effect to handle storage changes
   useEffect(() => {
     const handleStorageChange = (e) => {
