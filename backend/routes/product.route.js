@@ -14,6 +14,7 @@ import {
   getArchivedProducts,
   getSellerSales,
   cancelOrder,
+  getAllPurchases,
   validatePromoCode,
 } from "../controllers/product.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -40,6 +41,8 @@ router.post("/:id/review", addReview);
 router.post("/purchase", purchaseProduct);
 router.get("/purchases/:userId", getUserPurchases);
 router.post("/purchases/:purchaseId/review", addPurchaseReview);
+router.get('/purchase/all', getAllPurchases);
+
 
 router.get("/archived", authMiddleware, getArchivedProducts);
 router.put("/:productId/archive", authMiddleware, toggleArchiveProduct);

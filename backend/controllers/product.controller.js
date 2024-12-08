@@ -355,6 +355,27 @@ export const getUserPurchases = async (req, res) => {
   }
 };
 
+export const getAllPurchases = async (req, res) => {
+  try {
+      const purchases = await ProductPurchase.find()
+          .populate("productId")
+          .sort({ purchaseDate: -1 });
+          
+      return res.status(200).json({ 
+          success: true, 
+          data: purchases 
+      });
+      
+  } catch (error) {
+      console.error('Error in getAllPurchases:', error);
+      return res.status(500).json({
+          success: false,
+          message: "Failed to fetch all purchases",
+          error: error.message,
+      });
+  }
+};
+
 export const addPurchaseReview = async (req, res) => {
   try {
     const { purchaseId } = req.params;
