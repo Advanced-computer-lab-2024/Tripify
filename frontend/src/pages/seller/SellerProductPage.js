@@ -291,7 +291,7 @@ const handleEditProduct = async (event) => {
         </Col>
         <Col md={2}>
           <Link
-            to={userType === "Admin" ? "http://localhost:5000/api/products/archived" : "http://localhost:5000/api/products/archived"}
+            to ="/products/archived" 
             className="btn btn-secondary w-100"
           >
             View Archived
