@@ -1,113 +1,219 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Container, Row, Col, Card, Modal, Button } from "react-bootstrap";
-import axios from "axios";
+import React, { useState } from 'react';
+import { Container, Row, Col, Card, Button, Modal, Spinner } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { FaUser, FaBox, FaKey, FaTrash, FaChevronRight, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import SellerNavbar from './SellerNavbar';
 
 const SellerHomePage = () => {
-  const [showTandC, setShowTandC] = useState(false);
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user")) || {}
-  );
-  const username = user?.username || "Seller";
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const username = JSON.parse(localStorage.getItem("user"))?.username || "Seller";
 
-  useEffect(() => {
-    checkTandCStatus();
-  }, []);
-
-  const checkTandCStatus = () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && !user.TandC) {
-      setShowTandC(true);
-    }
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    position: "relative",
+    padding: "8rem 0 4rem 0",
+    marginBottom: "2rem"
   };
 
-  const handleAcceptTerms = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `http://localhost:5000/api/seller/profile/${user.id}`,
-        { TandC: true },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+  const overlayStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1
+  };
 
-      if (response.status === 200) {
-        const updatedUser = { ...user, TandC: true };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        setShowTandC(false);
-      }
-    } catch (error) {
-      console.error("Error accepting terms:", error);
+  const cards = [
+    {
+      title: "View Profile",
+      description: "Manage your seller profile and settings",
+      icon: <FaUser />,
+      path: "/seller/profile",
+      color: "#1089ff"
+    },
+    {
+      title: "Products Management",
+      description: "View and manage your product listings",
+      icon: <FaBox />,
+      path: "/seller/products",
+      color: "#28a745"
+    },
+    {
+      title: "Change Password",
+      description: "Update your account security",
+      icon: <FaKey />,
+      path: "/seller/change-password",
+      color: "#ffc107"
     }
+  ];
+
+  const handleDelete = () => {
+    setIsDeleting(true);
+    // Simulate delete operation
+    setTimeout(() => {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }, 2000);
   };
 
   return (
-    <Container className="py-5">
-      <Card className="shadow-sm">
-        <Card.Body>
-          <div className="text-center mb-4">
-            <h1 className="mb-3">Welcome to the Seller Homepage</h1>
-            <p className="text-muted">Welcome, {username}!</p>
+    <div className="seller-homepage">
+      <SellerNavbar />
+      {/* Hero Section */}
+      <div style={heroStyle}>
+        <div style={overlayStyle}></div>
+        <Container style={{ position: "relative", zIndex: 2 }}>
+          <div className="text-center text-white">
+            <p className="mb-4">
+              <span>Seller Dashboard <FaChevronRight className="small" /></span>
+            </p>
+            <h1 className="display-4 mb-0">Welcome, {username}!</h1>
           </div>
+        </Container>
+      </div>
 
-          <Row className="g-4 justify-content-center">
-            <Col xs={12} sm={6} md={4}>
-              <Link to="/seller/profile" className="btn btn-primary w-100">
-                View Profile
+      <Container className="py-5">
+        <Row className="g-4">
+          {cards.map((card, index) => (
+            <Col md={4} key={index}>
+              <Link to={card.path} className="text-decoration-none">
+                <Card 
+                  className="h-100 shadow-sm border-0 hover-card"
+                  style={{
+                    transition: "transform 0.2s",
+                    cursor: "pointer",
+                    borderRadius: "15px"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
+                  onMouseOut={(e) => e.currentTarget.style.transform = "translateY(0)"}
+                >
+                  <Card.Body className="p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      <div
+                        className="icon-circle me-3"
+                        style={{
+                          backgroundColor: card.color,
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white"
+                        }}
+                      >
+                        {card.icon}
+                      </div>
+                      <h4 className="mb-0" style={{ color: card.color }}>{card.title}</h4>
+                    </div>
+                    <p className="text-muted mb-0">{card.description}</p>
+                  </Card.Body>
+                </Card>
               </Link>
             </Col>
-            <Col xs={12} sm={6} md={4}>
-              <Link to="/seller/products" className="btn btn-primary w-100">
-                View Products
-              </Link>
-            </Col>
-            <Col xs={12} sm={6} md={4}>
-              <Link
-                to="/seller/change-password"
-                className="btn btn-primary w-100"
-              >
-                Change My Password
-              </Link>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+          ))}
 
-      {/* Terms and Conditions Modal */}
-      <Modal show={showTandC} backdrop="static" keyboard={false} centered>
-        <Modal.Header>
-          <Modal.Title>Terms and Conditions</Modal.Title>
+          {/* Delete Account Card */}
+          <Col md={4}>
+            <Card 
+              className="h-100 shadow-sm border-0 hover-card"
+              style={{
+                transition: "transform 0.2s",
+                cursor: "pointer",
+                borderRadius: "15px"
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
+              onMouseOut={(e) => e.currentTarget.style.transform = "translateY(0)"}
+            >
+              <Card.Body className="p-4">
+                <div className="d-flex align-items-center mb-3">
+                  <div
+                    className="icon-circle me-3"
+                    style={{
+                      backgroundColor: "#dc3545",
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white"
+                    }}
+                  >
+                    <FaTrash />
+                  </div>
+                  <h4 className="mb-0 text-danger">Delete Account</h4>
+                </div>
+                <p className="text-muted mb-4">Permanently delete your account and all associated data.</p>
+                <Button 
+                  variant="danger" 
+                  className="w-100 rounded-pill"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Delete Account
+                </Button>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+
+      {/* Delete Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton className="border-0 bg-danger text-white">
+          <Modal.Title>
+            <FaExclamationTriangle className="me-2" />
+            Delete Account
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-            <h5>Please read and accept our Terms and Conditions</h5>
-            <p>
-              1. Seller Responsibilities: - Maintain accurate product
-              information - Process orders in a timely manner - Maintain
-              professional communication - Comply with all applicable laws and
-              regulations
-            </p>
-            <p>
-              2. Product Guidelines: - List only legitimate and legal products -
-              Provide accurate product descriptions - Set fair and transparent
-              pricing - Maintain adequate inventory
-            </p>
-            <p>
-              3. Order Fulfillment: - Process orders within stated timeframes -
-              Provide tracking information when available - Handle returns and
-              refunds according to policy
+        <Modal.Body className="p-4">
+          <div className="text-center mb-4">
+            <h4>⚠️ Warning</h4>
+            <p className="mb-0">
+              Are you sure you want to delete your account? This action cannot be undone. 
+              Your profile and all associated products will be permanently removed.
             </p>
           </div>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={handleAcceptTerms}>
-            Accept Terms
+        <Modal.Footer className="border-0">
+          <Button
+            variant="light"
+            onClick={() => setShowDeleteModal(false)}
+            className="rounded-pill"
+          >
+            <FaTimes className="me-2" />
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="rounded-pill"
+          >
+            {isDeleting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <FaTrash className="me-2" />
+                Delete Account
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   );
 };
 
