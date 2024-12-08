@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import Otp from "../models/otp.model.js";
 import sendEmail from "../utils/sendEmail.js";
+import Booking from "../models/booking.model.js";
 dotenv.config();
 
 // Generate JWT Token
@@ -546,5 +547,66 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error("Error resetting password:", error);
     res.status(500).json({ message: "Error resetting password" });
+  }
+};
+
+// Get Tourist Count for an Advertiser's Activities
+export const getTouristReport = async (req, res) => {
+  try {
+    const { id } = req.params; // Advertiser ID
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Advertiser ID is required.",
+      });
+    }
+
+    // Fetch all activities created by the advertiser
+    const activities = await Activity.find({ createdBy: id });
+
+    if (activities.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No activities found for the advertiser.",
+      });
+    }
+
+    // Extract activity IDs
+    const activityIds = activities.map((activity) => activity._id);
+
+    // Fetch confirmed or attended bookings related to these activities
+    const bookings = await Booking.find({
+      itemId: { $in: activityIds },
+      bookingType: "Activity",
+      status: "attended",
+    }).populate("itemId", "_id name");
+    
+
+    // Count tourists
+    const totalTourists = bookings.length;
+
+    // Prepare response data
+    const responseData = {
+      totalTourists,
+      activitiesCount: activities.length,
+      bookingsCount: bookings.length,
+      activities,
+      bookings,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Tourist report fetched successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error generating tourist report:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while generating the tourist report.",
+      error: error.message,
+    });
   }
 };

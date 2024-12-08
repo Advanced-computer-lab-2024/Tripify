@@ -313,6 +313,19 @@ const AdvertiserHomepage = () => {
         <Col>
           <Card className="mb-3">
             <Card.Body>
+              <Card.Title>Sales Report</Card.Title>
+              <Card.Text>
+                number of tourist attended your activity
+              </Card.Text>
+              <Link to="/advertiser/report">
+                <Button variant="primary">View Report</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="mb-3">
+            <Card.Body>
               <Card.Title className="text-danger">Delete Account</Card.Title>
               <Card.Text>
                 Permanently delete your account and all associated data.

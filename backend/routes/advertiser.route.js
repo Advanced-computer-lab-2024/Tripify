@@ -12,6 +12,7 @@ import {
   getAdvertiserSalesReport,
   sendPasswordResetOtp,
   resetPassword,
+  getTouristReport,
   verifyPasswordResetOtp,
 } from "../controllers/advertiser.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -71,6 +72,7 @@ router.use((error, req, res, next) => {
   next();
 });
 
+router.get("/:id/tourist-report", getTouristReport);
 
 
 

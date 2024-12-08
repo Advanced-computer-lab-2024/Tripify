@@ -79,6 +79,7 @@ import ForgetPasswordSeller from "./pages/seller/ForgetPasswordSeller";
 import ForgetPasswordTourist from "./pages/tourist/ForgetPasswordTourist";
 import FlightBookings from "./pages/tourist/FlightBookings";
 import AdminProductPage from "./pages/admin/AdminProductPage";
+import TouristReport from "./pages/advertiser/Report";
 function App() {
   return (
     <div className="App">
@@ -236,6 +237,10 @@ function App() {
           <Route
             path="/advertiser/sales-report"
             element={<AdvertiserSalesReport />}
+          />
+           <Route
+            path="/advertiser/report"
+            element={<TouristReport/>}
           />
           {/* Tourism Governor Routes */}
           <Route path="/governor" element={<GovernorHomePage />} />
