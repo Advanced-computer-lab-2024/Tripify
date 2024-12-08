@@ -59,7 +59,7 @@ const ListUsers = () => {
     const handleDelete = async (userId, userType) => {
         try {
             await axios.delete(
-                'http://localhost:5000/api/admin/users/delete',
+                'http://localhost:5000/api/admin/users/',
                 {
                     ...getAuthConfig(),
                     data: { userId, userType }

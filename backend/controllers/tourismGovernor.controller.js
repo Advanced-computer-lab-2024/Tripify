@@ -61,20 +61,30 @@ export const registerTourismGovernor = async (req, res) => {
 };
 
 // Login a Tourism Governor
+// controllers/tourismGovernor.controller.js
 export const loginTourismGovernor = async (req, res) => {
-  const { email, password } = req.body;
+  console.log("Login controller called with body:", req.body);
+  const { username, email, password } = req.body;
+
   try {
-    const governor = await TourismGovernor.findOne({ email });
+    // Find governor by username or email
+    const governor = await TourismGovernor.findOne({
+      $or: [{ email }, { username }],
+    });
+
     if (!governor) {
-      return res.status(404).json({ message: "Invalid email or password" });
+      console.log("No governor found for:", { username, email });
+      return res.status(404).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await governor.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      console.log("Password mismatch for governor:", governor._id);
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const token = generateToken(governor);
+    console.log("Login successful for governor:", governor._id);
 
     return res.status(200).json({
       message: "Login successful",
@@ -86,14 +96,13 @@ export const loginTourismGovernor = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Error logging in:", error);
+    console.error("Login error:", error);
     return res.status(500).json({
       message: "Error logging in",
       error: error.message,
     });
   }
 };
-
 // Get Tourism Governor Profile
 export const getTourismGovernorProfile = async (req, res) => {
   try {
@@ -299,33 +308,143 @@ export const deleteHistoricalPlace = async (req, res) => {
   }
 };
 
+// In tourismGovernor.controller.js
+
 export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const governor = await TourismGovernor.findByIdAndUpdate(_id, {
-      password: hashedPassword,
-    });
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
 
-    if (!governor) {
-      return res.status(404).send("Admin not found");
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
     }
 
-    // Compare the current password with the stored password
+    // Find the tourism governor and explicitly select the password field
+    const governor = await TourismGovernor.findById(_id).select("+password");
+    if (!governor) {
+      return res.status(404).json({ message: "Tourism Governor not found" });
+    }
+
+    // Verify current password
     const isMatch = await governor.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    // Set new password (it will be hashed by the pre-save middleware)
+    governor.password = newPassword;
+    await governor.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
+  }
+};
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const governor = await TourismGovernor.findOne({ email });
+    if (!governor) {
+      return res.status(404).json({ message: "Tourism Governor not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database
+    await Otp.create({
+      userId: governor._id,
+      userType: 'TourismGovernor',
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the governor to get their ID
+    const governor = await TourismGovernor.findOne({ email });
+    if (!governor) {
+      return res.status(404).json({ message: "Tourism Governor not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: governor._id,
+      userType: 'TourismGovernor',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const governor = await TourismGovernor.findOne({ email });
+    
+    if (!governor) {
+      return res.status(404).json({ message: "Tourism Governor not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await TourismGovernor.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: governor._id,
+      userType: 'TourismGovernor'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
   }
 };
 
@@ -340,3 +459,4 @@ export default {
   updateHistoricalPlace,
   deleteHistoricalPlace,
 };
+

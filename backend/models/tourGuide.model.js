@@ -136,6 +136,11 @@ const tourGuideSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    TandC: {
+      type: Boolean,
+      default: false,
+    },
+
   },
   { timestamps: true }
 );

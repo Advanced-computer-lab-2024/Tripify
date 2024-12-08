@@ -1,6 +1,7 @@
 // touristController.js
 import mongoose from "mongoose";
 import Tourist from "../models/tourist.model.js";
+import Event from "../models/event.model.js"; // Add this import
 import TourGuide from "../models/tourGuide.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -551,37 +552,386 @@ export const rateTourGuide = async (req, res) => {
   }
 };
 
-export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const { _id } = req.user;
 
-  if (!currentPassword || !newPassword) {
-    return res.status(400).send("Both current and new passwords are required");
-  }
-
+// Add new delivery address
+export const addDeliveryAddress = async (req, res) => {
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const tourist = await Tourist.findByIdAndUpdate(_id, {
-      password: hashedPassword,
-    });
+    const touristId = req.user._id;
+    const addressData = req.body;
 
+    const tourist = await Tourist.findById(touristId);
     if (!tourist) {
-      return res.status(404).send("Admin not found");
+      return res.status(404).json({ message: "Tourist not found" });
     }
 
-    // Compare the current password with the stored password
-    const isMatch = await tourist.comparePassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).send("Current password is incorrect");
+    // If this is the first address, make it default
+    if (tourist.deliveryAddresses.length === 0) {
+      addressData.isDefault = true;
     }
 
-    res.status(200).send("Password updated successfully");
-  } catch (err) {
-    res.status(500).send("Server error");
+    // If this address is set as default, remove default from other addresses
+    if (addressData.isDefault) {
+      tourist.deliveryAddresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    tourist.deliveryAddresses.push(addressData);
+    await tourist.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Delivery address added successfully",
+      address: tourist.deliveryAddresses[tourist.deliveryAddresses.length - 1]
+    });
+  } catch (error) {
+    console.error("Add delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error adding delivery address",
+      error: error.message
+    });
   }
 };
 
-// Add these functions to tourist.controller.js
+// Get all delivery addresses
+export const getDeliveryAddresses = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const tourist = await Tourist.findById(touristId).select('deliveryAddresses');
+
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      addresses: tourist.deliveryAddresses
+    });
+  } catch (error) {
+    console.error("Get delivery addresses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching delivery addresses",
+      error: error.message
+    });
+  }
+};
+
+// Update a delivery address
+export const updateDeliveryAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+    const updateData = req.body;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const addressIndex = tourist.deliveryAddresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+
+    if (addressIndex === -1) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // If this address is being set as default, remove default from others
+    if (updateData.isDefault) {
+      tourist.deliveryAddresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    // Update the address
+    Object.assign(tourist.deliveryAddresses[addressIndex], updateData);
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Address updated successfully",
+      address: tourist.deliveryAddresses[addressIndex]
+    });
+  } catch (error) {
+    console.error("Update delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating delivery address",
+      error: error.message
+    });
+  }
+};
+
+// Delete a delivery address
+export const deleteDeliveryAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    const addressIndex = tourist.deliveryAddresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+
+    if (addressIndex === -1) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // If deleting default address, make the first remaining address default
+    const wasDefault = tourist.deliveryAddresses[addressIndex].isDefault;
+    tourist.deliveryAddresses.splice(addressIndex, 1);
+
+    if (wasDefault && tourist.deliveryAddresses.length > 0) {
+      tourist.deliveryAddresses[0].isDefault = true;
+    }
+
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Address deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete delivery address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting delivery address",
+      error: error.message
+    });
+  }
+};
+
+// Set default delivery address
+export const setDefaultAddress = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+    const { addressId } = req.params;
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Remove default from all addresses and set new default
+    tourist.deliveryAddresses.forEach(addr => {
+      addr.isDefault = addr._id.toString() === addressId;
+    });
+
+    await tourist.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Default address updated successfully"
+    });
+  } catch (error) {
+    console.error("Set default address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error setting default address",
+      error: error.message
+    });
+  }
+};
+
+
+// Example for tourist controller - apply similar fixes to other user controllers
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const { _id } = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both current and new passwords are required" });
+    }
+
+    // First find the user with current password
+    const user = await Tourist.findById(_id).select("+password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash the new password
+    user.password = newPassword; // The pre-save middleware will hash this
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({
+      message: "Error updating password",
+      error: error.message,
+    });
+  }
+};
+
+
+// Update the bookmarkEvent function to handle different event types
+export const bookmarkEvent = async (req, res) => {
+  try {
+    const { eventId, eventType } = req.body;
+    const touristId = req.user._id;
+
+    // Validate eventId
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID format" });
+    }
+
+    // Find the tourist
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Initialize savedEvents array if it doesn't exist
+    if (!tourist.savedEvents) {
+      tourist.savedEvents = [];
+    }
+
+    // Check if event is already bookmarked
+    if (tourist.savedEvents.includes(eventId)) {
+      return res.status(400).json({ message: "Event already bookmarked" });
+    }
+
+    // Verify the event exists based on type
+    let event;
+    switch (eventType) {
+      case "HistoricalPlace":
+        event = await mongoose.model("HistoricalPlace").findById(eventId);
+        break;
+      case "Activity":
+        event = await mongoose.model("Activity").findById(eventId);
+        break;
+      case "Itinerary":
+        event = await mongoose.model("Itinerary").findById(eventId);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid event type" });
+    }
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Add event to savedEvents
+    tourist.savedEvents.push(eventId);
+    await tourist.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Event bookmarked successfully" 
+    });
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error bookmarking event", 
+      error: error.message 
+    });
+  }
+};
+
+// Update getSavedEvents to populate based on event type
+export const getSavedEvents = async (req, res) => {
+  try {
+    const touristId = req.user._id;
+
+    // First, get the tourist with their saved event IDs
+    const tourist = await Tourist.findById(touristId).select('savedEvents');
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Get all saved events from different collections
+    const [historicalPlaces, activities, itineraries] = await Promise.all([
+      mongoose.model('HistoricalPlace').find({ _id: { $in: tourist.savedEvents } }),
+      mongoose.model('Activity').find({ _id: { $in: tourist.savedEvents } }),
+      mongoose.model('Itinerary').find({ _id: { $in: tourist.savedEvents } })
+    ]);
+
+    // Combine and format all events
+    const savedEvents = [
+      ...historicalPlaces.map(place => ({
+        ...place.toObject(),
+        eventType: 'HistoricalPlace'
+      })),
+      ...activities.map(activity => ({
+        ...activity.toObject(),
+        eventType: 'Activity'
+      })),
+      ...itineraries.map(itinerary => ({
+        ...itinerary.toObject(),
+        eventType: 'Itinerary'
+      }))
+    ];
+
+    res.status(200).json({ 
+      success: true,
+      savedEvents
+    });
+  } catch (error) {
+    console.error('Get saved events error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching saved events", 
+      error: error.message 
+    });
+  }
+};
+// Update removeBookmark with better error handling
+export const removeBookmark = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const touristId = req.user._id;
+
+    // Validate eventId
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID format" });
+    }
+
+    const tourist = await Tourist.findById(touristId);
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Check if event exists in savedEvents
+    if (!tourist.savedEvents?.includes(eventId)) {
+      return res.status(404).json({ message: "Event not found in bookmarks" });
+    }
+
+    // Remove the event
+    tourist.savedEvents = tourist.savedEvents.filter(
+      event => event.toString() !== eventId
+    );
+    
+    await tourist.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Event bookmark removed successfully" 
+    });
+  } catch (error) {
+    console.error('Remove bookmark error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error removing bookmark", 
+      error: error.message 
+    });
+  }
+};
 
 // Check if tourist can delete their account
 export const checkDeletionEligibility = async (req, res) => {
@@ -695,5 +1045,111 @@ export const deleteTouristAccount = async (req, res) => {
     });
   } finally {
     session.endSession();
+  }
+};
+
+
+
+export const sendPasswordResetOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists
+    const tourist = await Tourist.findOne({ email });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in the database, adding userType and userId
+    await Otp.create({
+      userId: tourist._id,  // The Tourist's ID
+      userType: 'Tourist',  // The user type (hardcoded as Tourist here)
+      otp,  // The OTP
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
+    });
+
+    // Send OTP email
+    const subject = "Tripify Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 5 minutes.`;
+    const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP is valid for <strong>5 minutes</strong>.</p>`;
+
+    await sendEmail(email, subject, text, html);
+
+    res.status(200).json({ message: "OTP sent successfully", email });
+  } catch (error) {
+    console.error("Error sending password reset OTP:", error);
+    res.status(500).json({ message: "Error sending OTP" });
+  }
+};
+
+
+export const verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // First find the Tourist to get their ID
+    const tourist = await Tourist.findOne({ email });
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Look up the OTP using userId and the OTP value
+    const otpRecord = await Otp.findOne({ 
+      userId: tourist._id,
+      userType: 'Tourist',
+      otp: otp
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne(); // Clean up expired OTP
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // OTP is valid - you might want to mark it as used or delete it
+    await otpRecord.deleteOne();
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const tourist = await TOurist.findOne({ email });
+    
+    if (!tourist) {
+      return res.status(404).json({ message: "Tourist not found" });
+    }
+
+    // Hash the password manually
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password directly without triggering middleware
+    await Tourist.updateOne(
+      { email },
+      { $set: { password: hashedPassword } }
+    );
+
+    await Otp.deleteMany({ 
+      userId: tourist._id,
+      userType: 'Tourist'
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Error resetting password" });
   }
 };

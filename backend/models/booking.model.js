@@ -7,39 +7,41 @@ const bookingSchema = new mongoose.Schema(
       ref: "Tourist",
       required: true,
     },
-    bookingType: {
-      type: String,
-      required: true,
-      enum: ["HistoricalPlace", "Itinerary", "Activity"],
-    },
     itemId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      refPath: "bookingType",
+      refPath: "bookingTypeModel", // Change to use a separate field for model reference
+    },
+    bookingType: {
+      type: String,
+      required: true,
+      enum: ["Itinerary", "Activity", "Product", "HistoricalPlace"],
+    },
+    bookingTypeModel: {
+      type: String,
+      required: true,
+      enum: ["Itinerary", "Activity", "Product", "HistoricalPlace"],
+      default: function () {
+        // Set the appropriate model name based on bookingType
+        return this.bookingType;
+      },
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "completed", "cancelled"],
+      default: "pending",
     },
     bookingDate: {
       type: Date,
       required: true,
     },
-    rating: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
-    },
-    review: {
-      type: String,
-      default: "",
-    },
-    status: {
-      type: String,
-      enum: ["pending", "confirmed", "cancelled", "attended"],
-      default: "pending",
-    },
-    guideId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "TourGuide",
-      // isrequired: true,
+    notificationSent: {
+      type: Boolean,
+      default: false
     },
   },
   { timestamps: true }

@@ -1,5 +1,10 @@
+import mongoose from "mongoose";
 import Itinerary from "../models/itinerary.model.js";
 import ItineraryComment from "../models/itineraryComment.model.js";
+import TourGuide from '../models/tourGuide.model.js';  // Adjust path as needed
+import sendEmail from '../utils/sendEmail.js';
+import Notification from '../models/notification.model.js';
+
 
 // Create an itinerary
 export const createItinerary = async (req, res) => {
@@ -123,17 +128,64 @@ export const searchItineraries = async (req, res) => {
 export const flagItinerary = async (req, res) => {
   try {
     const { flagged } = req.body;
-
+    
+    // Fetch itinerary with creator information
     const itinerary = await Itinerary.findByIdAndUpdate(
       req.params.id,
       { $set: { flagged: flagged } },
       { new: true, runValidators: true }
     )
-      .populate("createdBy", "name")
+      .populate("createdBy", "name email")  // Add email to the populated fields
       .populate("preferenceTags", "name");
 
     if (!itinerary) {
       return res.status(404).json({ message: "Itinerary not found" });
+    }
+
+    // Get tour guide's information
+    const tourGuide = await TourGuide.findById(itinerary.createdBy);
+    
+    if (tourGuide && tourGuide.email) {
+      // Send email notification
+      const subject = 'Itinerary Flagged Notification';
+      const text = `Your itinerary "${itinerary.name}" has been flagged for review.`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Itinerary Flagged Notification</h2>
+          <p>Hello ${tourGuide.name || 'Tour Guide'},</p>
+          <p>Your itinerary has been flagged for review:</p>
+          <div style="background-color: #f8f8f8; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Itinerary Details:</h3>
+            <ul>
+              <li><strong>Name:</strong> ${itinerary.name}</li>
+              <li><strong>Tags:</strong> ${itinerary.preferenceTags.map(tag => tag.name).join(', ') || 'N/A'}</li>
+              <li><strong>Status:</strong> Flagged</li>
+            </ul>
+          </div>
+          <p>Our team will review the itinerary and take appropriate action if necessary.</p>
+          <p>If you have any questions, please contact our support team.</p>
+          <p>Best regards,<br>The Tripify Team</p>
+        </div>
+      `;
+
+      await sendEmail(tourGuide.email, subject, text, html);
+
+      // Create system notification
+      const notification = new Notification({
+        recipient: {
+          userId: tourGuide._id,
+          userType: 'TourGuide'
+        },
+        title: '⚠️ Itinerary Flagged',
+        message: `Your itinerary "${itinerary.name}" has been flagged for review.`,
+        type: 'SYSTEM_NOTIFICATION',
+        priority: 'high',
+        // relatedId: itinerary._id,
+        // relatedModel: 'Itinerary',
+        link: `/tour-guide/itineraries/${itinerary._id}`  // Adjust link based on your frontend routes
+      });
+
+      await notification.save();
     }
 
     res.status(200).json(itinerary);
@@ -142,6 +194,7 @@ export const flagItinerary = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const addComment = async (req, res) => {
   try {
