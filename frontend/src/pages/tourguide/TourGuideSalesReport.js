@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from "react";
-import { Card, Table, Row, Col, Spinner, Alert } from "react-bootstrap";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 const TourGuideSalesReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [salesData, setSalesData] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [summary, setSummary] = useState({
     totalRevenue: 0,
     platformFees: 0,
     netRevenue: 0,
     totalBookings: 0,
+    itinerarySummary: {}
   });
+
+  // New state for filters
+  const [nameFilter, setNameFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     fetchSalesData();
@@ -35,11 +40,9 @@ const TourGuideSalesReport = () => {
         }
       );
 
-      const bookings = response.data.data.bookings;
-      const processedData = processBookingsData(bookings);
-
-      setSalesData(processedData.monthlyData);
-      setSummary(processedData.summary);
+      const fetchedBookings = response.data.data.bookings;
+      setSummary(response.data.data.summary);
+      setBookings(fetchedBookings);
     } catch (error) {
       console.error("Error fetching sales data:", error);
       setError(error.message || "Error loading sales data");
@@ -48,175 +51,176 @@ const TourGuideSalesReport = () => {
     }
   };
 
-  const processBookingsData = (bookings) => {
-    const monthlyDataMap = new Map();
-    let totalRevenue = 0;
+  // Filtered and memoized bookings
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(booking => {
+      const bookingDate = new Date(booking.bookingDate);
+      
+      // Name filter (case-insensitive)
+      const nameMatch = booking.itineraryName.toLowerCase().includes(nameFilter.toLowerCase());
+      
+      // Date filters
+      const startDateMatch = !startDate || bookingDate >= new Date(startDate);
+      const endDateMatch = !endDate || bookingDate <= new Date(endDate);
 
-    bookings.forEach((booking) => {
-      if (booking.status === "attended" || booking.status === "confirmed") {
-        const date = new Date(booking.bookingDate);
-        const monthYear = date.toLocaleString("default", {
-          month: "short",
-          year: "numeric",
-        });
-        const amount = booking.itemId?.totalPrice || 0;
-
-        if (monthlyDataMap.has(monthYear)) {
-          const existing = monthlyDataMap.get(monthYear);
-          existing.revenue += amount;
-          existing.bookings += 1;
-          monthlyDataMap.set(monthYear, existing);
-        } else {
-          monthlyDataMap.set(monthYear, {
-            month: monthYear,
-            revenue: amount,
-            bookings: 1,
-          });
-        }
-
-        totalRevenue += amount;
-      }
+      return nameMatch && startDateMatch && endDateMatch;
     });
+  }, [bookings, nameFilter, startDate, endDate]);
 
-    const platformFees = totalRevenue * 0.1; // 10% platform fee
-    const netRevenue = totalRevenue - platformFees;
-
+  // Recalculate summary based on filtered bookings
+  const filteredSummary = useMemo(() => {
     return {
-      monthlyData: Array.from(monthlyDataMap.values()).sort(
-        (a, b) => new Date(b.month) - new Date(a.month)
-      ),
-      summary: {
-        totalRevenue,
-        platformFees,
-        netRevenue,
-        totalBookings: bookings.length,
-      },
+      totalRevenue: filteredBookings.reduce((sum, booking) => sum + booking.itemId.totalPrice, 0),
+      platformFees: filteredBookings.reduce((sum, booking) => sum + (booking.itemId.totalPrice * 0.1), 0),
+      netRevenue: filteredBookings.reduce((sum, booking) => sum + (booking.itemId.totalPrice * 0.9), 0),
+      totalBookings: filteredBookings.length
     };
-  };
+  }, [filteredBookings]);
 
   if (loading) {
     return (
-      <div className="text-center p-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
+      <div className="flex items-center justify-center p-5">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="danger" className="m-4">
+      <div className="m-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
         {error}
-      </Alert>
+      </div>
     );
   }
 
   return (
     <div className="p-4">
-      <h2 className="mb-4">Sales Report</h2>
+      <h2 className="text-2xl font-bold mb-4">Sales Report</h2>
 
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Total Revenue</h6>
-              <h3 className="text-primary">
-                ${summary.totalRevenue.toFixed(2)}
-              </h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Platform Fees (10%)</h6>
-              <h3 className="text-danger">
-                -${summary.platformFees.toFixed(2)}
-              </h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Net Revenue</h6>
-              <h3 className="text-success">${summary.netRevenue.toFixed(2)}</h3>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <h6 className="text-muted">Total Bookings</h6>
-              <h3 className="text-info">{summary.totalBookings}</h3>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {/* Filters Section */}
+      <div className="mb-4 flex flex-wrap gap-4">
+        <input 
+          type="text" 
+          placeholder="Filter by Itinerary Name" 
+          value={nameFilter}
+          onChange={(e) => setNameFilter(e.target.value)}
+          className="px-3 py-2 border rounded-md w-64"
+        />
+        <div className="flex items-center gap-2">
+          <label className="text-gray-600">Start Date:</label>
+          <input 
+            type="date" 
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-gray-600">End Date:</label>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+          />
+        </div>
+      </div>
 
-      <Card className="shadow-sm">
-        <Card.Body>
-          <h4 className="mb-4">Monthly Revenue Breakdown</h4>
-          <div className="table-responsive">
-            <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Month</th>
-                  <th>Total Revenue</th>
-                  <th>Platform Fee (10%)</th>
-                  <th>Net Revenue</th>
-                  <th>Bookings</th>
-                  <th>Average Revenue Per Booking</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesData.map((month) => (
-                  <tr key={month.month}>
-                    <td>{month.month}</td>
-                    <td>${month.revenue.toFixed(2)}</td>
-                    <td className="text-danger">
-                      -${(month.revenue * 0.1).toFixed(2)}
-                    </td>
-                    <td className="text-success">
-                      ${(month.revenue * 0.9).toFixed(2)}
-                    </td>
-                    <td>{month.bookings}</td>
-                    <td>${(month.revenue / month.bookings).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="table-dark">
-                <tr>
-                  <td>
-                    <strong>Total</strong>
-                  </td>
-                  <td>
-                    <strong>${summary.totalRevenue.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>-${summary.platformFees.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>${summary.netRevenue.toFixed(2)}</strong>
-                  </td>
-                  <td>
-                    <strong>{summary.totalBookings}</strong>
-                  </td>
-                  <td>
-                    <strong>
-                      $
-                      {(summary.totalRevenue / summary.totalBookings).toFixed(
-                        2
-                      )}
-                    </strong>
-                  </td>
-                </tr>
-              </tfoot>
-            </Table>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="text-center">
+            <h6 className="text-gray-500 text-sm">Total Revenue</h6>
+            <h3 className="text-blue-600 text-2xl font-bold">
+              ${filteredSummary.totalRevenue.toFixed(2)}
+            </h3>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+        
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="text-center">
+            <h6 className="text-gray-500 text-sm">Platform Fees (10%)</h6>
+            <h3 className="text-red-600 text-2xl font-bold">
+              -${filteredSummary.platformFees.toFixed(2)}
+            </h3>
+          </div>
+        </div>
+        
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="text-center">
+            <h6 className="text-gray-500 text-sm">Net Revenue</h6>
+            <h3 className="text-green-600 text-2xl font-bold">
+              ${filteredSummary.netRevenue.toFixed(2)}
+            </h3>
+          </div>
+        </div>
+        
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="text-center">
+            <h6 className="text-gray-500 text-sm">Total Bookings</h6>
+            <h3 className="text-blue-600 text-2xl font-bold">
+              {filteredSummary.totalBookings}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Individual Bookings Section */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <h4 className="text-xl font-semibold mb-4">Individual Bookings</h4>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Itinerary</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform Fee</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Net Revenue</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredBookings.map((booking) => (
+                <tr key={booking._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {new Date(booking.bookingDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap font-semibold text-blue-600">
+                    {booking.itineraryName}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {booking.tags?.map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">${booking.itemId.totalPrice.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-red-600">
+                    -${(booking.itemId.totalPrice * 0.1).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-green-600">
+                    ${(booking.itemId.totalPrice * 0.9).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      booking.status === "attended" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                    }`}>
+                      {booking.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

@@ -29,7 +29,6 @@ router.get(
   "/guide/:guideId/rating-stats",
   bookingController.getGuideRatingStats
 );
-router.get('/all', bookingController.getAllBookings);
 
 // Sales Report Route
 router.get("/guide/:guideId/sales", bookingController.getGuideSalesReport);
