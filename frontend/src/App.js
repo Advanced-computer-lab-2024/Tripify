@@ -76,6 +76,7 @@ import SellerProductPage from "./pages/seller/SellerProductPage";
 import AdminProdcutPage from "./pages/admin/AdminProductPage";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
+import SellerSalesReport from "./pages/seller/SellerSalesReport";
 
 function App() {
   return (
@@ -246,6 +247,10 @@ function App() {
           <Route
             path="/seller"
             element={<SellerHomePage />}
+          />
+          <Route
+            path="/seller/sales-report"
+            element={<SellerSalesReport />}
           />
           <Route
             path="/seller/products"

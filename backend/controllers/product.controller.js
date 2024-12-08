@@ -465,7 +465,7 @@ export const getSellerSales = async (req, res) => {
   try {
     const { sellerId } = req.params;
     const { startDate, endDate } = req.query;
-
+    
     if (!sellerId) {
       return res.status(400).json({
         success: false,
@@ -473,26 +473,27 @@ export const getSellerSales = async (req, res) => {
       });
     }
 
-    const purchases = await ProductPurchase.find()
-      .populate({
-        path: "productId",
-        match: { 
-          'createdBy.user': sellerId,
-          'createdBy.userType': 'Seller'
-        },
-        select: 'name price createdBy'
-      })
-      .populate("userId", "username")
-      .sort({ purchaseDate: -1 });
+    // First find all products by this seller
+    const sellerProducts = await Product.find({
+      'createdBy.user': sellerId,
+      'createdBy.userType': 'Seller'
+    }).select('_id');
 
-    const sellerPurchases = purchases.filter(
-      (purchase) => purchase.productId !== null
-    );
+    const sellerProductIds = sellerProducts.map(product => product._id);
 
-    const salesData = sellerPurchases.map((purchase) => ({
+    // Then find purchases for these products
+    const purchases = await ProductPurchase.find({
+      productId: { $in: sellerProductIds }
+    })
+    .populate('productId', 'name price createdBy')
+    .populate("userId", "username")
+    .sort({ purchaseDate: -1 });
+
+    const salesData = purchases.map((purchase) => ({
       _id: purchase._id,
       purchaseDate: purchase.purchaseDate,
-      productName: purchase.productId?.name || "Product Deleted",
+      productId: purchase.productId,  // Include the full product object
+      productName: purchase.productId?.name,
       buyerName: purchase.userId?.username || "User Deleted",
       quantity: purchase.quantity,
       totalPrice: purchase.totalPrice,

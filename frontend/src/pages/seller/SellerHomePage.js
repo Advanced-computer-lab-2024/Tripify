@@ -71,6 +71,14 @@ const SellerHomePage = () => {
                 Change My Password
               </Link>
             </Col>
+            <Col xs={12} sm={6} md={4}>
+              <Link
+                to="/seller/sales-report"
+                className="btn btn-primary w-100"
+              >
+                View Sales
+              </Link>
+            </Col>
           </Row>
         </Card.Body>
       </Card>
