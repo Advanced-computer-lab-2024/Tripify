@@ -625,43 +625,47 @@ function ProductTouristPage() {
       ) : (
         <Container className="py-4">
           {/* Wallet Balance Display */}
-          <div className="bg-light p-3 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center">
-              <FaWallet className="text-primary me-2" size={24} />
-              <div>
-                <h4 className="mb-0">Wallet Balance</h4>
-                <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
-              </div>
-            </div>
-            <div className="d-flex gap-3">
-              <Form.Select
-                className="w-auto"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              >
-                <option value="USD">USD</option>
-                <option value="EGP">EGP</option>
-                <option value="SAR">SAR</option>
-                <option value="AED">AED</option>
-              </Form.Select>
-              <Button
-                variant="primary"
-                onClick={() => setShowCart(true)}
-                className="position-relative"
-              >
-                <FaShoppingCart className="me-2" />
-                Cart
-                {cart.length > 0 && (
-                  <Badge
-                    bg="danger"
-                    className="position-absolute top-0 start-100 translate-middle"
-                  >
-                    {cart.length}
-                  </Badge>
-                )}
-              </Button>
-            </div>
-          </div>
+<div className="bg-light p-3 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
+  <div className="d-flex align-items-center">
+    <FaWallet className="text-primary me-2" size={24} />
+    <div>
+      <h4 className="mb-0">Wallet Balance</h4>
+      <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+    </div>
+  </div>
+  <div className="d-flex gap-3">
+    <Form.Select
+      className="w-auto"
+      value={currency}
+      onChange={(e) => setCurrency(e.target.value)}
+    >
+      <option value="USD">USD</option>
+      <option value="EGP">EGP</option>
+      <option value="SAR">SAR</option>
+      <option value="AED">AED</option>
+    </Form.Select>
+    <Link to="/tourist/wishlist" className="btn btn-primary">
+      <FaHeart className="me-2" />
+      Wishlist
+    </Link>
+    <Button
+      variant="primary"
+      onClick={() => setShowCart(true)}
+      className="position-relative"
+    >
+      <FaShoppingCart className="me-2" />
+      Cart
+      {cart.length > 0 && (
+        <Badge
+          bg="danger"
+          className="position-absolute top-0 start-100 translate-middle"
+        >
+          {cart.length}
+        </Badge>
+      )}
+    </Button>
+  </div>
+</div>
   
           {/* Filters */}
           <Row className="mb-4 g-3">

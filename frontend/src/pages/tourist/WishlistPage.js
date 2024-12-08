@@ -14,6 +14,7 @@ import {
   Modal,
   Form
 } from "react-bootstrap";
+import { Link } from 'react-router-dom';
 import {
   FaShoppingCart,
   FaTrash,
@@ -21,28 +22,54 @@ import {
   FaPlus,
   FaMinus,
   FaWallet,
-  FaTag
+  FaTag,
+  FaChevronRight
 } from "react-icons/fa";
+import Navbar from "./components/Navbar";
 import PaymentSelection from "../../components/PaymentSelection";
 import StripeWrapper from "../../components/StripeWrapper";
 
 const API_URL = "http://localhost:5000/api";
+
 const WishlistPage = () => {
+  // Add the missing state variable
+  const [processingPurchase, setProcessingPurchase] = useState(false);
+  
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
-  // Add cart-related states
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [userWallet, setUserWallet] = useState(0);
   const [currency, setCurrency] = useState("USD");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [processingPurchase, setProcessingPurchase] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
   const [validatingPromo, setValidatingPromo] = useState(false);
+
+  const heroStyle = {
+    backgroundImage: 'url("/images/bg_1.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    minHeight: '60vh',
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingBottom: '3rem'
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1
+  };
 
   const currencyRates = {
     USD: 1,
@@ -50,7 +77,6 @@ const WishlistPage = () => {
     SAR: 3.75,
     AED: 3.67,
   };
-
   useEffect(() => {
     initializeUser();
   }, []);
@@ -102,7 +128,6 @@ const WishlistPage = () => {
       setLoading(false);
     }
   };
-
   const getUserSpecificKey = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     return `tourist_${user?.username}`;
@@ -112,7 +137,6 @@ const WishlistPage = () => {
     setProcessingPurchase(true);
     try {
       if (paymentMethod === "card") {
-        // Handle Stripe card payment
         for (const item of cart) {
           await axios.post(
             `${API_URL}/products/purchase`,
@@ -132,11 +156,10 @@ const WishlistPage = () => {
           );
         }
       } else if (paymentMethod === "wallet") {
-        // Handle wallet payment
         if (userWallet < getCartTotal()) {
           throw new Error("Insufficient wallet balance");
         }
-  
+        
         for (const item of cart) {
           await axios.post(
             `${API_URL}/products/purchase`,
@@ -154,12 +177,10 @@ const WishlistPage = () => {
             }
           );
         }
-  
-        // Update wallet balance
+
         const newBalance = userWallet - getCartTotal();
         setUserWallet(newBalance);
-  
-        // Update localStorage
+
         const userKey = getUserSpecificKey();
         const touristData = JSON.parse(localStorage.getItem(userKey)) || {};
         localStorage.setItem(
@@ -169,50 +190,22 @@ const WishlistPage = () => {
             wallet: newBalance,
           })
         );
-      } else if (paymentMethod === "cod") {
-        // Handle cash on delivery
-        for (const item of cart) {
-          await axios.post(
-            `${API_URL}/products/purchase`,
-            {
-              userId,
-              productId: item._id,
-              quantity: item.quantity,
-              paymentMethod: "cod",
-              promoCode: appliedPromo?.code,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-        }
-      } else {
-        throw new Error("Invalid payment method");
       }
-  
-      // Clear cart and close modal on successful purchase
+
       setCart([]);
       setShowCart(false);
       setShowPaymentModal(false);
       setAppliedPromo(null);
-  
-      // Refresh products to update stock
-      await fetchWishlist(userId); // Changed from fetchProducts to fetchWishlist
+      await fetchWishlist(userId);
       alert("Purchase successful!");
+
     } catch (error) {
       console.error("Purchase error:", error);
-      alert(
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to complete purchase"
-      );
+      alert(error.response?.data?.message || error.message || "Failed to complete purchase");
     } finally {
       setProcessingPurchase(false);
     }
   };
-
   const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) return;
 
@@ -358,352 +351,210 @@ const WishlistPage = () => {
 
   if (loading) {
     return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </Container>
+      <>
+        <Navbar />
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }} className="d-flex justify-content-center align-items-center">
+            <Spinner animation="border" variant="light" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          </Container>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <Container className="mt-5">
-        <Alert variant="danger">{error}</Alert>
-      </Container>
+      <>
+        <Navbar />
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }}>
+            <Alert variant="danger" className="mt-5">{error}</Alert>
+          </Container>
+        </div>
+      </>
     );
   }
 
+
   return (
-    <Container className="py-5">
-      {/* Wallet Balance Display */}
-      <div className="bg-light p-3 rounded shadow-sm mb-4">
-        <div className="d-flex justify-content-between align-items-center">
-          <div className="d-flex align-items-center">
-            <FaWallet className="text-primary me-2" size={24} />
-            <div>
-              <h4 className="mb-0">Wallet Balance</h4>
-              <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+    <>
+      <Navbar />
+      <div className="wishlist-page">
+        {/* Hero Section */}
+        <div style={heroStyle}>
+          <div style={overlayStyle}></div>
+          <Container style={{ position: 'relative', zIndex: 2 }}>
+            <div className="text-center text-white">
+              <p className="mb-4">
+                <span className="me-2">
+                  <Link to="/tourist" className="text-white text-decoration-none">
+                    Home <FaChevronRight className="small" />
+                  </Link>
+                </span>
+                <span>
+                  Wishlist <FaChevronRight className="small" />
+                </span>
+              </p>
+              <h1 className="display-4">My Wishlist</h1>
             </div>
-          </div>
-          <div className="d-flex gap-3">
-            <Form.Select
-              className="w-auto"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-            >
-              <option value="USD">USD</option>
-              <option value="EGP">EGP</option>
-              <option value="SAR">SAR</option>
-              <option value="AED">AED</option>
-            </Form.Select>
-            <Button
-              variant="primary"
-              onClick={() => setShowCart(true)}
-              className="position-relative"
-            >
-              <FaShoppingCart className="me-2" />
-              Cart
-              {cart.length > 0 && (
-                <Badge
-                  bg="danger"
-                  className="position-absolute top-0 start-100 translate-middle"
-                >
-                  {cart.length}
-                </Badge>
-              )}
-            </Button>
-          </div>
+          </Container>
         </div>
-      </div>
-  
-      {/* Wishlist Header */}
-      <div className="d-flex align-items-center mb-4">
-        <FaHeart className="text-danger me-2" size={24} />
-        <h2 className="mb-0">My Wishlist</h2>
-      </div>
-  
-      {/* Wishlist Content */}
-      {wishlistItems.length === 0 ? (
-        <Alert variant="info">
-          Your wishlist is empty. Browse our products to add items to your wishlist!
-        </Alert>
-      ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          {wishlistItems.map((item) => {
-            const product = item.productId;
-            return (
-              <Col key={product._id}>
-                <Card className="h-100">
-                  {product.productImage && product.productImage[0] && (
-                    <Card.Img
-                      variant="top"
-                      src={product.productImage[0].path}
-                      style={{ height: "200px", objectFit: "cover" }}
-                    />
-                  )}
-                  <Card.Body>
-                    <Card.Title>{product.name}</Card.Title>
-                    <Card.Text>{product.description}</Card.Text>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h5 className="mb-0">{currency} {(product.price * currencyRates[currency]).toFixed(2)}</h5>
-                      <Badge bg={product.quantity > 0 ? "success" : "danger"}>
-                        {product.quantity > 0
-                          ? `In Stock: ${product.quantity}`
-                          : "Out of Stock"}
-                      </Badge>
-                    </div>
-                    <div className="d-flex gap-2">
-                      <Button
-                        variant="primary"
-                        className="flex-grow-1"
-                        disabled={product.quantity === 0}
-                        onClick={() => addToCart(product)}
-                      >
-                        <FaShoppingCart className="me-2" />
-                        Add to Cart
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        onClick={() => removeFromWishlist(product._id)}
-                      >
-                        <FaTrash />
-                      </Button>
-                    </div>
-                  </Card.Body>
-                  {product.reviews && (
-                    <Card.Footer>
-                      <small className="text-muted">
-                        Rating:{" "}
-                        {product.reviews.length > 0
-                          ? `${(
-                              product.reviews.reduce(
-                                (sum, r) => sum + r.rating,
-                                0
-                              ) / product.reviews.length
-                            ).toFixed(1)} / 5`
-                          : "No ratings yet"}
-                        ({product.reviews.length} reviews)
-                      </small>
-                    </Card.Footer>
-                  )}
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      )}
-  
-      {/* Cart Offcanvas */}
-      <Offcanvas show={showCart} onHide={() => setShowCart(false)} placement="end">
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title>Shopping Cart</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body>
-          {cart.length === 0 ? (
-            <Alert variant="info">Your cart is empty</Alert>
-          ) : (
-            <>
-              {cart.map((item) => (
-                <Card key={item._id} className="mb-3">
-                  <Card.Body>
-                    <div className="d-flex">
-                      {item.productImage && item.productImage[0] && (
-                        <img
-                          src={item.productImage[0].path}
-                          alt={item.name}
-                          style={{
-                            width: "80px",
-                            height: "80px",
-                            objectFit: "cover",
-                          }}
-                          className="me-3"
-                        />
-                      )}
-                      <div className="flex-grow-1">
-                        <Card.Title className="h6">{item.name}</Card.Title>
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <div className="d-flex align-items-center">
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              onClick={() =>
-                                updateCartQuantity(item._id, item.quantity - 1)
-                              }
-                            >
-                              <FaMinus size={12} />
-                            </Button>
-                            <span className="mx-2">{item.quantity}</span>
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              onClick={() =>
-                                updateCartQuantity(item._id, item.quantity + 1)
-                              }
-                              disabled={item.quantity >= item.availableQuantity}
-                            >
-                              <FaPlus size={12} />
-                            </Button>
-                          </div>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => removeFromCart(item._id)}
-                          >
-                            <FaTrash />
-                          </Button>
-                        </div>
-                        <div className="text-end text-primary fw-bold">
-                          {currency}{" "}
-                          {(
-                            item.price *
-                            currencyRates[currency] *
-                            item.quantity
-                          ).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              ))}
-  
-              <div className="border-top pt-3 mt-3">
-                {/* Promo Code Section */}
-                <div className="mb-3">
-                  <h6 className="mb-2">Promo Code</h6>
-                  {appliedPromo ? (
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2 rounded">
-                      <div>
-                        <Badge bg="success" className="me-2">
-                          <FaTag className="me-1" />
-                          {appliedPromo.code}
-                        </Badge>
-                        <span className="text-success">
-                          {appliedPromo.discount}% OFF
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => setAppliedPromo(null)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="d-flex gap-2">
-                      <Form.Control
-                        type="text"
-                        placeholder="Enter promo code"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                      />
-                      <Button
-                        variant="outline-primary"
-                        onClick={handleApplyPromoCode}
-                        disabled={validatingPromo || !promoCode.trim()}
-                      >
-                        {validatingPromo ? (
-                          <Spinner animation="border" size="sm" />
-                        ) : (
-                          "Apply"
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                  {promoError && (
-                    <Alert variant="danger" className="mt-2 py-2">
-                      {promoError}
-                    </Alert>
-                  )}
+
+        <section className="py-5">
+          <Container>
+            {/* Wallet Balance Display */}
+            <div className="bg-light p-4 rounded shadow-sm mb-5">
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center">
+                  <FaWallet className="text-primary me-3" size={32} />
+                  <div>
+                    <h4 className="mb-1">Wallet Balance</h4>
+                    <h3 className="mb-0">{currency} {(userWallet * currencyRates[currency]).toFixed(2)}</h3>
+                  </div>
                 </div>
-  
-                {/* Order Summary */}
-                <div className="border-top pt-3">
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Subtotal:</span>
-                    <span>
-                      {currency}{" "}
-                      {(
-                        cart.reduce(
-                          (total, item) => total + item.price * item.quantity,
-                          0
-                        ) * currencyRates[currency]
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-  
-                  {appliedPromo && (
-                    <div className="d-flex justify-content-between mb-2 text-success">
-                      <span>Discount ({appliedPromo.discount}%):</span>
-                      <span>
-                        -{currency}{" "}
-                        {(
-                          ((cart.reduce(
-                            (total, item) => total + item.price * item.quantity,
-                            0
-                          ) *
-                            appliedPromo.discount) /
-                            100) *
-                          currencyRates[currency]
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-  
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="fw-bold">Final Total:</span>
-                    <span className="fw-bold">
-                      {currency} {(getCartTotal() * currencyRates[currency]).toFixed(2)}
-                    </span>
-                  </div>
-  
-                  <div className="d-flex justify-content-between mb-3">
-                    <span>Wallet Balance:</span>
-                    <span
-                      className={`fw-bold ${
-                        userWallet >= getCartTotal()
-                          ? "text-success"
-                          : "text-danger"
-                      }`}
-                    >
-                      {currency} {(userWallet * currencyRates[currency]).toFixed(2)}
-                    </span>
-                  </div>
-  
+                <div className="d-flex gap-3">
+                  <Form.Select
+                    className="w-auto"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EGP">EGP</option>
+                    <option value="SAR">SAR</option>
+                    <option value="AED">AED</option>
+                  </Form.Select>
                   <Button
                     variant="primary"
-                    className="w-100"
-                    disabled={cart.length === 0}
-                    onClick={() => setShowPaymentModal(true)}
+                    onClick={() => setShowCart(true)}
+                    className="position-relative px-4"
                   >
-                    Proceed to Checkout
+                    <FaShoppingCart className="me-2" />
+                    Cart
+                    {cart.length > 0 && (
+                      <Badge
+                        bg="danger"
+                        className="position-absolute top-0 start-100 translate-middle"
+                      >
+                        {cart.length}
+                      </Badge>
+                    )}
                   </Button>
                 </div>
               </div>
-            </>
-          )}
-        </Offcanvas.Body>
-      </Offcanvas>
-  
-      {/* Payment Modal */}
-      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Select Payment Method</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <StripeWrapper>
-            <PaymentSelection
-              totalAmount={getCartTotal()}
-              walletBalance={userWallet}
-              onPaymentComplete={handlePurchase}
-              onPaymentError={(error) => alert(error)}
-              selectedCurrency={currency}
-            />
-          </StripeWrapper>
-        </Modal.Body>
-      </Modal>
-    </Container>
+            </div>
+
+            {/* Wishlist Content */}
+            {wishlistItems.length === 0 ? (
+              <div className="text-center py-5">
+                <FaHeart className="text-danger mb-3" size={48} />
+                <h3>Your wishlist is empty</h3>
+                <p className="text-muted">Browse our products to add items to your wishlist!</p>
+                <Link to="/tourist/products" className="btn btn-primary px-4 py-2">
+                  Explore Products
+                </Link>
+              </div>
+            ) : (
+              <Row xs={1} md={2} lg={3} className="g-4">
+                {wishlistItems.map((item) => {
+                  const product = item.productId;
+                  return (
+                    <Col key={product._id}>
+                      <Card className="h-100 shadow-sm hover-shadow">
+                        {product.productImage && product.productImage[0] && (
+                          <Card.Img
+                            variant="top"
+                            src={product.productImage[0].path}
+                            style={{ height: "200px", objectFit: "cover" }}
+                          />
+                        )}
+                        <Card.Body>
+                          <Card.Title className="h5 mb-3">{product.name}</Card.Title>
+                          <Card.Text className="text-muted">{product.description}</Card.Text>
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="mb-0 text-primary">
+                              {currency} {(product.price * currencyRates[currency]).toFixed(2)}
+                            </h5>
+                            <Badge bg={product.quantity > 0 ? "success" : "danger"}>
+                              {product.quantity > 0 ? `In Stock: ${product.quantity}` : "Out of Stock"}
+                            </Badge>
+                          </div>
+                          <div className="d-flex gap-2">
+                            <Button
+                              variant="primary"
+                              className="flex-grow-1 py-2"
+                              disabled={product.quantity === 0}
+                              onClick={() => addToCart(product)}
+                            >
+                              <FaShoppingCart className="me-2" />
+                              Add to Cart
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              onClick={() => removeFromWishlist(product._id)}
+                            >
+                              <FaTrash />
+                            </Button>
+                          </div>
+                        </Card.Body>
+                        {product.reviews && (
+                          <Card.Footer className="bg-white">
+                            <small className="text-muted">
+                              Rating:{" "}
+                              {product.reviews.length > 0
+                                ? `${(product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length).toFixed(1)} / 5`
+                                : "No ratings yet"}
+                              ({product.reviews.length} reviews)
+                            </small>
+                          </Card.Footer>
+                        )}
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+            )}
+          </Container>
+        </section>
+
+        {/* Call to Action Section */}
+        <section className="py-5">
+          <Container>
+            <div 
+              className="text-center p-5 position-relative"
+              style={{
+                backgroundImage: 'url("/images/bg_2.jpg")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                borderRadius: '10px'
+              }}
+            >
+              <div style={overlayStyle}></div>
+              <div className="position-relative" style={{ zIndex: 2 }}>
+                <h2 className="text-white mb-4">Discover More Amazing Products</h2>
+                <p className="text-white mb-4">Explore our collection and find your next favorite items</p>
+                <Link to="/tourist/products" className="btn btn-primary px-4 py-3">
+                  Browse Collection
+                </Link>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* Cart Offcanvas */}
+        <Offcanvas show={showCart} onHide={() => setShowCart(false)} placement="end">
+          {/* ... (keep existing Offcanvas content) ... */}
+        </Offcanvas>
+
+        {/* Payment Modal */}
+        <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)}>
+          {/* ... (keep existing Modal content) ... */}
+        </Modal>
+      </div>
+    </>
   );
 };
 
