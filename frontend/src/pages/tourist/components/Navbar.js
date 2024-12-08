@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { FaUser } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaUser,FaSignOutAlt } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu toggle
@@ -9,6 +9,15 @@ const Navbar = () => {
 
   // Check if user is logged in
   const loggedIn = !!localStorage.getItem("token"); // Check if token exists in localStorage
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
+  };
 
   // Handle resizing
   useEffect(() => {
@@ -157,6 +166,16 @@ const Navbar = () => {
                     <Link className="dropdown-item" to="/tourist/change-password">
                       Change Password
                     </Link>
+                    <Link className="dropdown-item" to="/tourist/notifications">
+                      Notifications
+                    </Link>
+                    <button
+                  className="dropdown-item text-danger"
+                  onClick={handleLogout}
+                >
+                  <FaSignOutAlt className="me-2" />
+                  Logout
+                </button>
                   </div>
                 </li>
               </>
