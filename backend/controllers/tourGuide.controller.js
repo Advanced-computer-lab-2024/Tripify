@@ -617,9 +617,6 @@ export const getTourGuideReport = async (req, res) => {
       itineraries: itinerariesWithAttendees,
       bookings,
     };
-
-    console.log(responseData);
-
     res.status(200).json({
       success: true,
       message: "Tour guide report fetched successfully.",
