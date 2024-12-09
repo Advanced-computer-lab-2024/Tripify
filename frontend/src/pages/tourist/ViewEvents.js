@@ -500,21 +500,23 @@ const ViewEvents = () => {
   const handlePaymentComplete = async (paymentMethod, paymentIntent) => {
     const { item, type, promoCode, finalPrice, formattedDate } = selectedEvent;
     const userId = getUserId();
-
+    const user = JSON.parse(localStorage.getItem("user")); // Get user data from localStorage
+  
     try {
-      // Use the ISO string date directly
+      // Prepare booking data
       const bookingData = {
         userId,
         bookingType: type,
         itemId: item._id,
-        bookingDate: formattedDate, // Use the stored ISO string
+        bookingDate: formattedDate,
         promoCode,
         paymentMethod,
         paymentIntentId: paymentIntent?.id,
       };
-
+  
       console.log("Sending booking data:", bookingData);
-
+  
+      // Create booking
       const bookingResponse = await axios.post(
         "http://localhost:5000/api/bookings/create",
         bookingData,
@@ -524,8 +526,9 @@ const ViewEvents = () => {
           },
         }
       );
-
+  
       if (bookingResponse.data.success) {
+        // Handle wallet payment
         if (paymentMethod === "wallet") {
           const deductResponse = await axios.post(
             `http://localhost:5000/api/tourist/wallet/deduct/${userId}`,
@@ -539,12 +542,55 @@ const ViewEvents = () => {
               },
             }
           );
-
+  
           setUserWallet(deductResponse.data.currentBalance);
           updateWalletStorage(deductResponse.data.currentBalance);
         }
-
-        alert("Booking successful!");
+  
+        // Prepare receipt email
+        const receiptMessage = `
+  Dear ${user.username},
+  
+  Thank you for your booking! Here's your receipt:
+  
+  Booking Details:
+  - Item: ${item.name}
+  - Type: ${type}
+  - Date: ${new Date(formattedDate).toLocaleDateString()}
+  - Payment Method: ${paymentMethod}
+  ${promoCode ? `- Promo Code Applied: ${promoCode}` : ''}
+  - Total Amount Paid: $${finalPrice}
+  
+  Booking ID: ${bookingResponse.data.data._id}
+  
+  Thank you for choosing our service!
+  
+  Best regards,
+  Your Tourism Team
+        `;
+  
+        // Send receipt email
+        try {
+          await axios.post(
+            "http://localhost:5000/api/notify",
+            {
+              email: user.email,
+              message: receiptMessage
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          console.log("Receipt email sent successfully");
+        } catch (emailError) {
+          console.error("Failed to send receipt email:", emailError);
+          // Don't throw error here as booking is already successful
+        }
+  
+        // Success actions
+        alert("Booking successful! A receipt has been sent to your email.");
         await fetchUserProfile();
         await fetchLoyaltyStatus();
         setShowPaymentModal(false);
