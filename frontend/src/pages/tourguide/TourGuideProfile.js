@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Alert, Modal, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Alert, Modal, Spinner, Image } from 'react-bootstrap';
 import { 
   FaUser, 
   FaSignOutAlt, 
@@ -12,10 +12,11 @@ import {
   FaUpload,
   FaChevronRight,
   FaIdCard,
-  FaCertificate
+  FaCertificate,
+  FaCamera
 } from 'react-icons/fa';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const TourGuideProfile = () => {
   // State Management
@@ -28,7 +29,12 @@ const TourGuideProfile = () => {
   const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [previousWork, setPreviousWork] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
   const [newWorkEntry, setNewWorkEntry] = useState({
+    
     jobTitle: '',
     company: '',
     description: '',
@@ -37,6 +43,9 @@ const TourGuideProfile = () => {
   });
 
   const navigate = useNavigate();
+  const handleNavigateToDashboard = () => {
+    navigate('/tourguide/');
+  };
 
   // Fetch profile data
   const fetchProfile = async () => {
@@ -88,6 +97,149 @@ const TourGuideProfile = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+
+  const handleProfilePictureSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setUploadError('File size should not exceed 5MB');
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Please upload an image file');
+        return;
+      }
+
+      setProfilePicture(file);
+      setUploadError('');
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Function to handle profile picture upload
+  const handleProfilePictureUpload = async () => {
+    if (!profilePicture) return;
+
+    const formData = new FormData();
+    formData.append('profilePicture', profilePicture);
+
+    try {
+      setUploadProgress(0);
+      const token = localStorage.getItem('token');
+
+      const response = await axios.post(
+        'http://localhost:5000/api/tourguide/upload/profilePicture',
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+            setUploadProgress(progress);
+          },
+        }
+      );
+
+      if (response.data.success) {
+        await fetchProfile(); // Refresh profile data
+        setUploadError('');
+        setUploadProgress(0);
+      }
+    } catch (error) {
+      setUploadError(error.response?.data?.message || 'Failed to upload profile picture');
+      setUploadProgress(0);
+    }
+  };
+  const renderProfilePictureSection = () => {
+    return (
+      <div className="p-4 bg-light rounded-3 mb-4">
+        <h5 className="mb-3 text-primary">Profile Picture</h5>
+        <div className="d-flex flex-column align-items-center">
+          {/* Profile Picture Display */}
+          <div className="position-relative mb-3">
+            {(previewUrl || profile?.profilePicture?.path) ? (
+              <Image
+                src={previewUrl || `http://localhost:5000/${profile?.profilePicture?.path}`}
+                alt="Profile"
+                roundedCircle
+                style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+                className="border shadow-sm"
+              />
+            ) : (
+              <div 
+                className="bg-secondary d-flex align-items-center justify-content-center rounded-circle"
+                style={{ width: '150px', height: '150px' }}
+              >
+                <FaUser size={50} className="text-white" />
+              </div>
+            )}
+            
+            {/* Upload button overlay */}
+            <label 
+              className="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2 cursor-pointer"
+              style={{ cursor: 'pointer' }}
+            >
+              <input
+                type="file"
+                className="d-none"
+                accept="image/*"
+                onChange={handleProfilePictureSelect}
+              />
+              <FaCamera className="text-white" size={20} />
+            </label>
+          </div>
+
+          {/* Upload Progress */}
+          {uploadProgress > 0 && (
+            <div className="w-100 mb-3">
+              <div className="progress">
+                <div 
+                  className="progress-bar" 
+                  role="progressbar" 
+                  style={{ width: `${uploadProgress}%` }}
+                  aria-valuenow={uploadProgress} 
+                  aria-valuemin="0" 
+                  aria-valuemax="100"
+                >
+                  {uploadProgress}%
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {uploadError && (
+            <Alert variant="danger" className="mt-2 w-100">
+              {uploadError}
+            </Alert>
+          )}
+
+          {/* Upload Button */}
+          {profilePicture && (
+            <Button
+              variant="primary"
+              onClick={handleProfilePictureUpload}
+              className="mt-3"
+              disabled={uploadProgress > 0}
+            >
+              <FaUpload className="me-2" />
+              Upload Profile Picture
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Add new work experience
@@ -249,9 +401,13 @@ const TourGuideProfile = () => {
           <div className="text-center text-white">
             <p className="mb-4">
               <span className="me-2">
-                <Link to="/tourguide/dashboard" className="text-white text-decoration-none">
+                <Button
+                  variant="link"
+                  className="text-white text-decoration-none p-0"
+                  onClick={handleNavigateToDashboard}
+                >
                   Dashboard <FaChevronRight className="small mx-2" />
-                </Link>
+                </Button>
               </span>
               <span>My Profile</span>
             </p>
@@ -286,8 +442,81 @@ const TourGuideProfile = () => {
                 {!isEditing ? (
                   // View Mode
                   <div>
+                    {/* Profile Picture Section */}
+                    <div className="p-4 bg-light rounded-3 mb-4">
+                      <h5 className="mb-3 text-primary">Profile Picture</h5>
+                      <div className="d-flex flex-column align-items-center">
+                        <div className="position-relative mb-3">
+                          {(previewUrl || profile?.profilePicture?.path) ? (
+                            <Image
+                              src={previewUrl || `http://localhost:5000/${profile?.profilePicture?.path}`}
+                              alt="Profile"
+                              roundedCircle
+                              style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+                              className="border shadow-sm"
+                            />
+                          ) : (
+                            <div 
+                              className="bg-secondary d-flex align-items-center justify-content-center rounded-circle"
+                              style={{ width: '150px', height: '150px' }}
+                            >
+                              <FaUser size={50} className="text-white" />
+                            </div>
+                          )}
+                          
+                          <label 
+                            className="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2"
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <input
+                              type="file"
+                              className="d-none"
+                              accept="image/*"
+                              onChange={handleProfilePictureSelect}
+                            />
+                            <FaCamera className="text-white" size={20} />
+                          </label>
+                        </div>
+
+                        {uploadProgress > 0 && (
+                          <div className="w-100 mb-3">
+                            <div className="progress">
+                              <div 
+                                className="progress-bar" 
+                                role="progressbar" 
+                                style={{ width: `${uploadProgress}%` }}
+                                aria-valuenow={uploadProgress} 
+                                aria-valuemin="0" 
+                                aria-valuemax="100"
+                              >
+                                {uploadProgress}%
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {uploadError && (
+                          <Alert variant="danger" className="mt-2 w-100">
+                            {uploadError}
+                          </Alert>
+                        )}
+
+                        {/* {profilePicture && (
+                          <Button
+                            variant="primary"
+                            onClick={handleProfilePictureUpload}
+                            className="mt-3"
+                            disabled={uploadProgress > 0}
+                          >
+                            <FaUpload className="me-2" />
+                            Upload Profile Picture
+                          </Button>
+                        )} */}
+                      </div>
+                    </div>
+
+                    {/* Basic Information Section */}
                     <Row className="gy-4">
-                      {/* Basic Information */}
                       <Col md={6}>
                         <div className="p-4 bg-light rounded-3">
                           <h5 className="mb-3 text-primary">Basic Information</h5>
@@ -310,7 +539,7 @@ const TourGuideProfile = () => {
                         </div>
                       </Col>
 
-                      {/* Documents */}
+                      {/* Documents Section */}
                       <Col md={6}>
                         <div className="p-4 bg-light rounded-3">
                           <h5 className="mb-3 text-primary">Verification Documents</h5>
@@ -338,7 +567,7 @@ const TourGuideProfile = () => {
                       </Col>
                     </Row>
 
-                    {/* Work Experience */}
+                    {/* Work Experience Section */}
                     <div className="mt-4 p-4 bg-light rounded-3">
                       <h5 className="mb-3 text-primary">Work Experience</h5>
                       {previousWork.map((work, index) => (
@@ -373,39 +602,42 @@ const TourGuideProfile = () => {
                     </div>
                   </div>
                 ) : (
-                  // Edit Mode
+                  // Edit Mode Form
                   <Form onSubmit={handleUpdateProfile}>
                     <Row className="gy-4">
                       <Col md={6}>
-                        <Form.Group className="mb-3">
+                        <Form.Group>
                           <Form.Label>Email</Form.Label>
                           <Form.Control
                             type="email"
                             name="email"
                             value={profile?.email || ''}
                             onChange={handleInputChange}
+                            className="rounded-pill"
                           />
                         </Form.Group>
                       </Col>
                       <Col md={6}>
-                        <Form.Group className="mb-3">
+                        <Form.Group>
                           <Form.Label>Mobile Number</Form.Label>
                           <Form.Control
                             type="text"
                             name="mobileNumber"
                             value={profile?.mobileNumber || ''}
                             onChange={handleInputChange}
+                            className="rounded-pill"
                           />
                         </Form.Group>
                       </Col>
                       <Col md={6}>
-                        <Form.Group className="mb-3">
+                        <Form.Group>
                           <Form.Label>Years of Experience</Form.Label>
                           <Form.Control
                             type="number"
                             name="yearsOfExperience"
                             value={profile?.yearsOfExperience || ''}
                             onChange={handleInputChange}
+                            className="rounded-pill"
                           />
                         </Form.Group>
                       </Col>
@@ -457,7 +689,6 @@ const TourGuideProfile = () => {
                               name="startDate"
                               value={newWorkEntry.startDate}
                               onChange={handleWorkInputChange}
-                              className="mt-3"
                             />
                           </Col>
                           <Col md={6}>
@@ -466,7 +697,6 @@ const TourGuideProfile = () => {
                               name="endDate"
                               value={newWorkEntry.endDate}
                               onChange={handleWorkInputChange}
-                              className="mt-3"
                             />
                           </Col>
                           <Col md={12}>
@@ -477,14 +707,12 @@ const TourGuideProfile = () => {
                               name="description"
                               value={newWorkEntry.description}
                               onChange={handleWorkInputChange}
-                              className="mt-3"
                             />
                           </Col>
                           <Col md={12}>
                             <Button
                               variant="primary"
                               onClick={handleAddWorkExperience}
-                              className="mt-3"
                               disabled={!newWorkEntry.jobTitle || !newWorkEntry.company}
                             >
                               <FaBriefcase className="me-2" />
@@ -495,52 +723,7 @@ const TourGuideProfile = () => {
                       </div>
                     </div>
 
-                    {/* Document Upload Section */}
-                    <div className="mt-4">
-                      <h5 className="mb-3">Update Documents</h5>
-                      <Row className="g-3">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Update ID Document</Form.Label>
-                            <div className="d-flex align-items-center">
-                              <Form.Control
-                                type="file"
-                                onChange={(e) => handleFileUpload(e, 'identificationDocument')}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                              />
-                            </div>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Update Certificate</Form.Label>
-                            <div className="d-flex align-items-center">
-                              <Form.Control
-                                type="file"
-                                onChange={(e) => handleFileUpload(e, 'certificate')}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                              />
-                            </div>
-                          </Form.Group>
-                        </Col>
-                      </Row>
-                    </div>
-
-                    {/* Profile Picture Upload */}
-                    <div className="mt-4">
-                      <h5 className="mb-3">Profile Picture</h5>
-                      <Form.Group>
-                        <div className="d-flex align-items-center">
-                          <Form.Control
-                            type="file"
-                            onChange={(e) => handleFileUpload(e, 'profilePicture')}
-                            accept="image/*"
-                          />
-                        </div>
-                      </Form.Group>
-                    </div>
-
-                    {/* Form Action Buttons */}
+                    {/* Save/Cancel Buttons */}
                     <div className="mt-4 d-flex gap-3">
                       <Button type="submit" variant="primary" className="rounded-pill px-4">
                         <FaSave className="me-2" />
@@ -561,65 +744,9 @@ const TourGuideProfile = () => {
             </Card>
           </Col>
         </Row>
-
-        {/* Delete Account Modal */}
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-          <Modal.Header closeButton className="bg-danger text-white">
-            <Modal.Title>
-              <FaExclamationTriangle className="me-2" />
-              Delete Account
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Alert variant="warning">
-              <strong>Warning:</strong> This action cannot be undone. Your account and all associated data will be permanently deleted.
-            </Alert>
-            <p>Please note that account deletion is only possible if you have:</p>
-            <ul>
-              <li>No active itineraries</li>
-              <li>No pending bookings</li>
-              <li>No ongoing tours</li>
-            </ul>
-            {deleteError && <Alert variant="danger">{deleteError}</Alert>}
-            <Form.Group>
-              <Form.Label>
-                Please type <strong>{profile?.username}</strong> to confirm deletion
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="Enter your username"
-                className="mt-2"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleDeleteAccount}
-              disabled={isDeleting || confirmText !== profile?.username}
-            >
-              {isDeleting ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-2" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <FaTrash className="me-2" />
-                  Delete Account
-                </>
-              )}
-            </Button>
-          </Modal.Footer>
-        </Modal>
       </Container>
     </div>
   );
-};
+}
 
 export default TourGuideProfile;
