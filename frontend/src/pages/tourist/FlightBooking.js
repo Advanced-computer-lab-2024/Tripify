@@ -10,6 +10,7 @@ import {
   Col, 
   InputGroup, 
   Alert,
+  
   Spinner 
 } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
@@ -21,13 +22,16 @@ import {
   FaSearch,
   FaChevronRight,
   FaInfoCircle
+  
 } from 'react-icons/fa';
 import axios from 'axios';
 import FlightCard from './FlightCard';
 import BookingModal from './BookingModal';
-
+import { useNavigate } from 'react-router-dom';  // Add this
+import { FaPlane } from 'react-icons/fa';
 const FlightBooking = () => {
   // Search states
+  const navigate = useNavigate(); 
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -134,6 +138,22 @@ const FlightBooking = () => {
       </div>
 
       <Container className="py-5">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+    <h3 className="mb-0">Search & Book Flights</h3>
+    <Button 
+      variant="primary"
+      onClick={() => navigate('/tourist/view-flight-bookings')}
+      className="rounded-pill"
+      style={{
+        backgroundColor: '#1089ff',
+        border: 'none',
+        padding: '0.75rem 1.5rem'
+      }}
+    >
+      <FaPlane className="me-2" />
+      View My Flight Bookings
+    </Button>
+  </div>
         {/* Search Card */}
         <Card 
           className="shadow-sm mb-5" 

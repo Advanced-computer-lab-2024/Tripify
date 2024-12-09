@@ -120,7 +120,7 @@ function App() {
 <Route path="/tourist/view-bookings" element={<ViewBookings />} />
 <Route path="/tourist/book-transportation" element={<BookTransportation />} />
 <Route path="/tourist/change-password" element={<TouristChangePassword />} />
-<Route path="/tourist/flight-bookings" element={<FlightBookings />} />
+<Route path="/tourist/view-flight-bookings" element={<FlightBookings />} />
 <Route path="/tourist/delivery-addresses" element={<DeliveryAddresses />} />
 <Route path="/about" element={<TouristAboutPage />} />
 
