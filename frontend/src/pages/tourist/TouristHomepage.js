@@ -40,6 +40,7 @@ import TestimonialSection from "./components/TestimonialSection";
 import BlogSection from "./components/BlogSection";
 import IntroSection from "./components/IntroSection";
 import Footer from "./components/Footer";
+import VacationGuide from "../../components/VacationGuide";
 
 const TouristHomePage = () => {
   const username =
@@ -145,6 +146,7 @@ const TouristHomePage = () => {
    <TestimonialSection/>
    {/* <BlogSection/> */}
    <IntroSection/>
+   <VacationGuide />
    <Footer/>
     {/* <Container className="py-5">
       <Card className="shadow-sm">

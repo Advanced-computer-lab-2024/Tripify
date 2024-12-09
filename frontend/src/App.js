@@ -61,6 +61,7 @@ import FlightBookings from "./pages/tourist/FlightBookings";
 import VacationGuide from "./components/VacationGuide";
 import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
+import TouristReport from "./pages/advertiser/Report";
 
 
 // Import Bootstrap CSS
@@ -79,6 +80,10 @@ import AdminProdcutPage from "./pages/admin/AdminProductPage";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
+import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
+import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
+import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
+import SellerNotificationsPage from "./pages/seller/SellerNotificationsPage";
 
 function App() {
   return (
@@ -146,6 +151,10 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
+          <Route
+            path="/tourguide/sales-report"
+            element={<TourGuideSalesReport />}
+          />
           {/* Admin Routes */}
           <Route
             path="/admin"
@@ -166,6 +175,10 @@ function App() {
           <Route
             path="/admin/sales-report"
             element={<AdminSalesReport />}
+          />
+          <Route
+            path="/admin/notifications"
+            element={<AdminNotificationsPage />}
           />
           <Route
             path="/admin/activity-categories"
@@ -201,6 +214,11 @@ function App() {
             element={<AdvertiserHomepage />}
           />
           <Route path="/advertiser/notifications" element={<AdvNotificationsPage />} />
+          
+          <Route
+            path="/advertiser/report"
+            element={<TouristReport/>}
+          />
 
           <Route
             path="/advertiser/create-activity"
@@ -209,6 +227,10 @@ function App() {
           <Route
             path="/advertiser/view-activities"
             element={<ActivityList />}
+          />
+           <Route
+            path="/advertiser/sales-report"
+            element={<AdvertiserSalesReport />}
           />
           <Route
             path="/advertiser/profile"
@@ -255,6 +277,10 @@ function App() {
           <Route
             path="/seller"
             element={<SellerHomePage />}
+          />
+          <Route
+            path="/seller/notifications"
+            element={<SellerNotificationsPage />}
           />
           <Route
             path="/seller/sales-report"

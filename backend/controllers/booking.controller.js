@@ -615,6 +615,85 @@ export const bookingController = {
       console.log('🔚 Error response sent');
     }
   },
+  getGuideSalesReport :async (req, res) => {
+    try {
+      const { guideId } = req.params;
+      const bookings = await Booking.find({
+        bookingType: "Itinerary",
+        status: { $in: ["confirmed", "attended"] },
+      })
+        .populate({
+          path: "itemId",
+          match: { createdBy: guideId },
+          select: "totalPrice name tags createdBy"  // Added tags to selection
+        })
+        .populate({
+          path: "userId",
+          select: "name email"  // Include user details if needed
+        })
+        .sort("-bookingDate");
+  
+      // Filter out bookings where itemId is null (not created by this guide)
+      const validBookings = bookings.filter((booking) => booking.itemId);
+  
+      // Calculate totals including platform fee with enhanced booking details
+      const salesData = validBookings.map((booking) => ({
+        ...booking.toObject(),
+        itineraryName: booking.itemId.name,  // Include itinerary name
+        tags: booking.itemId.tags,           // Include tags
+        platformFee: booking.itemId.totalPrice * 0.1,
+        netAmount: booking.itemId.totalPrice * 0.9,
+        bookingDate: booking.bookingDate,
+        customerName: booking.userId?.name || 'Anonymous',
+        customerEmail: booking.userId?.email || 'N/A'
+      }));
+  
+      // Calculate summary statistics
+      const summary = {
+        totalRevenue: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice,
+          0
+        ),
+        platformFees: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice * 0.1,
+          0
+        ),
+        netRevenue: validBookings.reduce(
+          (sum, b) => sum + b.itemId.totalPrice * 0.9,
+          0
+        ),
+        totalBookings: validBookings.length,
+        // Add summary by itinerary
+        itinerarySummary: validBookings.reduce((acc, booking) => {
+          const name = booking.itemId.name;
+          if (!acc[name]) {
+            acc[name] = {
+              bookings: 0,
+              revenue: 0,
+              tags: booking.itemId.tags
+            };
+          }
+          acc[name].bookings++;
+          acc[name].revenue += booking.itemId.totalPrice;
+          return acc;
+        }, {})
+      };
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          bookings: salesData,
+          summary,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching guide sales:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error fetching sales data",
+      });
+    }
+  },
 
   getHistoricalPlaceRatings: async (req, res) => {
     try {
