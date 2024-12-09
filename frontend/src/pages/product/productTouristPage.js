@@ -333,7 +333,9 @@ function ProductTouristPage() {
       const outOfStockProducts = [];
       
       // Common purchase processing function
-      const processPurchase = async (item) => {
+     // Inside processPurchase function in handlePurchase
+     const processPurchase = async (item) => {
+      try {
         // First process the purchase
         await axios.post(
           `${API_URL}/products/purchase`,
@@ -351,49 +353,98 @@ function ProductTouristPage() {
             },
           }
         );
-  
-        // Get full product details to check stock and get creator info
-        try {
-          const productResponse = await axios.get(
-            `${API_URL}/products/${item._id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
+    
+        // Get product details
+        const productResponse = await axios.get(
+          `${API_URL}/products/${item._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+    
+        const fullProduct = productResponse.data;
+        console.log('Product quantity:', fullProduct.quantity);
+    
+        if (fullProduct && fullProduct.quantity === 0) {
+          console.log('Product is out of stock, sending notifications');
+    
+          try {
+            // Send email notification
+            const emailMessage = `
+    Dear Merchant,
+    
+    Your product "${fullProduct.name}" is now out of stock.
+    
+    Product Details:
+    - Product ID: ${fullProduct._id}
+    - Product Name: ${fullProduct.name}
+    - Current Stock: 0
+    - Total Sales: ${fullProduct.totalSales}
+    
+    Please restock this item as soon as possible to continue sales.
+    
+    Best regards,
+    Tourism System
+            `;
+    
+            // Send email to merchant
+            await axios.post(
+              `${API_URL}/notify`,
+              {
+                email: fullProduct.merchantEmail,
+                message: emailMessage
               },
-            }
-          );
-  
-          console.log('Full product response data:', productResponse.data);
-  
-          const fullProduct = productResponse.data;
-  
-          // Check if product will be out of stock and has necessary data
-          if (fullProduct && fullProduct.createdBy && (fullProduct.quantity - item.quantity) === 0) {
-            outOfStockProducts.push({
-              productId: fullProduct._id,
-              productName: fullProduct.name,
-              merchantEmail: fullProduct.merchantEmail,
-              createdBy: {
-                user: fullProduct.createdBy.user,
-                userType: fullProduct.createdBy.userType
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
               }
+            );
+    
+            // Create in-app notification
+            const notificationData = {
+              recipients: [
+                {
+                  userId: fullProduct.createdBy.user,
+                  userType: fullProduct.createdBy.userType
+                }
+              ],
+              title: 'Product Out of Stock Alert',
+              message: `Product "${fullProduct.name}" (ID: ${fullProduct._id}) is now out of stock. Total sales: ${fullProduct.totalSales}`,
+              type: 'stock_alert',
+              priority: 'high',
+              link: `/seller/products/${fullProduct._id}`,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            };
+    
+            const notificationResponse = await axios.post(
+              `${API_URL}/notifications`,
+              notificationData,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+    
+            console.log('Notifications sent successfully:', {
+              email: true,
+              inApp: notificationResponse.data.success
             });
-            
-            console.log('Added to outOfStockProducts:', {
-              productId: fullProduct._id,
-              productName: fullProduct.name,
-              createdBy: fullProduct.createdBy
+          } catch (notificationError) {
+            console.error('Failed to send notifications:', {
+              error: notificationError.message,
+              response: notificationError.response?.data
             });
           }
-        } catch (error) {
-          console.error('Product fetch error:', {
-            error: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            productId: item._id
-          });
         }
-      };
+      } catch (error) {
+        console.error('Process purchase error:', error);
+        throw error;
+      }
+    };
     
       // Check wallet balance if using wallet payment
       if (paymentMethod === "wallet" && userWallet < getCartTotal()) {
