@@ -164,6 +164,9 @@ const AdminNavbar = () => {
                 <Link className="dropdown-item" to="/admin/change-password">
                   Change Password
                 </Link>
+                <Link className="dropdown-item" to="/admin/promo-codes">
+                  Manage Promo Codes
+                </Link>
                 <button
                   className="dropdown-item text-danger"
                   onClick={handleLogout}

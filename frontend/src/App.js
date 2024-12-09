@@ -60,6 +60,7 @@ import DeliveryAddresses from "./components/DeliveryAddresses";
 import FlightBookings from "./pages/tourist/FlightBookings";
 import VacationGuide from "./components/VacationGuide";
 import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
+import PromoCodeManager from "./pages/admin/PromoCodeManager";
 
 
 // Import Bootstrap CSS
@@ -151,6 +152,10 @@ function App() {
             element={<AdminHomePage />}
           />
           <Route
+            path="/admin/promo-codes"
+            element={<PromoCodeManager />}
+          />
+          <Route
             path="/admin/products"
             element={<AdminProdcutPage />}
           />
@@ -196,7 +201,7 @@ function App() {
             element={<AdvertiserHomepage />}
           />
           <Route path="/advertiser/notifications" element={<AdvNotificationsPage />} />
-          
+
           <Route
             path="/advertiser/create-activity"
             element={<CreateActivity />}

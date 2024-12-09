@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Button, Form, Table, Modal, Alert } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 const PromoCodeManager = () => {
   const [promoCodes, setPromoCodes] = useState([]);
@@ -15,6 +16,7 @@ const PromoCodeManager = () => {
   const [editMode, setEditMode] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
 
@@ -115,6 +117,14 @@ const PromoCodeManager = () => {
 
   return (
     <div className="container mt-5">
+      <Button
+        variant="secondary"
+        className="mb-3 me-2"
+        onClick={() => navigate(-1)}
+      >
+        ← Back
+      </Button>
+
       <h2>Promo Code Management</h2>
 
       {error && <Alert variant="danger">{error}</Alert>}
