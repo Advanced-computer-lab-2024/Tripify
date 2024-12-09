@@ -17,6 +17,7 @@ import {
   FaChevronRight,
   FaExclamationTriangle,
   FaTimes,
+  FaChartBar,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -126,6 +127,13 @@ const TourguideHomePage = () => {
       icon: <FaMapMarkedAlt />,
       path: "/tourguide/sales-report",
       color: "#28a790",
+    },
+    {
+      title: "View attendees",
+      description: "View your Itineraries attendees",
+      icon: <FaChartBar />,
+      path: "/tourguide/tourist-report",
+      color: "#9a8e1e",
     },
     {
       title: "Change Password",
