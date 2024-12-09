@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Container, Card, Table, Row, Col, Form, Alert, Spinner } from "react-bootstrap";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import TourguideNavbar from "./TourguideNavbar";
-
 
 const TourGuideReport = () => {
   const [loading, setLoading] = useState(true);
@@ -29,10 +28,7 @@ const TourGuideReport = () => {
         const guideId = decodedToken._id;
         if (!guideId) throw new Error("Invalid token. Unable to identify user.");
 
-        let url = `http://localhost:5000/api/tourguide/${guideId}/get-report`;
-        if (dateRange === "custom" && customStartDate && customEndDate) {
-          url += `?startDate=${customStartDate}&endDate=${customEndDate}`;
-        }
+        const url = `http://localhost:5000/api/tourguide/${guideId}/get-report`;
 
         const response = await axios.get(url);
         setReport(response.data.data);
@@ -43,54 +39,37 @@ const TourGuideReport = () => {
         setLoading(false);
       }
     };
+
     fetchTourGuideReport();
-  }, [dateRange, customStartDate, customEndDate]);
+  }, []);
 
-  const calculateStats = () => {
-    if (!report.bookings || !report.itineraries) return {
-      totalItineraries: 0,
-      totalTourists: 0,
-      averageGroupSize: 0,
-      completionRate: 0
-    };
+  const filterItinerariesByDate = (itineraries) => {
+    if (dateRange === "all") return itineraries;
 
-    const totalItineraries = report.itinerariesCount;
-    const totalTourists = report.totalTourists;
-    const completedBookings = report.bookings.filter(b => b.status === "completed").length;
-    const totalBookings = report.bookings.length;
+    const now = new Date();
+    let startDate = null;
+    let endDate = null;
 
-    return {
-      totalItineraries,
-      totalTourists,
-      averageGroupSize: totalItineraries ? (totalTourists / totalItineraries).toFixed(1) : 0,
-      completionRate: totalBookings ? ((completedBookings / totalBookings) * 100).toFixed(1) : 0
-    };
-  };
+    if (dateRange === "today") {
+      startDate = new Date().setHours(0, 0, 0, 0);
+      endDate = new Date().setHours(23, 59, 59, 999);
+    } else if (dateRange === "week") {
+      const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1));
+      const lastDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7));
+      startDate = firstDayOfWeek;
+      endDate = lastDayOfWeek;
+    } else if (dateRange === "month") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (dateRange === "custom" && customStartDate && customEndDate) {
+      startDate = new Date(customStartDate);
+      endDate = new Date(customEndDate);
+    }
 
-  const groupItinerariesByMonth = () => {
-    if (!report.itineraries) return [];
-    
-    const grouped = report.itineraries.reduce((acc, itinerary) => {
-      const date = new Date(itinerary.createdAt);
-      const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
-      
-      if (!acc[monthYear]) {
-        acc[monthYear] = {
-          totalItineraries: 0,
-          totalTourists: 0,
-        };
-      }
-      
-      acc[monthYear].totalItineraries += 1;
-      acc[monthYear].totalTourists += itinerary.attendeesCount || 0;
-      
-      return acc;
-    }, {});
-
-    return Object.entries(grouped).map(([month, data]) => ({
-      month,
-      ...data,
-    }));
+    return itineraries.filter((itinerary) => {
+      const itineraryDate = new Date(itinerary.createdAt);
+      return itineraryDate >= startDate && itineraryDate <= endDate;
+    });
   };
 
   const filterItinerariesByName = (itineraries) => {
@@ -98,6 +77,10 @@ const TourGuideReport = () => {
     return itineraries.filter((itinerary) =>
       itinerary.name.toLowerCase().includes(nameFilter.toLowerCase())
     );
+  };
+
+  const calculateTotalAttendees = (itineraries) => {
+    return itineraries.reduce((total, itinerary) => total + (itinerary.attendeesCount || 0), 0);
   };
 
   if (loading) {
@@ -110,13 +93,14 @@ const TourGuideReport = () => {
     );
   }
 
-  const stats = calculateStats();
-  const monthlyData = groupItinerariesByMonth();
-  const filteredItineraries = filterItinerariesByName(report.itineraries || []);
+  const filteredItineraries = filterItinerariesByDate(
+    filterItinerariesByName(report.itineraries || [])
+  );
+  const totalAttendees = calculateTotalAttendees(filteredItineraries);
 
   return (
     <div className="min-h-screen bg-gray-50">
-       <TourguideNavbar/>
+      <TourguideNavbar />
       <div style={{ paddingTop: "64px" }}>
         <Container className="py-4">
           <Card className="mb-4">
@@ -179,70 +163,17 @@ const TourGuideReport = () => {
                 <Alert variant="danger">{error}</Alert>
               ) : (
                 <>
-                  <Row className="mb-4 g-3">
-                    <Col md={3}>
-                      <Card className="text-center h-100 border-primary">
-                        <Card.Body>
-                          <Card.Title>Total Itineraries</Card.Title>
-                          <h3 className="text-primary">{stats.totalItineraries}</h3>
-                          <small className="text-muted">Itineraries Created</small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card className="text-center h-100 border-primary">
-                        <Card.Body>
-                          <Card.Title>Total Tourists</Card.Title>
-                          <h3 className="text-primary">{stats.totalTourists}</h3>
-                          <small className="text-muted">Tourists Guided</small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
+                  <Row className="mb-4">
+                    <Col md={6}>
                       <Card className="text-center h-100 border-success">
                         <Card.Body>
-                          <Card.Title>Average Group Size</Card.Title>
-                          <h3 className="text-success">{stats.averageGroupSize}</h3>
-                          <small className="text-muted">Tourists per Itinerary</small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card className="text-center h-100 border-info">
-                        <Card.Body>
-                          <Card.Title>Completion Rate</Card.Title>
-                          <h3 className="text-info">{stats.completionRate}%</h3>
-                          <small className="text-muted">Tour Completion</small>
+                          <Card.Title>Total Attendees</Card.Title>
+                          <h3 className="text-success">{totalAttendees}</h3>
+                          <small className="text-muted">Across all filtered itineraries</small>
                         </Card.Body>
                       </Card>
                     </Col>
                   </Row>
-
-                  <div className="mb-4">
-                    <h5>Monthly Overview</h5>
-                    <Table striped bordered hover responsive>
-                      <thead className="bg-light">
-                        <tr>
-                          <th>Month</th>
-                          <th>Total Itineraries</th>
-                          <th>Total Tourists</th>
-                          <th>Average Group Size</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {monthlyData.map((data, index) => (
-                          <tr key={index}>
-                            <td>{data.month}</td>
-                            <td>{data.totalItineraries}</td>
-                            <td>{data.totalTourists}</td>
-                            <td>
-                              {(data.totalTourists / data.totalItineraries).toFixed(1)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
 
                   <div>
                     <h5>Itinerary Details</h5>
@@ -263,7 +194,7 @@ const TourGuideReport = () => {
                                 {new Date(itinerary.createdAt).toLocaleDateString()}
                               </td>
                               <td>{itinerary.name}</td>
-                              <td>{itinerary.description || 'No description'}</td>
+                              <td>{itinerary.description || "No description"}</td>
                               <td>{itinerary.attendeesCount || 0}</td>
                             </tr>
                           ))}
