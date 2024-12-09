@@ -1430,26 +1430,37 @@ const ViewEvents = () => {
             ) : (
               <>
                 {/* Historical Places Section */}
-                {filteredHistoricalPlaces.length > 0 && (
-                  <div className="mb-5">
-                    <h2 className="mb-4 d-flex align-items-center">
-                      <FaMapMarkerAlt className="me-2 text-primary" />
-                      Historical Places
-                    </h2>
-                    <Row className="g-4">
-                      {filteredHistoricalPlaces.map((place) => (
-                        <Col md={4} key={place._id}>
-                          <HistoricalPlaceCard
-                            place={place}
-                            onBooking={handleBooking}
-                            bookingDate={bookingDate}
-                            setBookingDate={setBookingDate}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
+{filteredHistoricalPlaces.length > 0 && (
+  <div className="mb-5">
+    <div className="d-flex justify-content-between align-items-center mb-4">
+      <h2 className="mb-0 d-flex align-items-center">
+        <FaMapMarkerAlt className="me-2 text-primary" />
+        Historical Places
+      </h2>
+      <Button 
+        variant="outline-primary"
+        as={Link}
+        to="/tourist/historical-places/tags"
+        className="d-flex align-items-center"
+      >
+        <FaTag className="me-2" />
+        Filter by Tags
+      </Button>
+    </div>
+    <Row className="g-4">
+      {filteredHistoricalPlaces.map((place) => (
+        <Col md={4} key={place._id}>
+          <HistoricalPlaceCard
+            place={place}
+            onBooking={handleBooking}
+            bookingDate={bookingDate}
+            setBookingDate={setBookingDate}
+          />
+        </Col>
+      ))}
+    </Row>
+  </div>
+)}
 
                 {/* Activities Section */}
                 {filteredActivities.length > 0 && (

@@ -64,6 +64,8 @@ import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import TourGuideProfile from "./pages/tourguide/TourGuideProfile";
 import TouristReport from "./pages/advertiser/Report";
 import TourGuideReport from "./pages/tourguide/TourGuideReport";
+import TagFilterHistoricalPlaces from './pages/tourist/components/TagFilterHistoricalPlaces';
+
 
 
 // Import Bootstrap CSS
@@ -129,6 +131,7 @@ function App() {
 <Route path="/tourist/change-password" element={<TouristChangePassword />} />
 <Route path="/tourist/view-flight-bookings" element={<FlightBookings />} />
 <Route path="/tourist/delivery-addresses" element={<DeliveryAddresses />} />
+<Route path="/tourist/historical-places/tags" element={<TagFilterHistoricalPlaces />} />
 <Route path="/about" element={<TouristAboutPage />} />
 
 {/* Review System Routes */}
