@@ -79,6 +79,7 @@ import AdminProdcutPage from "./pages/admin/AdminProductPage";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
+import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
 
 function App() {
   return (
@@ -145,6 +146,10 @@ function App() {
           <Route
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
+          />
+          <Route
+            path="/tourguide/sales-report"
+            element={<TourGuideSalesReport />}
           />
           {/* Admin Routes */}
           <Route
