@@ -1,97 +1,144 @@
 import React, { useState, useEffect } from "react";
-import { Card, Table, Spinner, Alert, Row, Col, Form, Container } from "react-bootstrap";
+import {
+  Card,
+  Table,
+  Spinner,
+  Alert,
+  Row,
+  Col,
+  Form,
+  Container,
+} from "react-bootstrap";
 import axios from "axios";
-import AdminNavbar from "./AdminNavbar"; // Import the navbar component
+import AdminNavbar from "./AdminNavbar";
 
 const AdminSalesReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rawData, setRawData] = useState({
     bookings: [],
-    purchases: []
+    purchases: [],
   });
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
   });
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [userStats, setUserStats] = useState({
+    totalUsers: 0,
+    newUsersThisMonth: 0,
+  });
   const [salesData, setSalesData] = useState({
     itineraries: { total: 0, count: 0 },
     activities: { total: 0, count: 0 },
     historicalPlaces: { total: 0, count: 0 },
-    products: { 
-      total: 0, 
+    products: {
+      total: 0,
       count: 0,
       cancelledCount: 0,
-      cancelledAmount: 0
-    }
+      cancelledAmount: 0,
+    },
   });
 
   const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'Itinerary', label: 'Itineraries' },
-    { value: 'Activity', label: 'Activities' },
-    { value: 'HistoricalPlace', label: 'Historical Places' },
-    { value: 'Product', label: 'Products' }
+    { value: "all", label: "All Categories" },
+    { value: "Itinerary", label: "Itineraries" },
+    { value: "Activity", label: "Activities" },
+    { value: "HistoricalPlace", label: "Historical Places" },
+    { value: "Product", label: "Products" },
   ];
 
   useEffect(() => {
-    fetchAllSalesData();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchAllSalesData(), fetchUserStats()]);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to fetch data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [dateRange, selectedCategory]);
+
+  const fetchUserStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:5000/api/admin/user-stats",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data) {
+        setUserStats({
+          totalUsers: response.data.totalUsers || 0,
+          newUsersThisMonth: response.data.newUsersThisMonth || 0,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching user stats:", err);
+      setError("Failed to fetch user statistics. Please try again.");
+    }
+  };
 
   const fetchAllSalesData = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
-      
+
       const [bookingsRes, purchasesRes] = await Promise.all([
         axios.get("http://localhost:5000/api/bookings/all", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get("http://localhost:5000/api/products/purchase/all", {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       const bookings = bookingsRes.data.data || [];
       const purchases = purchasesRes.data.data || [];
 
-      const filteredBookings = bookings.filter(booking => {
+      const filteredBookings = bookings.filter((booking) => {
         const bookingDate = new Date(booking.createdAt);
-        const dateInRange = bookingDate >= new Date(dateRange.startDate) && 
-                           bookingDate <= new Date(dateRange.endDate);
-        
+        const dateInRange =
+          bookingDate >= new Date(dateRange.startDate) &&
+          bookingDate <= new Date(dateRange.endDate);
+
         if (!dateInRange) return false;
-        
-        if (selectedCategory === 'all') return true;
-        if (selectedCategory === 'Product') return false;
+
+        if (selectedCategory === "all") return true;
+        if (selectedCategory === "Product") return false;
         return booking.bookingType === selectedCategory;
       });
 
-      const filteredPurchases = purchases.filter(purchase => {
+      const filteredPurchases = purchases.filter((purchase) => {
         const purchaseDate = new Date(purchase.purchaseDate);
-        const dateInRange = purchaseDate >= new Date(dateRange.startDate) && 
-                           purchaseDate <= new Date(dateRange.endDate);
-        
+        const dateInRange =
+          purchaseDate >= new Date(dateRange.startDate) &&
+          purchaseDate <= new Date(dateRange.endDate);
+
         if (!dateInRange) return false;
-        
-        if (selectedCategory === 'all') return true;
-        if (selectedCategory === 'Product') return true;
+
+        if (selectedCategory === "all") return true;
+        if (selectedCategory === "Product") return true;
         return false;
       });
 
-      setRawData({ 
-        bookings: filteredBookings, 
-        purchases: filteredPurchases 
+      setRawData({
+        bookings: filteredBookings,
+        purchases: filteredPurchases,
       });
 
       calculateSalesData(filteredBookings, filteredPurchases);
-
     } catch (err) {
       console.error("Error fetching sales:", err);
       setError("Failed to fetch sales data. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -100,29 +147,31 @@ const AdminSalesReport = () => {
       itineraries: { total: 0, count: 0 },
       activities: { total: 0, count: 0 },
       historicalPlaces: { total: 0, count: 0 },
-      products: { 
-        total: 0, 
+      products: {
+        total: 0,
         count: 0,
         cancelledCount: 0,
-        cancelledAmount: 0
-      }
+        cancelledAmount: 0,
+      },
     };
 
-    bookings.forEach(booking => {
-      if (booking.status !== 'cancelled') {
-        const price = Number(booking.itemId?.totalPrice || booking.itemId?.price || 0);
+    bookings.forEach((booking) => {
+      if (booking.status !== "cancelled") {
+        const price = Number(
+          booking.itemId?.totalPrice || booking.itemId?.price || 0
+        );
         const platformFee = price * 0.1;
 
         switch (booking.bookingType) {
-          case 'Itinerary':
+          case "Itinerary":
             salesSummary.itineraries.total += platformFee;
             salesSummary.itineraries.count++;
             break;
-          case 'Activity':
+          case "Activity":
             salesSummary.activities.total += platformFee;
             salesSummary.activities.count++;
             break;
-          case 'HistoricalPlace':
+          case "HistoricalPlace":
             salesSummary.historicalPlaces.total += platformFee;
             salesSummary.historicalPlaces.count++;
             break;
@@ -130,9 +179,9 @@ const AdminSalesReport = () => {
       }
     });
 
-    purchases.forEach(purchase => {
+    purchases.forEach((purchase) => {
       const price = Number(purchase.totalPrice || 0);
-      if (purchase.status === 'cancelled') {
+      if (purchase.status === "cancelled") {
         salesSummary.products.cancelledCount++;
         salesSummary.products.cancelledAmount += price;
       } else {
@@ -146,16 +195,19 @@ const AdminSalesReport = () => {
 
   const calculateTotalRevenue = () => {
     return Object.values(salesData).reduce(
-      (sum, category) => sum + (typeof category.total === 'number' ? category.total : 0),
+      (sum, category) =>
+        sum + (typeof category.total === "number" ? category.total : 0),
       0
     );
   };
 
   const calculateTotalTransactions = () => {
-    return salesData.itineraries.count +
-           salesData.activities.count +
-           salesData.historicalPlaces.count +
-           salesData.products.count;
+    return (
+      salesData.itineraries.count +
+      salesData.activities.count +
+      salesData.historicalPlaces.count +
+      salesData.products.count
+    );
   };
 
   if (loading) {
@@ -170,13 +222,45 @@ const AdminSalesReport = () => {
 
   return (
     <>
-      <AdminNavbar /> {/* Add the navbar */}
-      <Container style={{ marginTop: "100px" }}> {/* Main content starts here */}
+      <AdminNavbar />
+      <Container style={{ marginTop: "100px" }}>
         {error && (
           <Alert variant="danger" className="mb-4">
             {error}
           </Alert>
         )}
+
+        {/* User Statistics Cards */}
+        <Row className="mb-4">
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body className="text-center">
+                <h6 className="text-muted mb-2">Total Users</h6>
+                <h3 className="text-primary mb-0">
+                  {loading ? (
+                    <Spinner animation="border" size="sm" />
+                  ) : (
+                    userStats.totalUsers
+                  )}
+                </h3>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body className="text-center">
+                <h6 className="text-muted mb-2">New Users This Month</h6>
+                <h3 className="text-success mb-0">
+                  {loading ? (
+                    <Spinner animation="border" size="sm" />
+                  ) : (
+                    userStats.newUsersThisMonth
+                  )}
+                </h3>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filters */}
         <Card className="mb-4">
@@ -191,10 +275,12 @@ const AdminSalesReport = () => {
                   <Form.Control
                     type="date"
                     value={dateRange.startDate}
-                    onChange={(e) => setDateRange(prev => ({
-                      ...prev,
-                      startDate: e.target.value
-                    }))}
+                    onChange={(e) =>
+                      setDateRange((prev) => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
+                    }
                   />
                 </Form.Group>
               </Col>
@@ -204,10 +290,12 @@ const AdminSalesReport = () => {
                   <Form.Control
                     type="date"
                     value={dateRange.endDate}
-                    onChange={(e) => setDateRange(prev => ({
-                      ...prev,
-                      endDate: e.target.value
-                    }))}
+                    onChange={(e) =>
+                      setDateRange((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
                   />
                 </Form.Group>
               </Col>
@@ -218,7 +306,7 @@ const AdminSalesReport = () => {
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                   >
-                    {categories.map(category => (
+                    {categories.map((category) => (
                       <option key={category.value} value={category.value}>
                         {category.label}
                       </option>
@@ -290,46 +378,96 @@ const AdminSalesReport = () => {
                 <tr>
                   <td>Itineraries</td>
                   <td className="text-end">{salesData.itineraries.count}</td>
-                  <td className="text-end">${(salesData.itineraries.total * 10).toFixed(2)}</td>
-                  <td className="text-end">${salesData.itineraries.total.toFixed(2)}</td>
                   <td className="text-end">
-                    ${salesData.itineraries.count ? (salesData.itineraries.total / salesData.itineraries.count).toFixed(2) : '0.00'}
+                    ${(salesData.itineraries.total * 10).toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    ${salesData.itineraries.total.toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    $
+                    {salesData.itineraries.count
+                      ? (
+                          salesData.itineraries.total /
+                          salesData.itineraries.count
+                        ).toFixed(2)
+                      : "0.00"}
                   </td>
                 </tr>
                 <tr>
                   <td>Activities</td>
                   <td className="text-end">{salesData.activities.count}</td>
-                  <td className="text-end">${(salesData.activities.total * 10).toFixed(2)}</td>
-                  <td className="text-end">${salesData.activities.total.toFixed(2)}</td>
                   <td className="text-end">
-                    ${salesData.activities.count ? (salesData.activities.total / salesData.activities.count).toFixed(2) : '0.00'}
+                    ${(salesData.activities.total * 10).toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    ${salesData.activities.total.toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    $
+                    {salesData.activities.count
+                      ? (
+                          salesData.activities.total /
+                          salesData.activities.count
+                        ).toFixed(2)
+                      : "0.00"}
                   </td>
                 </tr>
                 <tr>
                   <td>Historical Places</td>
-                  <td className="text-end">{salesData.historicalPlaces.count}</td>
-                  <td className="text-end">${(salesData.historicalPlaces.total * 10).toFixed(2)}</td>
-                  <td className="text-end">${salesData.historicalPlaces.total.toFixed(2)}</td>
                   <td className="text-end">
-                    ${salesData.historicalPlaces.count ? (salesData.historicalPlaces.total / salesData.historicalPlaces.count).toFixed(2) : '0.00'}
+                    {salesData.historicalPlaces.count}
+                  </td>
+                  <td className="text-end">
+                    ${(salesData.historicalPlaces.total * 10).toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    ${salesData.historicalPlaces.total.toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    $
+                    {salesData.historicalPlaces.count
+                      ? (
+                          salesData.historicalPlaces.total /
+                          salesData.historicalPlaces.count
+                        ).toFixed(2)
+                      : "0.00"}
                   </td>
                 </tr>
                 <tr>
                   <td>Products</td>
                   <td className="text-end">{salesData.products.count}</td>
-                  <td className="text-end">${(salesData.products.total * 10).toFixed(2)}</td>
-                  <td className="text-end">${salesData.products.total.toFixed(2)}</td>
                   <td className="text-end">
-                    ${salesData.products.count ? (salesData.products.total / salesData.products.count).toFixed(2) : '0.00'}
+                    ${(salesData.products.total * 10).toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    ${salesData.products.total.toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    $
+                    {salesData.products.count
+                      ? (
+                          salesData.products.total / salesData.products.count
+                        ).toFixed(2)
+                      : "0.00"}
                   </td>
                 </tr>
                 <tr className="table-dark fw-bold">
                   <td>Total</td>
                   <td className="text-end">{calculateTotalTransactions()}</td>
-                  <td className="text-end">${(calculateTotalRevenue() * 10).toFixed(2)}</td>
-                  <td className="text-end">${calculateTotalRevenue().toFixed(2)}</td>
                   <td className="text-end">
-                    ${calculateTotalTransactions() ? (calculateTotalRevenue() / calculateTotalTransactions()).toFixed(2) : '0.00'}
+                    ${(calculateTotalRevenue() * 10).toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    ${calculateTotalRevenue().toFixed(2)}
+                  </td>
+                  <td className="text-end">
+                    $
+                    {calculateTotalTransactions()
+                      ? (
+                          calculateTotalRevenue() / calculateTotalTransactions()
+                        ).toFixed(2)
+                      : "0.00"}
                   </td>
                 </tr>
               </tbody>
@@ -353,8 +491,12 @@ const AdminSalesReport = () => {
               <tbody>
                 <tr>
                   <td>Products</td>
-                  <td className="text-end">{salesData.products.cancelledCount}</td>
-                  <td className="text-end">${salesData.products.cancelledAmount.toFixed(2)}</td>
+                  <td className="text-end">
+                    {salesData.products.cancelledCount}
+                  </td>
+                  <td className="text-end">
+                    ${salesData.products.cancelledAmount.toFixed(2)}
+                  </td>
                   <td className="text-end text-danger">
                     ${(salesData.products.cancelledAmount * 0.1).toFixed(2)}
                   </td>

@@ -79,6 +79,8 @@ import AdminProdcutPage from "./pages/admin/AdminProductPage";
 import ArchivedProducts from "./pages/product/ArchivedProduct";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
+import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
+import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
 import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 import SellerNotificationsPage from "./pages/seller/SellerNotificationsPage";
 
@@ -148,6 +150,10 @@ function App() {
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
           />
+          <Route
+            path="/tourguide/sales-report"
+            element={<TourGuideSalesReport />}
+          />
           {/* Admin Routes */}
           <Route
             path="/admin"
@@ -215,6 +221,10 @@ function App() {
           <Route
             path="/advertiser/view-activities"
             element={<ActivityList />}
+          />
+           <Route
+            path="/advertiser/sales-report"
+            element={<AdvertiserSalesReport />}
           />
           <Route
             path="/advertiser/profile"
