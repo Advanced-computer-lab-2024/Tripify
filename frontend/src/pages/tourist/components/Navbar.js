@@ -1,15 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { FaUser,FaSignOutAlt } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  FaUser, 
+  FaSignOutAlt, 
+  FaShoppingBag,
+  FaBars
+} from 'react-icons/fa';
 
 const Navbar = () => {
-  const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu toggle
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992); // Check if it's mobile view
-  const [dropdownOpen, setDropdownOpen] = useState(false); // State for dropdown toggle
-
-  // Check if user is logged in
-  const loggedIn = !!localStorage.getItem("token"); // Check if token exists in localStorage
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992);
   const navigate = useNavigate();
+  const loggedIn = !!localStorage.getItem("token");
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 992;
+      setIsMobileView(isMobile);
+      if (!isMobile && menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [menuOpen]);
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -18,23 +34,6 @@ const Navbar = () => {
       navigate("/login");
     }
   };
-
-  // Handle resizing
-  useEffect(() => {
-    const handleResize = () => {
-      const isMobile = window.innerWidth <= 992;
-      setIsMobileView(isMobile);
-      if (!isMobile && menuOpen) {
-        setMenuOpen(false); // Close menu when switching to desktop view
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [menuOpen]);
 
   // Dynamic styles for the links
   const linkStyle = {
@@ -45,8 +44,8 @@ const Navbar = () => {
   };
 
   const defaultLinkColor = menuOpen || isMobileView
-    ? { color: "#fff" } // White for mobile menu
-    : { color: "#000" }; // Black for desktop
+    ? { color: "#fff" }
+    : { color: "#000" };
 
   const logoStyle = {
     fontWeight: "700",
@@ -62,12 +61,10 @@ const Navbar = () => {
       style={{ transition: "background-color 0.3s ease" }}
     >
       <div className="container">
-        {/* Logo */}
         <Link className="navbar-brand" to="/" style={logoStyle}>
           Tripify<span style={{ fontSize: "14px" }}>Travel Agency</span>
         </Link>
 
-        {/* Mobile Menu Button */}
         <button
           className="navbar-toggler"
           type="button"
@@ -79,47 +76,49 @@ const Navbar = () => {
             color: menuOpen || isMobileView ? "#fff" : "#000",
           }}
         >
-          <span
-            className="oi oi-menu"
+          <FaBars
             style={{ color: menuOpen || isMobileView ? "#fff" : "#000" }}
-          ></span>{" "}
+          />{" "}
           Menu
         </button>
 
-        {/* Navbar Links */}
         <div
           className={`navbar-collapse ${menuOpen ? "show" : "collapse"}`}
           id="ftco-nav"
         >
           <ul className="navbar-nav ml-auto">
             <li className="nav-item">
-              <Link className="nav-link" to="/" style={{ ...linkStyle, ...defaultLinkColor }}>
+              <Link 
+                className="nav-link" 
+                to="/" 
+                style={{ ...linkStyle, ...defaultLinkColor }}
+              >
                 Home
               </Link>
             </li>
 
-                <li className="nav-item">
-                  <Link
-                    className="nav-link"
-                    to="/about"
-                    style={{ ...linkStyle, ...defaultLinkColor }}
-                  >
-                    About
-                  </Link>
-                </li>
+            <li className="nav-item">
+              <Link
+                className="nav-link"
+                to="/about"
+                style={{ ...linkStyle, ...defaultLinkColor }}
+              >
+                About
+              </Link>
+            </li>
 
-                
-                <li className="nav-item">
-                  <Link
-                    className="nav-link"
-                    to="/tourist/view-events"
-                    style={{ ...linkStyle, ...defaultLinkColor }}
-                  >
-                    Events
-                  </Link>
-                </li>
-                {loggedIn ? (
-                  <>
+            <li className="nav-item">
+              <Link
+                className="nav-link"
+                to="/tourist/view-events"
+                style={{ ...linkStyle, ...defaultLinkColor }}
+              >
+                Events
+              </Link>
+            </li>
+
+            {loggedIn && (
+              <>
                 <li className="nav-item">
                   <Link
                     className="nav-link"
@@ -129,15 +128,20 @@ const Navbar = () => {
                     Products
                   </Link>
                 </li>
+
                 <li className="nav-item">
                   <Link
                     className="nav-link"
-                    to="/tourist/view-bookings"
+                    to="/tourist/my-purchases"
                     style={{ ...linkStyle, ...defaultLinkColor }}
                   >
-                    Bookings
+                    <div className="d-flex align-items-center">
+                      <FaShoppingBag className="me-2" />
+                      My Purchases
+                    </div>
                   </Link>
                 </li>
+
                 <li
                   className={`nav-item dropdown ${dropdownOpen ? "show" : ""}`}
                   onMouseEnter={() => setDropdownOpen(true)}
@@ -166,31 +170,28 @@ const Navbar = () => {
                     <Link className="dropdown-item" to="/tourist/change-password">
                       Change Password
                     </Link>
-                    <Link className="dropdown-item" to="/tourist/notifications">
-                      Notifications
-                    </Link>
                     <button
-                  className="dropdown-item text-danger"
-                  onClick={handleLogout}
-                >
-                  <FaSignOutAlt className="me-2" />
-                  Logout
-                </button>
+                      className="dropdown-item text-danger"
+                      onClick={handleLogout}
+                    >
+                      <FaSignOutAlt className="me-2" />
+                      Logout
+                    </button>
                   </div>
                 </li>
               </>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <Link
-                    className="nav-link"
-                    to="/login"
-                    style={{ ...linkStyle, ...defaultLinkColor }}
-                  >
-                    Login
-                  </Link>
-                </li>
-              </>
+            )}
+
+            {!loggedIn && (
+              <li className="nav-item">
+                <Link
+                  className="nav-link"
+                  to="/login"
+                  style={{ ...linkStyle, ...defaultLinkColor }}
+                >
+                  Login
+                </Link>
+              </li>
             )}
           </ul>
         </div>
