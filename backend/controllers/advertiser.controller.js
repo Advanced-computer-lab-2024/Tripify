@@ -423,6 +423,7 @@ export const getAdvertiserSalesReport = async (req, res) => {
     }).populate({
       path: "itemId",
       select: "price name",
+       model: 'Activity'
     });
 
     res.status(200).json({

@@ -80,6 +80,7 @@ import ArchivedProducts from "./pages/product/ArchivedProduct";
 import AdminSalesReport from "./pages/admin/AdminSalesReport";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
 import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
+import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
 
 function App() {
   return (
@@ -214,6 +215,10 @@ function App() {
           <Route
             path="/advertiser/view-activities"
             element={<ActivityList />}
+          />
+           <Route
+            path="/advertiser/sales-report"
+            element={<AdvertiserSalesReport />}
           />
           <Route
             path="/advertiser/profile"

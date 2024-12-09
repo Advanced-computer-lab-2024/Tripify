@@ -125,7 +125,7 @@ const TourguideHomePage = () => {
       description: "View your Itineraries Revenue",
       icon: <FaMapMarkedAlt />,
       path: "/tourguide/sales-report",
-      color: "#28a75",
+      color: "#28a790",
     },
     {
       title: "Change Password",

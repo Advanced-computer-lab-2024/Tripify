@@ -23,6 +23,7 @@ import {
   FaTimes,
   FaBuilding,
   FaGavel,
+  FaFolder,
 } from "react-icons/fa";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -80,6 +81,14 @@ const AdvertiserHomepage = () => {
       path: "/advertiser/transportation",
       color: "#17a2b8",
       buttonText: "Manage Transportation",
+    },
+    {
+      title: "reports",
+      description: "View your sales report ",
+      icon: <FaFolder />,
+      path: "/advertiser/sales-report",
+      color: "#5efcdb",
+      buttonText: "View Reports",
     },
     {
       title: "Manage Your Profile",
