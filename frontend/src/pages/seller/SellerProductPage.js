@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {jwtDecode} from "jwt-decode";
+import SellerNavbar from './SellerNavbar';
 import {
   Container,
   Row,
@@ -242,6 +243,7 @@ const handleEditProduct = async (event) => {
 
   return (
     <Container>
+      <SellerNavbar />
       <h1 className="my-4">Product Catalog</h1>
   
       <Row className="mb-3">

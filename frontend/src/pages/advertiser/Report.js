@@ -99,11 +99,46 @@ const TouristReport = () => {
     }));
   };
 
-  const filterActivitiesByName = (activities) => {
-    if (!nameFilter) return activities;
-    return activities.filter((activity) =>
-      activity.name.toLowerCase().includes(nameFilter.toLowerCase())
-    );
+  const filterActivities = (activities) => {
+    if (!activities) return [];
+
+    return activities.filter((activity) => {
+      const matchesName = nameFilter
+        ? activity.name.toLowerCase().includes(nameFilter.toLowerCase())
+        : true;
+
+      const activityDate = new Date(activity.createdAt);
+      let matchesDate = true;
+
+      if (dateRange === "today") {
+        const today = new Date();
+        matchesDate =
+          activityDate.toDateString() === today.toDateString();
+      } else if (dateRange === "week") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        matchesDate = activityDate >= oneWeekAgo;
+      } else if (dateRange === "month") {
+        const firstDayOfMonth = new Date(
+          activityDate.getFullYear(),
+          activityDate.getMonth(),
+          1
+        );
+        const lastDayOfMonth = new Date(
+          activityDate.getFullYear(),
+          activityDate.getMonth() + 1,
+          0
+        );
+        matchesDate =
+          activityDate >= firstDayOfMonth && activityDate <= lastDayOfMonth;
+      } else if (dateRange === "custom" && customStartDate && customEndDate) {
+        const startDate = new Date(customStartDate);
+        const endDate = new Date(customEndDate);
+        matchesDate = activityDate >= startDate && activityDate <= endDate;
+      }
+
+      return matchesName && matchesDate;
+    });
   };
 
   if (loading) {
@@ -118,7 +153,7 @@ const TouristReport = () => {
 
   const totals = calculateTotals();
   const monthlyData = groupActivitiesByMonth();
-  const filteredActivities = filterActivitiesByName(report?.activities || []);
+  const filteredActivities = filterActivities(report?.activities || []);
 
   return (
     <div className="min-h-screen bg-gray-50">
