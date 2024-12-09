@@ -108,7 +108,7 @@ function App() {
 <Route path="/tourist/filtered-activities" element={<FilteredActivities />} />
 <Route path="/tourist/wishlist" element={<WishlistPage />} />
 <Route path="/tourist/products" element={<ProductTouristPage />} />
-<Route path="/tourist/purchases" element={<MyPurchasesPage />} />
+<Route path="/tourist/my-purchases" element={<MyPurchasesPage />} />
 <Route path="/tourist/complaints" element={<CreateComplaint />} />
 <Route path="/tourist/book-flight" element={<FlightBooking />} />
 <Route path="/tourist/book-hotel" element={<HotelBooking />} />
