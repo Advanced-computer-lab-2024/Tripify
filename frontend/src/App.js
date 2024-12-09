@@ -63,6 +63,7 @@ import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import TourGuideProfile from "./pages/tourguide/TourGuideProfile";
 import TouristReport from "./pages/advertiser/Report";
+import TourGuideReport from "./pages/tourguide/TourGuideReport";
 
 
 // Import Bootstrap CSS
@@ -159,6 +160,10 @@ function App() {
           <Route
             path="/tourguide/sales-report"
             element={<TourGuideSalesReport />}
+          />
+          <Route
+            path="/tourguide/tourist-report"
+            element={<TourGuideReport />}
           />
           {/* Admin Routes */}
           <Route

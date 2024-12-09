@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import Navbar from "../tourist/components/Navbar";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import {
   Container,
   Row,
@@ -31,6 +31,7 @@ import {
 } from "react-icons/fa";
 import PaymentSelection from "../../components/PaymentSelection";
 import StripeWrapper from "../../components/StripeWrapper";
+import AddressSelector from "../tourist/AddressSelector";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -58,6 +59,7 @@ function ProductTouristPage() {
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [wishlist, setWishlist] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
   // New cart-related states
   const [cart, setCart] = useState([]);
@@ -114,7 +116,6 @@ function ProductTouristPage() {
     }
   }, [userId]);
 
-
   useEffect(() => {
     filterProducts();
   }, [products, searchTerm, ratingFilter, priceFilter]);
@@ -138,19 +139,32 @@ function ProductTouristPage() {
 
   const toggleWishlist = async (product) => {
     try {
-      const isInWishlist = wishlist.some(item => item.productId?._id === product._id);
-      
+      const isInWishlist = wishlist.some(
+        (item) => item.productId?._id === product._id
+      );
+
       if (isInWishlist) {
-        await axios.delete(`${API_URL}/wishlist/${userId}/product/${product._id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
+        await axios.delete(
+          `${API_URL}/wishlist/${userId}/product/${product._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
       } else {
-        await axios.post(`${API_URL}/wishlist/add`, {
-          userId,
-          productId: product._id,
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
+        await axios.post(
+          `${API_URL}/wishlist/add`,
+          {
+            userId,
+            productId: product._id,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
       }
 
       await fetchWishlist(); // Refresh wishlist
@@ -159,7 +173,6 @@ function ProductTouristPage() {
       alert(error.response?.data?.message || "Failed to update wishlist");
     }
   };
-
 
   const fetchUserProfile = async () => {
     try {
@@ -327,52 +340,58 @@ function ProductTouristPage() {
     return subtotal;
   };
   const handlePurchase = async (paymentMethod, paymentIntent) => {
+    if (!selectedAddress) {
+      alert("Please select a delivery address");
+      return;
+    }
     setProcessingPurchase(true);
     try {
       // Create an array to track products that will be out of stock
       const outOfStockProducts = [];
-      
+
       // Common purchase processing function
-     // Inside processPurchase function in handlePurchase
-     const processPurchase = async (item) => {
-      try {
-        // First process the purchase
-        await axios.post(
-          `${API_URL}/products/purchase`,
-          {
-            userId,
-            productId: item._id,
-            quantity: item.quantity,
-            paymentMethod,
-            stripePaymentId: paymentMethod === 'card' ? paymentIntent.id : undefined,
-            promoCode: appliedPromo?.code,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+      // Inside processPurchase function in handlePurchase
+      const processPurchase = async (item) => {
+        try {
+          // First process the purchase
+          await axios.post(
+            `${API_URL}/products/purchase`,
+            {
+              userId,
+              productId: item._id,
+              quantity: item.quantity,
+              paymentMethod,
+              stripePaymentId:
+                paymentMethod === "card" ? paymentIntent.id : undefined,
+              promoCode: appliedPromo?.code,
+              deliveryAddress: selectedAddress._id, // Add this line
             },
-          }
-        );
-    
-        // Get product details
-        const productResponse = await axios.get(
-          `${API_URL}/products/${item._id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-    
-        const fullProduct = productResponse.data;
-        console.log('Product quantity:', fullProduct.quantity);
-    
-        if (fullProduct && fullProduct.quantity === 0) {
-          console.log('Product is out of stock, sending notifications');
-    
-          try {
-            // Send email notification
-            const emailMessage = `
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+
+          // Get product details
+          const productResponse = await axios.get(
+            `${API_URL}/products/${item._id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+
+          const fullProduct = productResponse.data;
+          console.log("Product quantity:", fullProduct.quantity);
+
+          if (fullProduct && fullProduct.quantity === 0) {
+            console.log("Product is out of stock, sending notifications");
+
+            try {
+              // Send email notification
+              const emailMessage = `
     Dear Merchant,
     
     Your product "${fullProduct.name}" is now out of stock.
@@ -388,74 +407,74 @@ function ProductTouristPage() {
     Best regards,
     Tourism System
             `;
-    
-            // Send email to merchant
-            await axios.post(
-              `${API_URL}/notify`,
-              {
-                email: fullProduct.merchantEmail,
-                message: emailMessage
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-              }
-            );
-    
-            // Create in-app notification
-            const notificationData = {
-              recipients: [
+
+              // Send email to merchant
+              await axios.post(
+                `${API_URL}/notify`,
                 {
-                  userId: fullProduct.createdBy.user,
-                  userType: fullProduct.createdBy.userType
-                }
-              ],
-              title: 'Product Out of Stock Alert',
-              message: `Product "${fullProduct.name}" (ID: ${fullProduct._id}) is now out of stock. Total sales: ${fullProduct.totalSales}`,
-              type: 'stock_alert',
-              priority: 'high',
-              link: `/seller/products/${fullProduct._id}`,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            };
-    
-            const notificationResponse = await axios.post(
-              `${API_URL}/notifications`,
-              notificationData,
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  email: fullProduct.merchantEmail,
+                  message: emailMessage,
                 },
-              }
-            );
-    
-            console.log('Notifications sent successfully:', {
-              email: true,
-              inApp: notificationResponse.data.success
-            });
-          } catch (notificationError) {
-            console.error('Failed to send notifications:', {
-              error: notificationError.message,
-              response: notificationError.response?.data
-            });
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
+                }
+              );
+
+              // Create in-app notification
+              const notificationData = {
+                recipients: [
+                  {
+                    userId: fullProduct.createdBy.user,
+                    userType: fullProduct.createdBy.userType,
+                  },
+                ],
+                title: "Product Out of Stock Alert",
+                message: `Product "${fullProduct.name}" (ID: ${fullProduct._id}) is now out of stock. Total sales: ${fullProduct.totalSales}`,
+                type: "stock_alert",
+                priority: "high",
+                link: `/seller/products/${fullProduct._id}`,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              };
+
+              const notificationResponse = await axios.post(
+                `${API_URL}/notifications`,
+                notificationData,
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
+                }
+              );
+
+              console.log("Notifications sent successfully:", {
+                email: true,
+                inApp: notificationResponse.data.success,
+              });
+            } catch (notificationError) {
+              console.error("Failed to send notifications:", {
+                error: notificationError.message,
+                response: notificationError.response?.data,
+              });
+            }
           }
+        } catch (error) {
+          console.error("Process purchase error:", error);
+          throw error;
         }
-      } catch (error) {
-        console.error('Process purchase error:', error);
-        throw error;
-      }
-    };
-    
+      };
+
       // Check wallet balance if using wallet payment
       if (paymentMethod === "wallet" && userWallet < getCartTotal()) {
         throw new Error("Insufficient wallet balance");
       }
-    
+
       // Process all items in cart
       for (const item of cart) {
         await processPurchase(item);
       }
-    
+
       // Update wallet balance if using wallet payment
       if (paymentMethod === "wallet") {
         const newBalance = userWallet - getCartTotal();
@@ -470,7 +489,7 @@ function ProductTouristPage() {
           })
         );
       }
-  
+
       // Send both email alerts and notifications for out-of-stock products
       if (outOfStockProducts.length > 0) {
         for (const product of outOfStockProducts) {
@@ -481,7 +500,7 @@ function ProductTouristPage() {
               {
                 merchantEmail: product.merchantEmail,
                 productName: product.productName,
-                productId: product.productId
+                productId: product.productId,
               },
               {
                 headers: {
@@ -489,28 +508,42 @@ function ProductTouristPage() {
                 },
               }
             );
-            console.log(`Email stock alert sent for product: ${product.productName}`);
+            console.log(
+              `Email stock alert sent for product: ${product.productName}`
+            );
           } catch (emailError) {
-            console.error(`Failed to send email alert for ${product.productName}:`, emailError);
+            console.error(
+              `Failed to send email alert for ${product.productName}:`,
+              emailError
+            );
           }
-  
+
           // Send in-app notification if we have valid createdBy data
-          if (product.createdBy && product.createdBy.user && product.createdBy.userType) {
+          if (
+            product.createdBy &&
+            product.createdBy.user &&
+            product.createdBy.userType
+          ) {
             try {
               const notificationPayload = {
-                recipients: [{
-                  userId: product.createdBy.user,
-                  userType: product.createdBy.userType
-                }],
-                title: 'Product Out of Stock',
+                recipients: [
+                  {
+                    userId: product.createdBy.user,
+                    userType: product.createdBy.userType,
+                  },
+                ],
+                title: "Product Out of Stock",
                 message: `Your product "${product.productName}" is now out of stock and needs immediate attention.`,
-                type: 'stock_alert',
-                priority: 'high',
-                link: `/merchant/products/${product.productId}`
+                type: "stock_alert",
+                priority: "high",
+                link: `/merchant/products/${product.productId}`,
               };
-  
-              console.log('Sending notification with payload:', notificationPayload);
-  
+
+              console.log(
+                "Sending notification with payload:",
+                notificationPayload
+              );
+
               const notificationResponse = await axios.post(
                 `${API_URL}/notify`,
                 notificationPayload,
@@ -520,38 +553,38 @@ function ProductTouristPage() {
                   },
                 }
               );
-  
-              console.log('Notification response:', notificationResponse.data);
+
+              console.log("Notification response:", notificationResponse.data);
             } catch (notifyError) {
-              console.error('Notification error details:', {
+              console.error("Notification error details:", {
                 response: notifyError.response?.data,
                 status: notifyError.response?.status,
                 message: notifyError.message,
-                payload: product.createdBy
+                payload: product.createdBy,
               });
             }
           } else {
-            console.error('Missing or invalid createdBy data:', product);
+            console.error("Missing or invalid createdBy data:", product);
           }
         }
       }
-    
+
       // Clear cart and close modals
       setCart([]);
       setShowCart(false);
       setShowPaymentModal(false);
       setAppliedPromo(null);
-    
+
       // Refresh products
       await fetchProducts();
-    
+
       alert("Purchase successful!");
     } catch (error) {
       console.error("Purchase error:", error);
       alert(
         error.response?.data?.message ||
-        error.message ||
-        "Failed to complete purchase"
+          error.message ||
+          "Failed to complete purchase"
       );
     } finally {
       setProcessingPurchase(false);
@@ -625,28 +658,28 @@ function ProductTouristPage() {
     <>
       <Navbar />
       {/* Hero Section */}
-      <div 
+      <div
         style={{
           backgroundImage: 'url("/images/bg_1.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'relative',
-          padding: '8rem 0 4rem 0',
-          marginBottom: '2rem'
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          position: "relative",
+          padding: "8rem 0 4rem 0",
+          marginBottom: "2rem",
         }}
       >
-        <div 
+        <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1,
           }}
         ></div>
-        <Container style={{ position: 'relative', zIndex: 2 }}>
+        <Container style={{ position: "relative", zIndex: 2 }}>
           <div className="text-center text-white">
             <p className="mb-4">
               <span className="me-2">
@@ -662,7 +695,7 @@ function ProductTouristPage() {
           </div>
         </Container>
       </div>
-  
+
       {loading ? (
         <Container className="text-center mt-5">
           <Spinner animation="border" role="status">
@@ -676,48 +709,48 @@ function ProductTouristPage() {
       ) : (
         <Container className="py-4">
           {/* Wallet Balance Display */}
-<div className="bg-light p-3 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
-  <div className="d-flex align-items-center">
-    <FaWallet className="text-primary me-2" size={24} />
-    <div>
-      <h4 className="mb-0">Wallet Balance</h4>
-      <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
-    </div>
-  </div>
-  <div className="d-flex gap-3">
-    <Form.Select
-      className="w-auto"
-      value={currency}
-      onChange={(e) => setCurrency(e.target.value)}
-    >
-      <option value="USD">USD</option>
-      <option value="EGP">EGP</option>
-      <option value="SAR">SAR</option>
-      <option value="AED">AED</option>
-    </Form.Select>
-    <Link to="/tourist/wishlist" className="btn btn-primary">
-      <FaHeart className="me-2" />
-      Wishlist
-    </Link>
-    <Button
-      variant="primary"
-      onClick={() => setShowCart(true)}
-      className="position-relative"
-    >
-      <FaShoppingCart className="me-2" />
-      Cart
-      {cart.length > 0 && (
-        <Badge
-          bg="danger"
-          className="position-absolute top-0 start-100 translate-middle"
-        >
-          {cart.length}
-        </Badge>
-      )}
-    </Button>
-  </div>
-</div>
-  
+          <div className="bg-light p-3 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
+            <div className="d-flex align-items-center">
+              <FaWallet className="text-primary me-2" size={24} />
+              <div>
+                <h4 className="mb-0">Wallet Balance</h4>
+                <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+              </div>
+            </div>
+            <div className="d-flex gap-3">
+              <Form.Select
+                className="w-auto"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                <option value="USD">USD</option>
+                <option value="EGP">EGP</option>
+                <option value="SAR">SAR</option>
+                <option value="AED">AED</option>
+              </Form.Select>
+              <Link to="/tourist/wishlist" className="btn btn-primary">
+                <FaHeart className="me-2" />
+                Wishlist
+              </Link>
+              <Button
+                variant="primary"
+                onClick={() => setShowCart(true)}
+                className="position-relative"
+              >
+                <FaShoppingCart className="me-2" />
+                Cart
+                {cart.length > 0 && (
+                  <Badge
+                    bg="danger"
+                    className="position-absolute top-0 start-100 translate-middle"
+                  >
+                    {cart.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
+
           {/* Filters */}
           <Row className="mb-4 g-3">
             <Col md={4}>
@@ -767,7 +800,7 @@ function ProductTouristPage() {
               </InputGroup>
             </Col>
           </Row>
-  
+
           {/* Products Grid */}
           <Row xs={1} md={2} lg={3} className="g-4">
             {filteredProducts.length === 0 ? (
@@ -793,7 +826,13 @@ function ProductTouristPage() {
                         />
                       )}
                       <Button
-                        variant={wishlist.some(item => item.productId?._id === product._id) ? "danger" : "outline-danger"}
+                        variant={
+                          wishlist.some(
+                            (item) => item.productId?._id === product._id
+                          )
+                            ? "danger"
+                            : "outline-danger"
+                        }
                         className="position-absolute top-0 end-0 m-2"
                         onClick={() => toggleWishlist(product)}
                       >
@@ -805,10 +844,13 @@ function ProductTouristPage() {
                       <Card.Text>{product.description}</Card.Text>
                       <div className="d-flex justify-content-between align-items-center mb-3">
                         <h5 className="mb-0">
-                          {currency} {(product.price * currencyRates[currency]).toFixed(2)}
+                          {currency}{" "}
+                          {(product.price * currencyRates[currency]).toFixed(2)}
                         </h5>
                         <Badge bg={product.quantity > 0 ? "success" : "danger"}>
-                          {product.quantity > 0 ? `In Stock: ${product.quantity}` : "Out of Stock"}
+                          {product.quantity > 0
+                            ? `In Stock: ${product.quantity}`
+                            : "Out of Stock"}
                         </Badge>
                       </div>
                       <div className="d-flex gap-2">
@@ -840,8 +882,10 @@ function ProductTouristPage() {
                         Rating:{" "}
                         {product.reviews && product.reviews.length > 0
                           ? `${(
-                              product.reviews.reduce((sum, r) => sum + r.rating, 0) /
-                              product.reviews.length
+                              product.reviews.reduce(
+                                (sum, r) => sum + r.rating,
+                                0
+                              ) / product.reviews.length
                             ).toFixed(1)} / 5`
                           : "No ratings yet"}
                         ({product.reviews ? product.reviews.length : 0} reviews)
@@ -852,9 +896,12 @@ function ProductTouristPage() {
               ))
             )}
           </Row>
-  
+
           {/* Review Modal */}
-          <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
+          <Modal
+            show={showReviewModal}
+            onHide={() => setShowReviewModal(false)}
+          >
             <Modal.Header closeButton>
               <Modal.Title>Review Product</Modal.Title>
             </Modal.Header>
@@ -892,17 +939,27 @@ function ProductTouristPage() {
               )}
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
+              <Button
+                variant="secondary"
+                onClick={() => setShowReviewModal(false)}
+              >
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleReview} disabled={!rating}>
+              <Button
+                variant="primary"
+                onClick={handleReview}
+                disabled={!rating}
+              >
                 Submit Review
               </Button>
             </Modal.Footer>
           </Modal>
-  
+
           {/* Payment Modal */}
-          <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)}>
+          <Modal
+            show={showPaymentModal}
+            onHide={() => setShowPaymentModal(false)}
+          >
             <Modal.Header closeButton>
               <Modal.Title>Select Payment Method</Modal.Title>
             </Modal.Header>
@@ -918,9 +975,13 @@ function ProductTouristPage() {
               </StripeWrapper>
             </Modal.Body>
           </Modal>
-  
+
           {/* Cart Offcanvas */}
-          <Offcanvas show={showCart} onHide={() => setShowCart(false)} placement="end">
+          <Offcanvas
+            show={showCart}
+            onHide={() => setShowCart(false)}
+            placement="end"
+          >
             <Offcanvas.Header closeButton>
               <Offcanvas.Title>Shopping Cart</Offcanvas.Title>
             </Offcanvas.Header>
@@ -953,7 +1014,10 @@ function ProductTouristPage() {
                                   variant="outline-secondary"
                                   size="sm"
                                   onClick={() =>
-                                    updateCartQuantity(item._id, item.quantity - 1)
+                                    updateCartQuantity(
+                                      item._id,
+                                      item.quantity - 1
+                                    )
                                   }
                                 >
                                   <FaMinus size={12} />
@@ -963,9 +1027,14 @@ function ProductTouristPage() {
                                   variant="outline-secondary"
                                   size="sm"
                                   onClick={() =>
-                                    updateCartQuantity(item._id, item.quantity + 1)
+                                    updateCartQuantity(
+                                      item._id,
+                                      item.quantity + 1
+                                    )
                                   }
-                                  disabled={item.quantity >= item.availableQuantity}
+                                  disabled={
+                                    item.quantity >= item.availableQuantity
+                                  }
                                 >
                                   <FaPlus size={12} />
                                 </Button>
@@ -991,7 +1060,13 @@ function ProductTouristPage() {
                       </Card.Body>
                     </Card>
                   ))}
-  
+                  <div className="mb-3">
+                    <AddressSelector
+                      selectedAddress={selectedAddress}
+                      onSelect={setSelectedAddress}
+                    />
+                  </div>
+
                   <div className="border-top pt-3 mt-3">
                     {/* Promo Code Section */}
                     <div className="mb-3">
@@ -1042,7 +1117,7 @@ function ProductTouristPage() {
                         </Alert>
                       )}
                     </div>
-  
+
                     {/* Order Summary */}
                     <div className="border-top pt-3">
                       <div className="d-flex justify-content-between mb-2">
@@ -1050,79 +1125,83 @@ function ProductTouristPage() {
                         <span>
                           {currency}{" "}
                           {(
-                          cart.reduce(
-                            (total, item) => total + item.price * item.quantity,
-                            0
-                          ) * currencyRates[currency]
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-
-                    {appliedPromo && (
-                      <div className="d-flex justify-content-between mb-2 text-success">
-                        <span>Discount ({appliedPromo.discount}%):</span>
-                        <span>
-                          -{currency}{" "}
-                          {(
-                            ((cart.reduce(
-                              (total, item) => total + item.price * item.quantity,
+                            cart.reduce(
+                              (total, item) =>
+                                total + item.price * item.quantity,
                               0
-                            ) *
-                              appliedPromo.discount) /
-                              100) *
-                            currencyRates[currency]
+                            ) * currencyRates[currency]
                           ).toFixed(2)}
                         </span>
                       </div>
-                    )}
 
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="fw-bold">Final Total:</span>
-                      <span className="fw-bold">
-                        {currency}{" "}
-                        {(getCartTotal() * currencyRates[currency]).toFixed(2)}
-                      </span>
-                    </div>
+                      {appliedPromo && (
+                        <div className="d-flex justify-content-between mb-2 text-success">
+                          <span>Discount ({appliedPromo.discount}%):</span>
+                          <span>
+                            -{currency}{" "}
+                            {(
+                              ((cart.reduce(
+                                (total, item) =>
+                                  total + item.price * item.quantity,
+                                0
+                              ) *
+                                appliedPromo.discount) /
+                                100) *
+                              currencyRates[currency]
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
 
-                    <div className="d-flex justify-content-between mb-3">
-                      <span>Wallet Balance:</span>
-                      <span
-                        className={`fw-bold ${
-                          userWallet >= getCartTotal()
-                            ? "text-success"
-                            : "text-danger"
-                        }`}
+                      <div className="d-flex justify-content-between mb-2">
+                        <span className="fw-bold">Final Total:</span>
+                        <span className="fw-bold">
+                          {currency}{" "}
+                          {(getCartTotal() * currencyRates[currency]).toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="d-flex justify-content-between mb-3">
+                        <span>Wallet Balance:</span>
+                        <span
+                          className={`fw-bold ${
+                            userWallet >= getCartTotal()
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {currency}{" "}
+                          {(userWallet * currencyRates[currency]).toFixed(2)}
+                        </span>
+                      </div>
+
+                      {userWallet < getCartTotal() && (
+                        <Alert variant="danger" className="mb-3">
+                          Insufficient wallet balance
+                        </Alert>
+                      )}
+
+                      <Button
+                        variant="primary"
+                        className="w-100"
+                        disabled={cart.length === 0}
+                        onClick={() => setShowPaymentModal(true)}
                       >
-                        {currency}{" "}
-                        {(userWallet * currencyRates[currency]).toFixed(2)}
-                      </span>
+                        Proceed to Checkout (${currency} $
+                        {(getCartTotal() * currencyRates[currency]).toFixed(2)})
+                      </Button>
                     </div>
-
-                    {userWallet < getCartTotal() && (
-                      <Alert variant="danger" className="mb-3">
-                        Insufficient wallet balance
-                      </Alert>
-                    )}
-
-                    <Button
-                      variant="primary"
-                      className="w-100"
-                      disabled={cart.length === 0}
-                      onClick={() => setShowPaymentModal(true)}
-                    >
-                      Proceed to Checkout (${currency} $
-                      {(getCartTotal() * currencyRates[currency]).toFixed(2)})
-                    </Button>
                   </div>
-                </div>
-              </>
-            )}
-          </Offcanvas.Body>
-        </Offcanvas>
-      </Container>
-    )}
-  </>
-);
+                </>
+              )}
+            </Offcanvas.Body>
+          </Offcanvas>
+        </Container>
+      )}
+    </>
+  );
 }
 
 export default ProductTouristPage;
