@@ -61,6 +61,7 @@ import FlightBookings from "./pages/tourist/FlightBookings";
 import VacationGuide from "./components/VacationGuide";
 import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
+import TourGuideProfile from "./pages/tourguide/TourGuideProfile";
 
 
 // Import Bootstrap CSS
@@ -149,6 +150,10 @@ function App() {
           <Route
             path="/tourguide/change-password"
             element={<TourGuideChangePassword />}
+          />
+          <Route
+          path="/tourguide/profile"
+          element={<TourGuideProfile />}
           />
           <Route
             path="/tourguide/sales-report"
