@@ -8,6 +8,7 @@ import {
   
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "./logo.png";
 
 const TourguideNavbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -66,9 +67,13 @@ const TourguideNavbar = () => {
       style={{ transition: "background-color 0.3s ease" }}
     >
       <div className="container">
-        <Link className="navbar-brand" to="/tourguide" style={logoStyle}>
-          Tripify<span style={{ fontSize: "14px" }}>Travel Agency</span>
-        </Link>
+      <Link className="navbar-brand" to="/">
+  <img
+    src={logo}
+    alt="Tripify Logo"
+    style={{ height: "40px", objectFit: "contain" }} // Adjust height to fit your design
+  />
+</Link>
 
         <button
           className="navbar-toggler"
