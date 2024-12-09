@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
-
+import logo from "./logo.png"
 const AdminNavbar = () => {
   const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu toggle
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992); // Check if it's mobile view
@@ -64,9 +64,13 @@ const AdminNavbar = () => {
     >
       <div className="container">
         {/* Logo */}
-        <Link className="navbar-brand" to="/" style={logoStyle}>
-          Tripify<span style={{ fontSize: "14px" }}>Travel Agency</span>
-        </Link>
+        <Link className="navbar-brand" to="/">
+  <img
+    src={logo}
+    alt="Tripify Logo"
+    style={{ height: "40px", objectFit: "contain" }} // Adjust height to fit your design
+  />
+</Link>
 
         {/* Mobile Menu Button */}
         <button
