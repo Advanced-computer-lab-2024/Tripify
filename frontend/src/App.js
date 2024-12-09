@@ -62,6 +62,7 @@ import VacationGuide from "./components/VacationGuide";
 import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
 import PromoCodeManager from "./pages/admin/PromoCodeManager";
 import TourGuideProfile from "./pages/tourguide/TourGuideProfile";
+import TouristReport from "./pages/advertiser/Report";
 
 
 // Import Bootstrap CSS
@@ -218,6 +219,11 @@ function App() {
             element={<AdvertiserHomepage />}
           />
           <Route path="/advertiser/notifications" element={<AdvNotificationsPage />} />
+          
+          <Route
+            path="/advertiser/report"
+            element={<TouristReport/>}
+          />
 
           <Route
             path="/advertiser/create-activity"

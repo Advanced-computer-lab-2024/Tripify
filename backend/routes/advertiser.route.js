@@ -10,6 +10,7 @@ import {
   getAdvertiserActivities,
   changePassword,
   getAdvertiserSalesReport,
+  getTouristReport,
   sendPasswordResetOtp,
   resetPassword,
   verifyPasswordResetOtp,
@@ -70,6 +71,8 @@ router.use((error, req, res, next) => {
   }
   next();
 });
+
+router.get("/:id/tourist-report", getTouristReport);
 
 
 
