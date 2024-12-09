@@ -60,6 +60,7 @@ function ProductTouristPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [wishlist, setWishlist] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [sortOrder, setSortOrder] = useState("none"); // Add this new state
 
   // New cart-related states
   const [cart, setCart] = useState([]);
@@ -254,6 +255,7 @@ function ProductTouristPage() {
     }
   };
 
+  // Inside filterProducts function, replace the sorting logic with this:
   const filterProducts = () => {
     let filtered = products;
 
@@ -288,8 +290,30 @@ function ProductTouristPage() {
       );
     }
 
+    // Updated sorting logic
+    if (sortOrder !== "none") {
+      filtered.sort((a, b) => {
+        const aRating =
+          a.reviews && a.reviews.length > 0
+            ? a.reviews.reduce((sum, review) => sum + review.rating, 0) /
+              a.reviews.length
+            : 0;
+        const bRating =
+          b.reviews && b.reviews.length > 0
+            ? b.reviews.reduce((sum, review) => sum + review.rating, 0) /
+              b.reviews.length
+            : 0;
+
+        // Changed the comparison logic here
+        return sortOrder === "highest" ? bRating - aRating : aRating - bRating;
+      });
+    }
+
     setFilteredProducts(filtered);
   };
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, ratingFilter, priceFilter, sortOrder]);
 
   // New cart functions
   const addToCart = (product) => {
@@ -753,7 +777,7 @@ function ProductTouristPage() {
 
           {/* Filters */}
           <Row className="mb-4 g-3">
-            <Col md={4}>
+            <Col md={3}>
               <InputGroup>
                 <InputGroup.Text>
                   <FaSearch />
@@ -779,7 +803,17 @@ function ProductTouristPage() {
                 <option value={5}>5 Stars</option>
               </Form.Select>
             </Col>
-            <Col md={5}>
+            <Col md={3}>
+              <Form.Select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="none">Sort by Rating</option>
+                <option value="highest">Lowest Rated First</option>
+                <option value="lowest">Highest Rated First</option>
+              </Form.Select>
+            </Col>
+            <Col md={3}>
               <InputGroup>
                 <Form.Control
                   type="number"
