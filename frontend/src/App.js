@@ -82,6 +82,8 @@ import AdminSalesReport from "./pages/admin/AdminSalesReport";
 import SellerSalesReport from "./pages/seller/SellerSalesReport";
 import TourGuideSalesReport from "./pages/tourguide/TourGuideSalesReport";
 import AdvertiserSalesReport from "./pages/advertiser/AdvertiserSalesReport";
+import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
+import SellerNotificationsPage from "./pages/seller/SellerNotificationsPage";
 
 function App() {
   return (
@@ -173,6 +175,10 @@ function App() {
           <Route
             path="/admin/sales-report"
             element={<AdminSalesReport />}
+          />
+          <Route
+            path="/admin/notifications"
+            element={<AdminNotificationsPage />}
           />
           <Route
             path="/admin/activity-categories"
@@ -271,6 +277,10 @@ function App() {
           <Route
             path="/seller"
             element={<SellerHomePage />}
+          />
+          <Route
+            path="/seller/notifications"
+            element={<SellerNotificationsPage />}
           />
           <Route
             path="/seller/sales-report"
