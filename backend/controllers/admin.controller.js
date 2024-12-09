@@ -481,55 +481,98 @@ export const getUserStats = async (req, res) => {
     const totalTourGuides = await TourGuide.countDocuments();
 
     // Total users
-    const totalUsers = totalTourists + totalAdmins + totalSellers + totalAdvertisers + totalTourGuides;
+    const totalUsers =
+      totalTourists +
+      totalAdmins +
+      totalSellers +
+      totalAdvertisers +
+      totalTourGuides;
 
-    // Get the current month and year
-    const currentMonth = new Date().getMonth(); // 0-based (0 = January, 11 = December)
-    const currentYear = new Date().getFullYear();
+    // Get the first and last day of current month
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
 
-    // New users this month
-    const newTouristsThisMonth = await Tourist.countDocuments({
-      registrationDate: {
-        $gte: new Date(currentYear, currentMonth, 1), // Start of the current month
-        $lt: new Date(currentYear, currentMonth + 1, 0), // End of the current month
-      },
-    });
-
-    const newAdminsThisMonth = await Admin.countDocuments({
-      registrationDate: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 0),
-      },
-    });
-
-    const newSellersThisMonth = await Seller.countDocuments({
-      registrationDate: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 0),
-      },
-    });
-
-    const newAdvertisersThisMonth = await Advertiser.countDocuments({
-      registrationDate: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 0),
-      },
-    });
-
-    const newTourGuidesThisMonth = await TourGuide.countDocuments({
-      registrationDate: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 0),
-      },
-    });
+    // Count new users this month using createdAt field
+    const [
+      newTouristsThisMonth,
+      newAdminsThisMonth,
+      newSellersThisMonth,
+      newAdvertisersThisMonth,
+      newTourGuidesThisMonth,
+    ] = await Promise.all([
+      Tourist.countDocuments({
+        createdAt: {
+          $gte: firstDayOfMonth,
+          $lte: lastDayOfMonth,
+        },
+      }),
+      Admin.countDocuments({
+        createdAt: {
+          $gte: firstDayOfMonth,
+          $lte: lastDayOfMonth,
+        },
+      }),
+      Seller.countDocuments({
+        createdAt: {
+          $gte: firstDayOfMonth,
+          $lte: lastDayOfMonth,
+        },
+      }),
+      Advertiser.countDocuments({
+        createdAt: {
+          $gte: firstDayOfMonth,
+          $lte: lastDayOfMonth,
+        },
+      }),
+      TourGuide.countDocuments({
+        createdAt: {
+          $gte: firstDayOfMonth,
+          $lte: lastDayOfMonth,
+        },
+      }),
+    ]);
 
     // Sum up new users this month across all types
-    const newUsersThisMonth = newTouristsThisMonth + newAdminsThisMonth + newSellersThisMonth + newAdvertisersThisMonth + newTourGuidesThisMonth;
+    const newUsersThisMonth =
+      newTouristsThisMonth +
+      newAdminsThisMonth +
+      newSellersThisMonth +
+      newAdvertisersThisMonth +
+      newTourGuidesThisMonth;
 
-    // Respond with the stats
     res.status(200).json({
       totalUsers,
       newUsersThisMonth,
+      breakdown: {
+        tourists: {
+          total: totalTourists,
+          newThisMonth: newTouristsThisMonth,
+        },
+        admins: {
+          total: totalAdmins,
+          newThisMonth: newAdminsThisMonth,
+        },
+        sellers: {
+          total: totalSellers,
+          newThisMonth: newSellersThisMonth,
+        },
+        advertisers: {
+          total: totalAdvertisers,
+          newThisMonth: newAdvertisersThisMonth,
+        },
+        tourGuides: {
+          total: totalTourGuides,
+          newThisMonth: newTourGuidesThisMonth,
+        },
+      },
     });
   } catch (error) {
     console.error("Error fetching user statistics:", error);
@@ -539,7 +582,6 @@ export const getUserStats = async (req, res) => {
     });
   }
 };
-
 export const getActivitySales = async (req, res) => {
   try {
     const bookings = await Booking.find({
@@ -568,7 +610,6 @@ export const getActivitySales = async (req, res) => {
     });
   }
 };
-
 
 export const getProductSales = async (req, res) => {
   try {
@@ -692,7 +733,7 @@ export const sendPasswordResetOtp = async (req, res) => {
     // Save OTP in the database
     await Otp.create({
       userId: admin._id,
-      userType: 'Admin',
+      userType: "Admin",
       otp,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Valid for 5 minutes
     });
@@ -722,10 +763,10 @@ export const verifyPasswordResetOtp = async (req, res) => {
     }
 
     // Look up the OTP using userId and the OTP value
-    const otpRecord = await Otp.findOne({ 
+    const otpRecord = await Otp.findOne({
       userId: admin._id,
-      userType: 'Admin',
-      otp: otp
+      userType: "Admin",
+      otp: otp,
     });
 
     if (!otpRecord) {
@@ -752,23 +793,20 @@ export const resetPassword = async (req, res) => {
 
   try {
     const admin = await Admin.findOne({ email });
-    
+
     if (!admin) {
       return res.status(404).json({ message: "Admin not found" });
     }
 
     // Hash the password manually
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
-    // Update password directly without triggering middleware
-    await Admin.updateOne(
-      { email },
-      { $set: { password: hashedPassword } }
-    );
 
-    await Otp.deleteMany({ 
+    // Update password directly without triggering middleware
+    await Admin.updateOne({ email }, { $set: { password: hashedPassword } });
+
+    await Otp.deleteMany({
       userId: admin._id,
-      userType: 'Admin'
+      userType: "Admin",
     });
 
     res.status(200).json({ message: "Password reset successfully" });
