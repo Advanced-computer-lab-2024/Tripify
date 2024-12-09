@@ -4,6 +4,9 @@ import Itinerary from "../models/itinerary.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fs from "fs";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 

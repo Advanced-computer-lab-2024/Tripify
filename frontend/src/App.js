@@ -59,6 +59,7 @@ import NotificationsPage from "./pages/tourist/NotificationPage";
 import DeliveryAddresses from "./components/DeliveryAddresses";
 import FlightBookings from "./pages/tourist/FlightBookings";
 import VacationGuide from "./components/VacationGuide";
+import AdvNotificationsPage from "./pages/advertiser/AdvNotificationPage";
 
 
 // Import Bootstrap CSS
@@ -194,6 +195,8 @@ function App() {
             path="/advertiser"
             element={<AdvertiserHomepage />}
           />
+          <Route path="/advertiser/notifications" element={<AdvNotificationsPage />} />
+          
           <Route
             path="/advertiser/create-activity"
             element={<CreateActivity />}
