@@ -7,6 +7,8 @@ const Navbar = () => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const loggedIn = !!localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -130,7 +132,6 @@ const Navbar = () => {
                     to="/tourist/my-purchases"
                     style={{ ...linkStyle, ...defaultLinkColor }}
                   >
-                    <FaShoppingBag className="me-2" />
                     My Purchases
                   </Link>
                 </li>

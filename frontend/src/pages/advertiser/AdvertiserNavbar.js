@@ -182,6 +182,11 @@ const AdvertiserNavbar = () => {
                   <FaKey className="me-2" />
                   Change Password
                 </Link>
+                <Link className="dropdown-item" to="/advertiser/notifications">
+                  <FaHistory className="me-2" />
+                  Notifications
+                </Link>
+
                 <button
                   className="dropdown-item text-danger"
                   onClick={handleLogout}
