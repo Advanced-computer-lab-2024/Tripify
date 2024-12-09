@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FaUser, 
-  FaSignOutAlt, 
-  FaShoppingBag,
-  FaBars
-} from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { FaUser, FaSignOutAlt, FaShoppingBag } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992);
-  const navigate = useNavigate();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const loggedIn = !!localStorage.getItem("token");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -24,18 +28,12 @@ const Navbar = () => {
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [menuOpen]);
 
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to logout?")) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      navigate("/login");
-    }
-  };
-
-  // Dynamic styles for the links
   const linkStyle = {
     fontSize: "18px",
     fontWeight: "600",
@@ -76,9 +74,10 @@ const Navbar = () => {
             color: menuOpen || isMobileView ? "#fff" : "#000",
           }}
         >
-          <FaBars
+          <span
+            className="oi oi-menu"
             style={{ color: menuOpen || isMobileView ? "#fff" : "#000" }}
-          />{" "}
+          ></span>{" "}
           Menu
         </button>
 
@@ -88,11 +87,7 @@ const Navbar = () => {
         >
           <ul className="navbar-nav ml-auto">
             <li className="nav-item">
-              <Link 
-                className="nav-link" 
-                to="/" 
-                style={{ ...linkStyle, ...defaultLinkColor }}
-              >
+              <Link className="nav-link" to="/" style={{ ...linkStyle, ...defaultLinkColor }}>
                 Home
               </Link>
             </li>
@@ -117,7 +112,7 @@ const Navbar = () => {
               </Link>
             </li>
 
-            {loggedIn && (
+            {loggedIn ? (
               <>
                 <li className="nav-item">
                   <Link
@@ -128,17 +123,24 @@ const Navbar = () => {
                     Products
                   </Link>
                 </li>
-
+                
                 <li className="nav-item">
                   <Link
                     className="nav-link"
                     to="/tourist/my-purchases"
                     style={{ ...linkStyle, ...defaultLinkColor }}
                   >
-                    <div className="d-flex align-items-center">
-                      <FaShoppingBag className="me-2" />
-                      My Purchases
-                    </div>
+                    My Purchases
+                  </Link>
+                </li>
+
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/tourist/view-bookings"
+                    style={{ ...linkStyle, ...defaultLinkColor }}
+                  >
+                    Bookings
                   </Link>
                 </li>
 
@@ -170,6 +172,9 @@ const Navbar = () => {
                     <Link className="dropdown-item" to="/tourist/change-password">
                       Change Password
                     </Link>
+                    <Link className="dropdown-item" to="/tourist/notifications">
+                      Notifications
+                    </Link>
                     <button
                       className="dropdown-item text-danger"
                       onClick={handleLogout}
@@ -180,9 +185,7 @@ const Navbar = () => {
                   </div>
                 </li>
               </>
-            )}
-
-            {!loggedIn && (
+            ) : (
               <li className="nav-item">
                 <Link
                   className="nav-link"
