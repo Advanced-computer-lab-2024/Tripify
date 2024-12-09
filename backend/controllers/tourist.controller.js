@@ -7,6 +7,9 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Booking from "../models/booking.model.js";
 import Review from "../models/review.model.js";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 
@@ -1127,7 +1130,7 @@ export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
-    const tourist = await TOurist.findOne({ email });
+    const tourist = await Tourist.findOne({ email });
     
     if (!tourist) {
       return res.status(404).json({ message: "Tourist not found" });

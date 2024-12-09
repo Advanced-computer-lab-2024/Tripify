@@ -3,6 +3,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fs from "fs";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
+
 
 dotenv.config();
 

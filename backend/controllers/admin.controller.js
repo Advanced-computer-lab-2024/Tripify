@@ -9,6 +9,8 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Booking from "../models/booking.model.js";
 import ProductPurchase from "../models/productPurchase.model.js";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
 
 dotenv.config();
 

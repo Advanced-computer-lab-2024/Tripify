@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import HistoricalPlace from "../models/histroicalplace.model.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import Otp from "../models/otp.model.js";
+import sendEmail from "../utils/sendEmail.js";
 
 dotenv.config();
 
