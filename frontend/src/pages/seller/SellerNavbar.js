@@ -153,6 +153,10 @@ const SellerNavbar = () => {
                   <FaKey className="me-2" />
                   Change Password
                 </Link>
+                <Link className="dropdown-item" to="/seller/notifications">
+                  <FaUser className="me-2" />
+                  Notifications
+                </Link>
                 <button
                   className="dropdown-item text-danger"
                   onClick={handleLogout}
