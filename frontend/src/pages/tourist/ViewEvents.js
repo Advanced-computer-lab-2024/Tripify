@@ -1308,30 +1308,44 @@ const ViewEvents = () => {
         </div>
 
         <section className="py-5">
-          <Container>
-            {/* Wallet and Loyalty Display */}
-            <div className="bg-light p-4 rounded shadow-sm mb-4">
-              <Row>
-                <Col md={6}>
-                  <div className="d-flex align-items-center">
-                    <FaWallet className="text-primary me-3" size={32} />
-                    <div>
-                      <h4 className="mb-1">Wallet Balance</h4>
-                      <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
-                    </div>
-                  </div>
-                </Col>
-                <Col md={6} className="border-start">
-                  <div className="d-flex align-items-center">
-                    {getBadgeIcon(touristLevel)}
-                    <div>
-                      <h4 className="mb-1">Level {touristLevel}</h4>
-                      <p className="mb-0">{loyaltyPoints.toLocaleString()} Points</p>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </div>
+        <Container>
+  {/* Wallet and Loyalty Display */}
+  <div className="bg-light p-4 rounded shadow-sm mb-4">
+    <Row>
+      <Col md={6}>
+        <div className="d-flex align-items-center">
+          <FaWallet className="text-primary me-3" size={32} />
+          <div>
+            <h4 className="mb-1">Wallet Balance</h4>
+            <h3 className="mb-0">${userWallet.toFixed(2)}</h3>
+          </div>
+        </div>
+      </Col>
+      <Col md={6} className="border-start">
+        <div className="d-flex align-items-center">
+          {getBadgeIcon(touristLevel)}
+          <div>
+            <h4 className="mb-1">Level {touristLevel}</h4>
+            <p className="mb-0">{loyaltyPoints.toLocaleString()} Points</p>
+          </div>
+        </div>
+      </Col>
+    </Row>
+    {/* My Saved Events Section */}
+    <div className="mt-4 pt-3 border-top d-flex align-items-center">
+      <FaBookmark className="text-primary me-3" size={32} />
+      <div>
+        <h4 className="mb-1">My Saved Events</h4>
+        <Button variant="outline-primary" as={Link} to="/tourist/saved-events">
+          View Saved Events
+        </Button>
+      </div>
+    </div>
+  </div>
+
+
+
+
 
             {/* Search and Filter Section */}
             <Card className="mb-4 shadow-sm">
