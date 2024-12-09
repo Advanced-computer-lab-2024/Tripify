@@ -7,8 +7,6 @@ const Navbar = () => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 992);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   const loggedIn = !!localStorage.getItem("token");
   const navigate = useNavigate();
 
