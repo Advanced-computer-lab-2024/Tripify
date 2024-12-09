@@ -24,6 +24,7 @@ import {
   FaBuilding,
   FaGavel,
   FaFolder,
+  FaChartBar,
 } from "react-icons/fa";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -89,6 +90,14 @@ const AdvertiserHomepage = () => {
       path: "/advertiser/sales-report",
       color: "#5efcdb",
       buttonText: "View Reports",
+    },
+    {
+      title: "Number of atendees",
+      description: "See number of atendees tourists.",
+      icon: <FaChartBar />,
+      path: "/advertiser/report",
+      color: "#c69fa1",
+      buttonText: "View Numbers",
     },
     {
       title: "Manage Your Profile",
