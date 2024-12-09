@@ -4,7 +4,8 @@ import {
   FaSignOutAlt, 
   FaRoute, 
   FaMapMarkedAlt, 
-  FaKey 
+  FaKey,
+  
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -150,6 +151,10 @@ const TourguideNavbar = () => {
                 <Link className="dropdown-item" to="/tourguide/change-password">
                   <FaKey className="me-2" />
                   Change Password
+                </Link>
+                <Link className="dropdown-item" to="/tourguide/profile">
+                  <FaUser className="me-2" />
+                  My Profile
                 </Link>
                 <button
                   className="dropdown-item text-danger"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Spinner, Badge } from 'react-bootstrap';
 import { FaTrash, FaCalendar, FaBookmark, FaMapMarkerAlt, FaDollarSign, FaLanguage } from 'react-icons/fa';
+import Navbar from './components/Navbar';
 import axios from 'axios';
 
 const SavedEvents = () => {
@@ -17,7 +18,7 @@ const SavedEvents = () => {
       const response = await axios.get('http://localhost:5000/api/tourist/saved-events', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setSavedEvents(response.data.savedEvents || []);
     } catch (error) {
       console.error('Error fetching saved events:', error);
@@ -33,7 +34,7 @@ const SavedEvents = () => {
       const response = await axios.delete(`http://localhost:5000/api/tourist/bookmark/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.data.success) {
         setSavedEvents(currentEvents => currentEvents.filter(event => event._id !== eventId));
         alert('Event removed from bookmarks successfully');
@@ -106,69 +107,95 @@ const SavedEvents = () => {
 
   if (loading) {
     return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </Container>
+      <>
+        <Navbar />
+        <div
+          style={{
+            backgroundImage: 'url("/images/bg_1.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            minHeight: '60vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Spinner animation="border" variant="light" />
+        </div>
+      </>
     );
   }
 
   return (
-    <Container className="mt-5">
-      <div className="d-flex align-items-center mb-4">
-        <FaBookmark className="me-2" size={24} />
-        <h1 className="mb-0">My Saved Events</h1>
+    <>
+      <Navbar />
+      <div
+        style={{
+          backgroundImage: 'url("/images/bg_1.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          minHeight: '40vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          position: 'relative'
+        }}
+      >
+        <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: '20px', borderRadius: '8px' }}>
+          <h1>My Saved Events</h1>
+        </div>
       </div>
-
-      {savedEvents.length === 0 ? (
-        <Card className="text-center p-5">
-          <Card.Body>
-            <FaBookmark size={48} className="text-muted mb-3" />
-            <h3>No saved events yet</h3>
-            <p>Events you bookmark will appear here</p>
-          </Card.Body>
-        </Card>
-      ) : (
-        <Row>
-          {savedEvents.map(event => (
-            <Col md={4} key={event._id} className="mb-4">
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <Card.Title>{event.name}</Card.Title>
-                    <Badge bg={getBadgeColor(event.eventType)}>
-                      {event.eventType}
-                    </Badge>
-                  </div>
-                  <Card.Text>{event.description}</Card.Text>
-                  {renderEventDetails(event)}
-                  {event.location && (
-                    <Card.Text>
-                      <FaMapMarkerAlt className="me-2" />
-                      <strong>Location:</strong>{' '}
-                      {typeof event.location === 'object' && event.location.coordinates 
-                        ? event.location.coordinates.join(', ')
-                        : event.location}
-                    </Card.Text>
-                  )}
-                </Card.Body>
-                <Card.Footer className="bg-white border-top-0 p-3">
-                  <Button
-                    variant="outline-danger"
-                    onClick={() => removeFromSaved(event._id)}
-                    className="w-100"
-                  >
-                    <FaTrash className="me-2" />
-                    Remove from Saved
-                  </Button>
-                </Card.Footer>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-    </Container>
+      <Container className="mt-5">
+        {savedEvents.length === 0 ? (
+          <Card className="text-center p-5">
+            <Card.Body>
+              <FaBookmark size={48} className="text-muted mb-3" />
+              <h3>No saved events yet</h3>
+              <p>Events you bookmark will appear here</p>
+            </Card.Body>
+          </Card>
+        ) : (
+          <Row>
+            {savedEvents.map(event => (
+              <Col md={4} key={event._id} className="mb-4">
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <Card.Title>{event.name}</Card.Title>
+                      <Badge bg={getBadgeColor(event.eventType)}>
+                        {event.eventType}
+                      </Badge>
+                    </div>
+                    <Card.Text>{event.description}</Card.Text>
+                    {renderEventDetails(event)}
+                    {event.location && (
+                      <Card.Text>
+                        <FaMapMarkerAlt className="me-2" />
+                        <strong>Location:</strong>{' '}
+                        {typeof event.location === 'object' && event.location.coordinates
+                          ? event.location.coordinates.join(', ')
+                          : event.location}
+                      </Card.Text>
+                    )}
+                  </Card.Body>
+                  <Card.Footer className="bg-white border-top-0 p-3">
+                    <Button
+                      variant="outline-danger"
+                      onClick={() => removeFromSaved(event._id)}
+                      className="w-100"
+                    >
+                      <FaTrash className="me-2" />
+                      Remove from Saved
+                    </Button>
+                  </Card.Footer>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Container>
+    </>
   );
 };
 
