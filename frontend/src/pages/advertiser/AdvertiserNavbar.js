@@ -9,6 +9,7 @@ import {
   FaKey
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "./logo.png";
 
 const AdvertiserNavbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,9 +68,12 @@ const AdvertiserNavbar = () => {
       style={{ transition: "background-color 0.3s ease" }}
     >
       <div className="container">
-       {/* Logo */}
-<Link className="navbar-brand" to="/advertiser" style={logoStyle}>
-  Tripify<span style={{ fontSize: "14px" }}>Travel Agency</span>
+      <Link className="navbar-brand" to="/">
+  <img
+    src={logo}
+    alt="Tripify Logo"
+    style={{ height: "40px", objectFit: "contain" }} // Adjust height to fit your design
+  />
 </Link>
 
         {/* Mobile Menu Button */}
