@@ -44,6 +44,29 @@ Whether you're a seasoned traveler looking for curated experiences or a first-ti
 
 The motivation behind Tripify stems from a shared passion for travel and a desire to eliminate the frustration often associated with planning trips. By integrating advanced features, automation, and user-friendly design, we aim to inspire people to explore the world with confidence and ease.
 
+
+## 👀 Quick Look
+
+<div align="center">
+  <!-- For GitHub-hosted .mp4 video -->
+  <video width="600" controls>
+    <source src="assets/tripify-preview.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  </div>
+
+
+
+Experience Tripify in action! This quick preview showcases our key features:
+- User-friendly registration and authentication
+- Seamless booking experience
+- Interactive itinerary planning
+- Real-time notifications
+- And much more!
+
+
+
+
 ## 🧱 Build Status
 
 - Current Build Status: Under active development, not yet stable for production use.
@@ -2941,10 +2964,39 @@ Common error responses across all endpoints:
 
 ## 🧪 Tests
 
+We use `Postman` to manually test all our api references by making sure the response is as expected. We use it as some kind of sanity-check. Automatic Jest tests will be available in the near future. Our current test suite includes 19 test cases covering:
 
-We use `Postman` to manually test all our api references by making sure the response is as expected. We use it as some kind of sanity-check. Automatic Jest tests will be available in the near future.
+- User Authentication & Registration
+- Booking Management
+- Payment Operations 
+- Content Management (Activities, Historical Places, Itineraries)
+- Review Systems
+- Complaint Handling
+- Loyalty Program Operations
 
-Here is an example of testing one of our endpoints using Postman:
+### Test Our API
+You can run our complete test suite yourself:
+
+1. Access our [Tripify API Tests Collection](https://www.postman.com/telecoms-saganist-47627496/tripify/collection/jcue42t/tripify-api-tests?action=share&creator=38609348)
+2. Click "Run in Postman" 
+3. Set up your environment variables:
+baseUrl: http://localhost:5000/api
+touristToken: [Your JWT token]
+advertiserToken: [Your JWT token]
+governorToken: [Your JWT token]
+guideToken: [Your JWT token]
+4. Run the tests individually or as a complete suite
+
+Here's an example of testing one of our endpoints:
+
+<img 
+ src="assets/postman.png" 
+ alt="Tripify Logo" 
+ width="400" 
+ style="margin-bottom: 20px;" 
+/>
+
+The test collection includes automated token handling and comprehensive validation for responses. Future updates will include automated Jest tests for continuous integration.
 
  <img 
     src="assets/postman.png" 
@@ -2990,6 +3042,163 @@ cd Tripify/frontend
 npm start
 ```
 
+### 🌟 Quick Start
+1. Visit our website
+2. Choose your user type
+3. Register/Login to access features
+4. Accept Terms & Conditions
+
+### 👨‍💼 For Admins
+1. Dashboard Access
+   - Log in with admin credentials
+   - View system statistics and user metrics
+   - Monitor all activities
+
+2. User Management
+   - Verify new Tour Guides/Sellers/Advertisers
+   - Review uploaded documents
+   - Manage user accounts
+
+3. Content Moderation
+   - Review flagged content
+   - Approve/reject activities
+   - Monitor historical places
+
+4. Promotions
+   - Create promo codes
+   - Set discounts and validity periods
+   - Track promo code usage
+
+### 🧳 For Tourists
+1. Account Setup
+   - Create your profile
+   - Set preferences
+   - Add delivery addresses
+
+2. Booking Activities
+   - Browse available activities
+   - Check dates and pricing
+   - Use filters to find perfect matches
+   - Book and pay securely
+
+3. Transportation & Accommodation
+   - Book flights
+   - Reserve hotels
+   - Arrange transportation
+
+4. Wallet & Loyalty
+   - Add funds to wallet
+   - Track loyalty points
+   - Redeem points for rewards
+
+5. Social Features
+   - Rate experiences
+   - Write reviews
+   - Add items to wishlist
+   - File complaints if needed
+
+### 🎫 For Tour Guides
+1. Profile Management
+   - Upload required documents
+   - Set availability
+   - Update experience details
+
+2. Itinerary Management
+   - Create new itineraries
+   - Set pricing and dates
+   - Add activities and details
+   - Manage bookings
+
+3. Business Tools
+   - View booking calendar
+   - Track earnings
+   - Generate sales reports
+   - View tourist feedback
+
+### 🏪 For Sellers
+1. Store Setup
+   - Complete verification
+   - Upload business documents
+   - Set up product catalog
+
+2. Product Management
+   - Add new products
+   - Update inventory
+   - Set prices
+   - Manage product images
+
+3. Order Processing
+   - View incoming orders
+   - Process shipments
+   - Track deliveries
+   - Handle returns
+
+4. Performance Tracking
+   - View sales reports
+   - Monitor ratings
+   - Track revenue
+
+### 📢 For Advertisers
+1. Account Setup
+   - Complete business verification
+   - Upload required documents
+   - Set company details
+
+2. Activity Management
+   - Create new activities
+   - Set dates and pricing
+   - Upload activity images
+   - Manage bookings
+
+3. Transportation Services
+   - List transportation options
+   - Set availability
+   - Manage bookings
+   - Update pricing
+
+4. Analytics
+   - View booking statistics
+   - Track revenue
+   - Monitor activity performance
+   - Generate reports
+
+### 🏛️ For Tourism Governors
+1. Historical Place Management
+   - Add new historical places
+   - Update information
+   - Set ticket prices
+   - Manage availability
+
+2. Content Control
+   - Update place descriptions
+   - Add historical context
+   - Upload images
+   - Manage tags
+
+3. Monitoring
+   - Track visitor numbers
+   - View booking statistics
+   - Monitor ratings and reviews
+
+### 💡 Tips for All Users
+1. Security
+   - Use strong passwords
+   - Enable notifications
+   - Keep contact info updated
+   - Review account activity
+
+2. Support
+   - Access help documentation
+   - Contact customer service
+   - Report issues
+   - Submit feedback
+
+3. Updates
+   - Check for new features
+   - Read system notifications
+   - Stay informed about changes
+
+Need more help? Contact our support team at support@tripify.com
 ## 🤝 Contribute
 
 We welcome contributions to Tripify. If you want to contribute, it's as easy as:
