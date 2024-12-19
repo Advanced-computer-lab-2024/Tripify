@@ -48,12 +48,8 @@ The motivation behind Tripify stems from a shared passion for travel and a desir
 ## 👀 Quick Look
 
 <div align="center">
-  <!-- For GitHub-hosted .mp4 video -->
-  <video width="600" controls>
-    <source src="assets/tripify-preview.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-  </div>
+  <img src="assets/tripify-preview.gif" alt="Tripify Demo" width="600"/>
+</div>
 
 
 
