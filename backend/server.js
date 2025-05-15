@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path"; // Import path module
 import { connectDB } from "./config/db.js";
-import Preference from "./models/preference.model.js"; // Imported for handling preferences
+// import Preference from "./models/preference.model.js"; 
+import Preference from "./models/preference.model.js"; // Import the Preference model
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -32,6 +33,8 @@ import { runBookingNotificationCheck } from "./services/bookingReminder.js";
 import notificationRoutes from "./routes/notification.route.js";
 import stripeRoutes from "./routes/stripe.route.js";
 import wishlistRoutes from './routes/wishlist.route.js';
+import aichatRoutes from "./routes/ai_chat.routes.js";
+// import populatePinecone from "./utils/populatePinecone.js"; // Import your function to populate Pinecone
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +56,15 @@ const runBirthdayPromoCheck = async () => {
     console.error("Birthday promo check failed:", error);
   }
 };
+const populatePineconedata = async () => {
+  console.log("Populating Pinecone...");
+  try {
+    populatePinecone();
+    console.log("Pinecone populated successfully.");
+  } catch (error) {
+    console.error("Error populating Pinecone:", error);
+  }
+};
 
 // Database connection
 connectDB()
@@ -64,6 +76,7 @@ connectDB()
       // Run birthday check when server starts
       await runBirthdayPromoCheck();
       await runBookingNotificationCheck();
+      // await populatePineconedata();
 
       //Check every hour while server is running
       setInterval(runBirthdayPromoCheck, 1000 * 60 * 60);
@@ -101,6 +114,7 @@ app.use("/api/transportation", transportationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stripe", stripeRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use("/api/aichat", aichatRoutes);
 
 // Tourist preferences routes
 const router = express.Router();
